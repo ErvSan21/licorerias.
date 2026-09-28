@@ -19,12 +19,13 @@ En `.env.local` (no se sube a git):
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (o `NEXT_PUBLIC_SUPABASE_ANON_KEY`)
 - `SUPABASE_SERVICE_ROLE_KEY` — solo servidor. El `service_role` se salta RLS.
+- `NEXT_PUBLIC_APP_URL`, `WHATSAPP_CLAVE` y `WA_VERIFY_TOKEN` — las usa el seguimiento y WhatsApp. La lista para Vercel está en Despliegue.
 
-Aún no hay un proyecto Supabase enlazado. Sin esas variables la pantalla de login explica qué falta y no llama a Auth.
+Sin esas variables la pantalla de login explica qué falta y no llama a Auth.
 
 ## Base de datos
 
-Aplica `supabase/migrations/20260928120000_fundacion_multitenant.sql` en el SQL editor de Supabase (o con `supabase db push` cuando el proyecto exista).
+Aplica las migraciones de `supabase/migrations` en orden (`npx supabase db push --linked --yes` cuando el proyecto está enlazado). `supabase/seed.sql` no corre con ese comando: crea dos tiendas de demostración con licencia vigente y hay que lanzarlo aparte.
 
 La migración espera `auth.users` y `auth.uid()`, que Supabase ya trae. El archivo `supabase/tests/preparar_auth.sql` es solo un stub para Postgres local: no lo apliques en Supabase.
 
@@ -248,3 +249,68 @@ Cómo probarlo:
 3. Entra como vendedor: el menú no tiene Reportes y la dirección responde que no existe.
 4. Pulsa Exportar CSV. El botón dice «Exportando…» y baja un archivo con ventas, cancelaciones e inventario.
 5. Un rango de más de un año no se consulta.
+
+## Módulo 13: endurecimiento y despliegue
+
+Un usuario de la tienda A no lee la tienda B (`npm run test:aislamiento`). El gerente de la sucursal 1 no ve ni edita la sucursal 2. El vendedor no ejecuta las funciones de precio. `POST /api/pedidos` ignora precio, envío, distancia y `tiendaId` del navegador: el recojo cobra el precio del catálogo y envío 0. Dos compras a la vez de la última unidad dejan un solo pedido. Las rutas públicas (`/api/pedidos`, `/api/envio`, el seguimiento, el precio y la verificación de WhatsApp) responden 429 al pasar de 30 por minuto por IP. El `POST` del webhook sigue en 200 para que Meta no reintente. Un JSON que no es un objeto responde «La solicitud no es válida.»
+
+Los cambios masivos de precio (`precio.ajuste_central`, `precio.ajuste_propio`, `precio.volver_todos`, `precio.copiar`), la suspensión (`licencia.suspender`) y el alta de personal (`personal.invitar`) ya escriben en `auditoria`. Un fallo de esa escritura no deshace la acción.
+
+`supabase/seed.sql` crea `demo-centro` (1 sucursal, precio central) y `demo-cadena` (3 sucursales; Norte con precio propio de Bs 18 y el resto con el central de Bs 22). Las dos tienen licencia activa. No toca otras tiendas. Si `/t/esquina` dice «Tienda no disponible», la licencia de esa tienda no está vigente: la semilla no la abre.
+
+```bash
+npm run test:endurecimiento
+```
+
+Cómo probarlo:
+
+1. `npm run dev` (puerto 5000).
+2. En Postgres local, el comando de arriba termina con `Endurecimiento OK`.
+3. Para ver las tiendas de demostración en el proyecto enlazado, aplica `supabase/seed.sql` en el SQL editor. No usa `db push`. Abre http://localhost:5000/t/demo-centro y http://localhost:5000/t/demo-cadena.
+4. `POST /api/pedidos` con un `precio` o un `tiendaId` en el JSON no cambia el cobro. Un cuerpo `[]` responde 400 con «La solicitud no es válida.»
+5. Repetir `POST /api/envio` más de 30 veces en un minuto responde 429. El envío de la otra ruta sigue disponible.
+
+## Despliegue
+
+No se ejecutó vercel-optimize: la aplicación no está desplegada y no tiene tráfico en Vercel.
+
+### Variables en Vercel
+
+Copia los nombres de `.env.local.example`. Los valores salen del panel de Supabase y de Meta. No los pongas en el repositorio.
+
+- `NEXT_PUBLIC_SUPABASE_URL`: Project URL.
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` o `NEXT_PUBLIC_SUPABASE_ANON_KEY`: clave publicable. Una de las dos.
+- `SUPABASE_SERVICE_ROLE_KEY`: clave secret del servidor. No uses el prefijo `NEXT_PUBLIC_`.
+- `NEXT_PUBLIC_APP_URL`: origen público, por ejemplo `https://tu-dominio.vercel.app`. Lo usan el seguimiento y el saludo de WhatsApp.
+- `WHATSAPP_CLAVE`: 32 bytes en base64. Solo servidor. Cifra el token de Meta.
+- `WA_VERIFY_TOKEN`: el mismo texto que configuras en el webhook de Meta. Solo servidor.
+
+### Supabase
+
+1. Crea el proyecto y enlázalo con la CLI. `npx supabase db push --linked --yes` aplica `supabase/migrations`. Ahí están Row Level Security (RLS), las funciones `security definer` y los buckets.
+2. No desactives RLS. `anon` no lee las tablas de negocio. El navegador usa la clave publicable. El servidor usa `service_role` y vuelve a comprobar tienda, sucursal y rol.
+3. Storage: el bucket `productos` permite lectura pública y escritura al personal, en `{tienda_id}/productos/`. El bucket `marca` permite lectura pública. La escritura de logo y banner la hace el servidor, en `{tienda_id}/marca/`.
+4. Realtime: la migración agrega `public.pedidos` a la publicación `supabase_realtime` si esa publicación existe. En el dashboard, confirma que la tabla `pedidos` tiene Realtime activo. El panel escucha los pedidos de la tienda con la sesión del personal.
+5. Auth: activa el acceso por correo. Crea el usuario del super admin e inserta su `user_id` en `super_admins`. El dueño entra por la invitación del panel `/super`.
+6. La semilla es opcional y no corre con `db push`.
+
+### Meta
+
+1. En el panel de la tienda, http://localhost:5000/t/{slug}/whatsapp, guarda el identificador del número y el de la cuenta de WhatsApp Business. El token queda cifrado.
+2. En Meta, el webhook apunta a `https://TU_DOMINIO/api/whatsapp`. El token de verificación es `WA_VERIFY_TOKEN`.
+3. Suscribe el campo `messages`. Un evento de estado o un número desconocido responden 200 y no crean el pedido.
+
+### Vercel con Git
+
+1. Sube el repositorio a GitHub. No subas `.env.local`, `supabase/.gitignore` ni `supabase/config.toml` si tienen datos locales.
+2. En Vercel, importa ese repositorio. El framework es Next.js. El comando de desarrollo del proyecto usa el puerto 5000. En Vercel el start lo define la plataforma.
+3. Carga las variables de la lista de arriba en Production y Preview.
+4. Elige la rama de producción. Cada push a esa rama despliega. No hace falta el CLI de Vercel para publicar.
+5. Después del primer despliegue, pon en `NEXT_PUBLIC_APP_URL` la URL que te dio Vercel y vuelve a desplegar para que los enlaces de WhatsApp usen ese origen.
+
+### Respaldo
+
+1. En el plan de Supabase que incluye copias, activa el respaldo diario desde el dashboard (Database, Backups).
+2. Para una copia propia: `pg_dump` de la base, fuera del repositorio. El archivo tiene datos de clientes. No lo subas a Git.
+3. Para probar una restauración, levanta un proyecto vacío, restaura el volcado y aplica las migraciones que falten. Entra a `/super` y abre un pedido de prueba. No restaures encima de producción sin esa prueba.
+4. Anota quién guarda la clave de la copia y cada cuánto se renueva. La clave `service_role` y `WHATSAPP_CLAVE` se rotan en Vercel, no dentro del volcado.

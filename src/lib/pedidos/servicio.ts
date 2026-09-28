@@ -14,10 +14,6 @@ import { ROLES_TIENDA, type RolTienda } from "@/lib/tenant";
 import { notificarEstado } from "./avisos";
 import {
   NegocioError,
-  normalizarTelefono,
-  parseDireccion,
-  parseNombreCliente,
-  parseReferencia,
   rangoDiaBolivia,
   seguimientoDesdeJson,
   type EstadoPedido,
@@ -263,48 +259,6 @@ export async function cambiarEstadoPedido(slug: string, pedidoId: string, estado
     detalle: { pedido_id: pedido.id, estado },
   });
   return notificarEstado(pedido.id, estado);
-}
-
-export function pedidoDesdeJson(cuerpo: Record<string, unknown>): {
-  sucursalId: string;
-  nombre: string;
-  telefono: string;
-  tipo: "delivery" | "recojo";
-  lat: number | null;
-  lng: number | null;
-  direccion: string;
-  referencia: string;
-  horaRecojo: string | null;
-  items: { productoId: string; cantidad: number }[];
-} {
-  const tipo = cuerpo.tipo === "delivery" ? "delivery" : cuerpo.tipo === "recojo" ? "recojo" : null;
-  if (!tipo) throw new NegocioError("El tipo de entrega no es válido.");
-  const crudos = Array.isArray(cuerpo.items) ? cuerpo.items : [];
-  const items = crudos.map((item) => {
-    if (!item || typeof item !== "object") throw new NegocioError("Agrega un producto.");
-    const fila = item as { productoId?: unknown; cantidad?: unknown };
-    const productoId = String(fila.productoId ?? "");
-    const cantidad = Number(fila.cantidad);
-    if (!esUuid(productoId) || !Number.isInteger(cantidad) || cantidad <= 0 || cantidad > 99) {
-      throw new NegocioError("La cantidad tiene que ser mayor que cero.");
-    }
-    return { productoId, cantidad };
-  });
-  if (items.length === 0) throw new NegocioError("Agrega un producto.");
-  const hora = cuerpo.horaRecojo == null || cuerpo.horaRecojo === "" ? null : String(cuerpo.horaRecojo);
-  if (hora && Number.isNaN(new Date(hora).getTime())) throw new NegocioError("Elige una hora con más anticipación.");
-  return {
-    sucursalId: String(cuerpo.sucursalId ?? ""),
-    nombre: parseNombreCliente(cuerpo.nombre),
-    telefono: normalizarTelefono(cuerpo.telefono),
-    tipo,
-    lat: cuerpo.lat == null || cuerpo.lat === "" ? null : Number(cuerpo.lat),
-    lng: cuerpo.lng == null || cuerpo.lng === "" ? null : Number(cuerpo.lng),
-    direccion: tipo === "delivery" ? parseDireccion(cuerpo.direccion) : "",
-    referencia: parseReferencia(cuerpo.referencia),
-    horaRecojo: hora,
-    items,
-  };
 }
 
 async function leerItems(ids: string[], tiendaId: string) {

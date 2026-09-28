@@ -1,6 +1,9 @@
+import { limitarPublico } from "@/lib/endurecimiento/solicitud";
 import { procesarWebhook } from "@/lib/whatsapp";
 
 export async function GET(request: Request) {
+  const frenado = limitarPublico(request, "wa");
+  if (frenado) return frenado;
   const url = new URL(request.url);
   const modo = url.searchParams.get("hub.mode");
   const token = url.searchParams.get("hub.verify_token");

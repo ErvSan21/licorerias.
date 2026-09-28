@@ -7,6 +7,7 @@ import {
   intervaloSeguimientoMs,
   mensajeSeguimiento,
   normalizarTelefono,
+  pedidoDesdeJson,
   pasosSeguimiento,
   rangoDiaBolivia,
   seguimientoDesdeJson,
@@ -69,4 +70,33 @@ test("el día de Bolivia cubre el offset -04", () => {
     hasta: "2026-12-24T23:59:59-04:00",
   });
   assert.equal(rangoDiaBolivia("24-12-2026"), null);
+});
+
+test("el cliente no fija precio, envío ni tienda", () => {
+  const pedido = pedidoDesdeJson({
+    sucursalId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    nombre: "Ana",
+    telefono: "71234567",
+    tipo: "recojo",
+    items: [
+      {
+        productoId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        cantidad: 1,
+        precio: 1,
+      },
+    ],
+    precio: 1,
+    costoEnvio: 99,
+    envio: 99,
+    tiendaId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+    distanciaKm: 40,
+  });
+  assert.deepEqual(pedido.items, [
+    { productoId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", cantidad: 1 },
+  ]);
+  assert.equal("precio" in pedido, false);
+  assert.equal("costoEnvio" in pedido, false);
+  assert.equal("envio" in pedido, false);
+  assert.equal("tiendaId" in pedido, false);
+  assert.equal("distanciaKm" in pedido, false);
 });
