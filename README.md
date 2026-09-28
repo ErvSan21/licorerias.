@@ -81,3 +81,21 @@ Cómo probarlo:
 2. Cambia Abierta. Si la licencia no está vigente, el cambio se revierte y el panel sigue en solo lectura.
 3. Invita a un gerente con una sucursal. Con el plan Básico, la segunda sucursal activa responde que se alcanzó el máximo.
 4. `GET /api/t/{slug}/sucursales` sin sesión responde 401.
+
+## Módulo 3: catálogo y precios
+
+El dueño carga productos en http://localhost:5000/t/{slug}/productos, con imagen (se comprime a 800 px) y el precio central. En http://localhost:5000/t/{slug}/productos/precios cada sucursal muestra si usa el precio central o el propio. El gerente, en su sucursal, puede pasar a precio propio si la tienda lo permite. El margen máximo y el bloqueo viven en la configuración de esa pantalla. Las acciones masivas piden confirmación y quedan en auditoría y en el historial.
+
+El cupo de productos del plan se aplica al crear o reactivar. La imagen se guarda en `{tienda_id}/productos/...`: el personal de la tienda escribe y cualquiera puede leer.
+
+```bash
+npm run test:catalogo
+```
+
+Cómo probarlo:
+
+1. Entra como dueño en http://localhost:5000/t/{slug}/productos y crea un producto con imagen y sucursales.
+2. Abre Precios. Cambia el central y el propio de una sucursal. El historial del producto muestra ambos.
+3. Como gerente, en tu sucursal, pasa un producto a precio propio. Si el dueño apaga “Las sucursales pueden fijar su precio”, vuelve al central.
+4. Con el plan Básico, al pasar de 200 productos activos el alta responde que se alcanzó el máximo.
+5. `GET /api/t/{slug}/productos` sin sesión responde 401.
