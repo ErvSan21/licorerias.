@@ -12,6 +12,7 @@
     "test:licencias": "node --experimental-strip-types --test src/lib/licencias/reglas.test.ts && bash scripts/probar-licencias.sh",
     "test:sucursales": "node --experimental-strip-types --import ./scripts/cargar-alias.mjs --test src/lib/sucursales/reglas.test.ts && bash scripts/probar-sucursales.sh",
     "test:catalogo": "node --experimental-strip-types --import ./scripts/cargar-alias.mjs --test src/lib/catalogo/reglas.test.ts && bash scripts/probar-catalogo.sh",
+    "test:inventario": "node --experimental-strip-types --import ./scripts/cargar-alias.mjs --test src/lib/inventario/reglas.test.ts && bash scripts/probar-inventario.sh",
     "test:aislamiento": "bash scripts/probar-aislamiento.sh"
   },
   "dependencies": {

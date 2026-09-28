@@ -99,3 +99,20 @@ Cómo probarlo:
 3. Como gerente, en tu sucursal, pasa un producto a precio propio. Si el dueño apaga “Las sucursales pueden fijar su precio”, vuelve al central.
 4. Con el plan Básico, al pasar de 200 productos activos el alta responde que se alcanzó el máximo.
 5. `GET /api/t/{slug}/productos` sin sesión responde 401.
+
+## Módulo 4: inventario por sucursal
+
+El stock vive en cada sucursal, en http://localhost:5000/t/{slug}/inventario. Se agrupa por categoría y marca el stock bajo. Reponer y ajustar piden motivo. Transferir pide confirmación y, si el producto no está en el destino, hay que ofrecerlo ahí primero. El vendedor solo consulta. El CSV se descarga e importa con las columnas sucursal, categoria, producto, stock y stock_minimo. La sucursal del archivo es el slug.
+
+```bash
+npm run test:inventario
+```
+
+Cómo probarlo:
+
+1. Entra como dueño en http://localhost:5000/t/{slug}/inventario. Elige una sucursal en la barra.
+2. Reponer una cantidad con motivo. El stock sube y «Ver movimientos» muestra la reposición.
+3. Ajusta el stock contado. Si pides más salida de la que hay, responde que no hay stock suficiente.
+4. Transfiere a otra sucursal donde el producto ya se ofrece. Confirma el diálogo. Si no se ofrece, el mensaje pide definir la disponibilidad.
+5. Como vendedor, la misma pantalla no muestra botones de cambio.
+6. `GET /api/t/{slug}/inventario` sin sesión responde 401.

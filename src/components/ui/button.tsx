@@ -60,6 +60,7 @@ export function Button({
   if (loading && !cargaVista) setCargaVista(true);
   if (!loading && cargaVista) {
     setCargaVista(false);
+    bloqueoRef.current = false;
     if (bloqueo) setBloqueo(false);
   }
   if (success !== firmaExito) {
@@ -71,6 +72,8 @@ export function Button({
   const mensaje = typeof error === "string" ? error : null;
   const hayError = Boolean(error);
   const muestraCheck = success && !ocupado && !exitoTerminado;
+  const cargaRef = useRef(Boolean(loading));
+  cargaRef.current = Boolean(loading);
 
   useEffect(() => {
     if (bloqueo) return;
@@ -89,12 +92,12 @@ export function Button({
       <button
         {...resto}
         type={type}
-        disabled={Boolean(disabled) || ocupado}
-        aria-disabled={Boolean(disabled) || ocupado}
+        disabled={Boolean(disabled)}
+        aria-disabled={Boolean(disabled) || ocupado || undefined}
         aria-describedby={mensaje ? errorId : undefined}
         aria-labelledby={muestraCheck ? estadoId : undefined}
         className={cx(
-          "ui-boton ui-movimiento inline-flex w-full touch-manipulation items-center justify-center rounded-lg font-medium disabled:cursor-not-allowed disabled:opacity-50",
+          "ui-boton ui-movimiento inline-flex w-full touch-manipulation items-center justify-center rounded-lg font-medium disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50",
           VARIANTES[variant],
           TAMANOS[size],
           hayError && !ocupado && "ui-sacudir",
@@ -112,7 +115,10 @@ export function Button({
             () => {
               if (!controlaCarga) return;
               bloqueoRef.current = true;
-              setBloqueo(true);
+              // En un submit, deshabilitar el botón dentro del clic cancela el
+              // envío y useFormStatus no vuelve a false: el login se queda en
+              // «Entrando…». El candado visual lo pone `loading`.
+              if (type !== "submit") setBloqueo(true);
             },
           );
           if (!permitido) {
@@ -121,6 +127,11 @@ export function Button({
             return;
           }
           onClick?.(event);
+          if (type === "submit") {
+            window.setTimeout(() => {
+              if (!cargaRef.current) bloqueoRef.current = false;
+            }, 400);
+          }
         }}
       >
         <span className="inline-grid items-center justify-items-center">

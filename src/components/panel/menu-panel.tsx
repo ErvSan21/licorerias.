@@ -22,6 +22,9 @@ export function MenuDueno({ slug }: { slug: string }) {
       <Enlace href={`/t/${slug}/productos/precios`} activo={actual === "precios"}>
         Precios
       </Enlace>
+      <Enlace href={`/t/${slug}/inventario`} activo={actual === "inventario"}>
+        Inventario
+      </Enlace>
     </nav>
   );
 }
@@ -42,13 +45,20 @@ export function MenuOperacion({ slug }: { slug: string }) {
       <Enlace href={`/t/${slug}/productos/precios`} activo={actual === "precios"}>
         Precios
       </Enlace>
+      <Enlace href={`/t/${slug}/inventario`} activo={actual === "inventario"}>
+        Inventario
+      </Enlace>
     </nav>
   );
 }
 
-function seccion(pathname: string, slug: string): "inicio" | "sucursales" | "personal" | "productos" | "precios" {
+function seccion(
+  pathname: string,
+  slug: string,
+): "inicio" | "sucursales" | "personal" | "productos" | "precios" | "inventario" {
   if (pathname.startsWith(`/t/${slug}/personal`)) return "personal";
   if (pathname.startsWith(`/t/${slug}/sucursales`)) return "sucursales";
+  if (pathname.startsWith(`/t/${slug}/inventario`)) return "inventario";
   if (pathname.startsWith(`/t/${slug}/productos/precios`)) return "precios";
   if (pathname.startsWith(`/t/${slug}/productos`)) return "productos";
   return "inicio";

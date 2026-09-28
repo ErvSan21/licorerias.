@@ -29,6 +29,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="es" className={`${geist.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "try{var m=performance.measure.bind(performance);performance.measure=function(){try{return m.apply(performance,arguments)}catch(e){if(!e||String(e.message).indexOf('negative time stamp')===-1)throw e}}}catch(e){}",
+          }}
+        />
         <a
           href="#contenido"
           className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-[max(1rem,env(safe-area-inset-top))] focus:z-[100] focus:rounded-lg focus:bg-white focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-zinc-900 dark:focus:bg-zinc-950 dark:focus:text-zinc-100"
