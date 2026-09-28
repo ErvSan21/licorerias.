@@ -150,3 +150,19 @@ Cómo probarlo:
 4. En «Probar un punto», mueve el pin y pulsa Calcular envío. Verás el costo o «Fuera de zona».
 5. «Usar mi ubicación» pide permiso. Si lo niegas, el mapa explica que puedes mover el pin.
 6. `POST /api/envio` sin un JSON válido responde 400. `GET /api/t/{slug}/envio/tarifas` sin sesión responde 401.
+
+## Módulo 7: pedidos y estados
+
+Los pedidos del panel están en http://localhost:5000/t/{slug}/pedidos. El cliente los crea con `POST /api/pedidos`. El servidor ignora precios, envío y tienda del navegador: el recojo queda con envío 0 y sin coordenadas; el delivery se recalcula con las tarifas de la sucursal. El stock baja en esa sucursal y, si se cancela, vuelve a la misma. Un pedido nuevo se resalta dos segundos. El aviso de WhatsApp todavía no se envía.
+
+```bash
+npm run test:pedidos
+```
+
+Cómo probarlo:
+
+1. Entra como dueño, gerente o vendedor en http://localhost:5000/t/{slug}/pedidos.
+2. Filtra por estado, entrega, sucursal o fecha. Un recojo programado muestra la hora y, con el filtro Recojo, queda ordenado por la más próxima.
+3. En un pedido nuevo pulsa Aceptar pedido. Luego Marcar como listo. En delivery sigue Marcar como enviado. Cancelar pide confirmación y devuelve el stock.
+4. Abre Ver historial para ver los estados. Delivery incluye dirección y Ver ubicación.
+5. `POST /api/pedidos` con ítems, sucursal, tipo y teléfono crea el pedido (201). Un precio enviado en el JSON no se cobra. Sin sesión, `POST /api/admin/pedidos/{id}/estado` responde 401.

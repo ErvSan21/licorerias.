@@ -34,6 +34,9 @@ export function MenuDueno({ slug }: { slug: string }) {
       <Enlace href={`/t/${slug}/envio`} activo={actual === "envio"}>
         Envío
       </Enlace>
+      <Enlace href={`/t/${slug}/pedidos`} activo={actual === "pedidos"}>
+        Pedidos
+      </Enlace>
     </nav>
   );
 }
@@ -63,6 +66,9 @@ export function MenuOperacion({ slug }: { slug: string }) {
       <Enlace href={`/t/${slug}/envio`} activo={actual === "envio"}>
         Envío
       </Enlace>
+      <Enlace href={`/t/${slug}/pedidos`} activo={actual === "pedidos"}>
+        Pedidos
+      </Enlace>
     </nav>
   );
 }
@@ -70,9 +76,10 @@ export function MenuOperacion({ slug }: { slug: string }) {
 function seccion(
   pathname: string,
   slug: string,
-): "inicio" | "sucursales" | "personal" | "productos" | "precios" | "inventario" | "ofertas" | "colecciones" | "envio" {
+): "inicio" | "sucursales" | "personal" | "productos" | "precios" | "inventario" | "ofertas" | "colecciones" | "envio" | "pedidos" {
   if (pathname.startsWith(`/t/${slug}/personal`)) return "personal";
   if (pathname.startsWith(`/t/${slug}/sucursales`)) return "sucursales";
+  if (pathname.startsWith(`/t/${slug}/pedidos`)) return "pedidos";
   if (pathname.startsWith(`/t/${slug}/envio`)) return "envio";
   if (pathname.startsWith(`/t/${slug}/colecciones`)) return "colecciones";
   if (pathname.startsWith(`/t/${slug}/ofertas`)) return "ofertas";
