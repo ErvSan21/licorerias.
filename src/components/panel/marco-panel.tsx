@@ -1,20 +1,16 @@
 import Link from "next/link";
 
-import { salir } from "@/app/login/actions";
 import { AvisoSoloLectura } from "@/components/aviso-solo-lectura";
-import { BotonPendiente } from "@/components/boton-pendiente";
 import { AvisoPedidos } from "@/components/panel/aviso-pedidos";
 import { MenuDueno, MenuOperacion } from "@/components/panel/menu-panel";
-import {
-  BarraSucursalesAsignadas,
-  BarraSucursalesDueno,
-  SelectorTiendas,
-} from "@/components/panel/selector-contexto";
+import { MenuPerfilTienda, type SucursalMenu } from "@/components/panel/menu-perfil";
+import { SelectorTiendas } from "@/components/panel/selector-contexto";
 import { BotonTema } from "@/components/ui/boton-tema";
+import { usuarioVerificado } from "@/lib/auth/staff";
 import type { ContextoPanel } from "@/lib/auth/panel";
 import { etiquetaRol } from "@/lib/tenant";
 
-export function MarcoPanel({
+export async function MarcoPanel({
   contexto,
   children,
 }: {
@@ -22,11 +18,12 @@ export function MarcoPanel({
   children: React.ReactNode;
 }) {
   const { tienda, staff, vigente, sucursales, tiendas, seleccion } = contexto;
-  const activas = sucursales.filter((sucursal) => sucursal.activa || sucursal.id === seleccion);
+  const usuario = await usuarioVerificado();
+  const paraMenu = sucursalesDeMenu(sucursales, seleccion);
   const iniciales = tienda.nombre.trim().slice(0, 1).toUpperCase() || "L";
 
   return (
-    <AvisoPedidos sucursales={activas.map((sucursal) => sucursal.id)}>
+    <AvisoPedidos sucursales={paraMenu.map((sucursal) => sucursal.id)}>
       <div className="panel-marco">
         <header className="panel-barra">
           <div className="panel-barra-fila">
@@ -42,9 +39,12 @@ export function MarcoPanel({
             </div>
             <div className="panel-barra-acciones">
               <BotonTema />
-              <form action={salir} className="panel-salir">
-                <BotonPendiente idle="Salir" pending="Saliendo…" variant="contorno" />
-              </form>
+              <MenuPerfilTienda
+                correo={usuario?.email ?? ""}
+                slug={tienda.slug}
+                sucursales={paraMenu}
+                seleccion={seleccion}
+              />
             </div>
           </div>
           {tiendas.length > 1 ? (
@@ -62,11 +62,6 @@ export function MarcoPanel({
               ))}
             </SelectorTiendas>
           ) : null}
-          {staff.rol === "dueno" ? (
-            <BarraSucursalesDueno slug={tienda.slug} sucursales={activas} seleccion={seleccion} />
-          ) : (
-            <BarraSucursalesAsignadas slug={tienda.slug} sucursales={activas} seleccion={seleccion} />
-          )}
         </header>
         <div id="contenido" className="panel-cuerpo">
           {vigente ? null : <AvisoSoloLectura />}
@@ -80,4 +75,26 @@ export function MarcoPanel({
       </div>
     </AvisoPedidos>
   );
+}
+
+function sucursalesDeMenu(
+  sucursales: ContextoPanel["sucursales"],
+  seleccion: string | null,
+): SucursalMenu[] {
+  const ordenadas = sucursales.toSorted(
+    (a, b) => a.orden - b.orden || a.nombre.localeCompare(b.nombre, "es"),
+  );
+  const idCentral = ordenadas[0]?.id ?? null;
+  return ordenadas
+    .filter((sucursal) => sucursal.activa || sucursal.id === seleccion)
+    .toSorted((a, b) => {
+      if (a.id === idCentral) return -1;
+      if (b.id === idCentral) return 1;
+      return a.orden - b.orden || a.nombre.localeCompare(b.nombre, "es");
+    })
+    .map((sucursal) => ({
+      id: sucursal.id,
+      nombre: sucursal.nombre,
+      central: sucursal.id === idCentral,
+    }));
 }

@@ -20,7 +20,7 @@ export default async function PanelPage({
 
   return (
     <main className="flex flex-col gap-3">
-      <h2 className="text-lg font-semibold">Inicio</h2>
+      <h2 className="text-lg font-semibold">Dashboard</h2>
       <p className="text-sm leading-6 text-zinc-700 dark:text-zinc-300">
         {elegida
           ? `Estás viendo ${elegida.nombre}.`

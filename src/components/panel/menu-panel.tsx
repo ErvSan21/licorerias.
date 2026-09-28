@@ -9,6 +9,7 @@ import { Drawer } from "@/components/ui/drawer";
 
 type Seccion =
   | "inicio"
+  | "ventas"
   | "vitrina"
   | "sucursales"
   | "personal"
@@ -29,16 +30,17 @@ type Destino = {
   icono: IconoNombre;
 };
 
-type IconoNombre = "tienda" | "pedidos" | "precios" | "inventario" | "mas";
+type IconoNombre = "tienda" | "ventas" | "pedidos" | "precios" | "inventario" | "mas";
 
-const PRINCIPALES: Destino["id"][] = ["inicio", "pedidos", "precios", "inventario"];
+const PRINCIPALES: Destino["id"][] = ["inicio", "ventas", "pedidos", "precios"];
 
 export function MenuDueno({ slug }: { slug: string }) {
   return (
     <MenuFlotante
       slug={slug}
       destinos={[
-        destino(slug, "inicio", "Tienda", "tienda"),
+        destino(slug, "inicio", "Dashboard", "tienda"),
+        destino(slug, "ventas", "Ventas", "ventas"),
         destino(slug, "pedidos", "Pedidos", "pedidos"),
         destino(slug, "precios", "Precios", "precios"),
         destino(slug, "inventario", "Inventario", "inventario"),
@@ -57,7 +59,8 @@ export function MenuDueno({ slug }: { slug: string }) {
 
 export function MenuOperacion({ slug, verReportes = false }: { slug: string; verReportes?: boolean }) {
   const destinos: Destino[] = [
-    destino(slug, "inicio", "Tienda", "tienda"),
+    destino(slug, "inicio", "Dashboard", "tienda"),
+    destino(slug, "ventas", "Ventas", "ventas"),
     destino(slug, "pedidos", "Pedidos", "pedidos"),
     destino(slug, "precios", "Precios", "precios"),
     destino(slug, "inventario", "Inventario", "inventario"),
@@ -160,6 +163,14 @@ function Icono({ nombre }: { nombre: IconoNombre }) {
     strokeLinejoin: "round" as const,
     "aria-hidden": true,
   };
+  if (nombre === "ventas") {
+    return (
+      <svg {...props}>
+        <path d="M6 7h12l-1 11H7L6 7z" />
+        <path d="M9 7a3 3 0 0 1 6 0" />
+      </svg>
+    );
+  }
   if (nombre === "pedidos") {
     return (
       <svg {...props}>
@@ -205,6 +216,7 @@ function Icono({ nombre }: { nombre: IconoNombre }) {
 
 function seccion(pathname: string, slug: string): Seccion {
   if (pathname === `/t/${slug}/panel`) return "inicio";
+  if (pathname.startsWith(`/t/${slug}/ventas`)) return "ventas";
   if (pathname === `/t/${slug}` || pathname.startsWith(`/t/${slug}/s/`)) return "vitrina";
   if (pathname.startsWith(`/t/${slug}/personal`)) return "personal";
   if (pathname.startsWith(`/t/${slug}/sucursales`)) return "sucursales";
