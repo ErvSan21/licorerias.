@@ -5,7 +5,7 @@ import { salir } from "@/app/login/actions";
 import { LoginForm } from "@/app/login/login-form";
 import { BotonPendiente } from "@/components/boton-pendiente";
 import { AccesoError } from "@/lib/auth/errors";
-import { usuarioVerificado } from "@/lib/auth/staff";
+import { usuarioEsSuperAdmin, usuarioVerificado } from "@/lib/auth/staff";
 import { tiendasDelUsuario, type TiendaDelUsuario } from "@/lib/auth/tiendas";
 import { supabaseConfigurado } from "@/lib/supabase/env";
 import { destinoTrasLogin, etiquetaEstado, etiquetaRol } from "@/lib/tenant";
@@ -48,13 +48,24 @@ export default async function LoginPage({
   }
 
   const tiendas = await tiendasDelUsuario(user.id);
+  const superAdmin = await usuarioEsSuperAdmin(user.id);
+  if (siguiente === "/super" && superAdmin) redirect("/super");
   if (siguiente && tiendas.some((tienda) => `/t/${tienda.slug}` === siguiente)) {
     redirect(siguiente);
   }
-  if (tiendas.length === 1) redirect(`/t/${tiendas[0].slug}`);
+  if (tiendas.length === 0 && superAdmin) redirect("/super");
+  if (tiendas.length === 1 && !superAdmin) redirect(`/t/${tiendas[0].slug}`);
 
   return (
     <Marco titulo="Tus tiendas">
+      {superAdmin ? (
+        <Link
+          href="/super"
+          className="mb-4 flex min-h-12 items-center rounded-lg border border-zinc-300 px-3 py-2 font-medium dark:border-zinc-700"
+        >
+          Panel de la plataforma
+        </Link>
+      ) : null}
       {tiendas.length === 0 ? (
         <p className="text-sm leading-6">Tu usuario no pertenece a ninguna tienda.</p>
       ) : (

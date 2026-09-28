@@ -4,6 +4,7 @@ import { cache } from "react";
 
 import { NoEncontrado } from "@/lib/auth/errors";
 import { requireStaff, type Staff } from "@/lib/auth/staff";
+import { licenciaVigente } from "@/lib/licencias/servicio";
 import { createServiceClient } from "@/lib/supabase/service";
 import {
   esEstadoTienda,
@@ -59,11 +60,14 @@ export const cargarPanel = cache(async (slugCrudo: string) => {
   const tienda = await resolveTenantBySlug(slug);
   if (!tienda) throw new NoEncontrado();
 
-  const staff: Staff = await requireStaff({
-    tiendaId: tienda.id,
-    sucursalId: null,
-    roles: ROLES_TIENDA,
-  });
+  const [staff, vigente] = await Promise.all([
+    requireStaff({
+      tiendaId: tienda.id,
+      sucursalId: null,
+      roles: ROLES_TIENDA,
+    }),
+    licenciaVigente(tienda.id),
+  ]);
 
-  return { tienda, staff };
+  return { tienda, staff: staff as Staff, vigente };
 });

@@ -1,10 +1,14 @@
 import { notFound, redirect, unstable_rethrow } from "next/navigation";
 
 import { salir } from "@/app/login/actions";
+import { AvisoSoloLectura } from "@/components/aviso-solo-lectura";
 import { BotonPendiente } from "@/components/boton-pendiente";
+import { TiendaNoDisponible } from "@/components/tienda-no-disponible";
 import { AccesoError, NoEncontrado } from "@/lib/auth/errors";
-import { cargarPanel } from "@/lib/auth/panel";
-import { etiquetaEstado, etiquetaRol, normalizarSlug } from "@/lib/tenant";
+import { cargarPanel, resolveTenantBySlug } from "@/lib/auth/panel";
+import { usuarioVerificado } from "@/lib/auth/staff";
+import { licenciaVigente } from "@/lib/licencias/servicio";
+import { etiquetaEstado, etiquetaRol, normalizarSlug, slugReservado, slugValido } from "@/lib/tenant";
 
 export default async function PanelPage({
   params,
@@ -12,11 +16,24 @@ export default async function PanelPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const contexto = await leerPanel(slug);
+  const normalizado = normalizarSlug(slug);
+  const anonimo = await visitaAnonima(normalizado);
+  if (anonimo === "no_disponible") return <TiendaNoDisponible slug={normalizado} />;
+  if (anonimo === "no_encontrado") notFound();
+  if (anonimo === "configuracion") {
+    return (
+      <main className="mx-auto w-full max-w-md px-4 py-10">
+        <h1 className="text-xl font-semibold">Configuración</h1>
+        <p className="mt-3 text-sm leading-6">Falta la configuración de Supabase en el servidor.</p>
+      </main>
+    );
+  }
+
+  const contexto = await leerPanel(normalizado);
 
   if (contexto === "no_encontrado") notFound();
   if (contexto === "login") {
-    redirect(`/login?siguiente=${encodeURIComponent(`/t/${normalizarSlug(slug)}`)}`);
+    redirect(`/login?siguiente=${encodeURIComponent(`/t/${normalizado}`)}`);
   }
 
   if (contexto === "configuracion") {
@@ -28,7 +45,7 @@ export default async function PanelPage({
     );
   }
 
-  const { tienda, staff } = contexto;
+  const { tienda, staff, vigente } = contexto;
 
   return (
     <>
@@ -51,7 +68,8 @@ export default async function PanelPage({
           </form>
         </div>
       </header>
-      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-2 px-4 py-6">
+      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-3 px-4 py-6">
+        {vigente ? null : <AvisoSoloLectura />}
         <h2 className="text-lg font-semibold">Inicio</h2>
         <p className="text-sm leading-6 text-zinc-700 dark:text-zinc-300">
           Sesión de {etiquetaRol(staff.rol)} en {tienda.nombre}. El catálogo, las sucursales y los
@@ -60,6 +78,24 @@ export default async function PanelPage({
       </main>
     </>
   );
+}
+
+async function visitaAnonima(slug: string) {
+  if (!slugValido(slug) || slugReservado(slug)) return "no_encontrado" as const;
+  try {
+    const user = await usuarioVerificado();
+    if (user) return "sesion" as const;
+    const tienda = await resolveTenantBySlug(slug);
+    if (!tienda) return "no_encontrado" as const;
+    const vigente = await licenciaVigente(tienda.id);
+    return vigente ? ("login" as const) : ("no_disponible" as const);
+  } catch (error) {
+    unstable_rethrow(error);
+    if (error instanceof AccesoError && error.codigo === "configuracion") {
+      return "configuracion" as const;
+    }
+    throw error;
+  }
 }
 
 async function leerPanel(slug: string) {

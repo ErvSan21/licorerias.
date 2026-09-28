@@ -9,6 +9,7 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test:ui": "node --experimental-strip-types --test src/components/ui/ui-sistema.test.ts",
+    "test:licencias": "node --experimental-strip-types --test src/lib/licencias/reglas.test.ts && bash scripts/probar-licencias.sh",
     "test:aislamiento": "bash scripts/probar-aislamiento.sh"
   },
   "dependencies": {

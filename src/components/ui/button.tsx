@@ -94,7 +94,7 @@ export function Button({
         aria-describedby={mensaje ? errorId : undefined}
         aria-labelledby={muestraCheck ? estadoId : undefined}
         className={cx(
-          "ui-boton ui-movimiento inline-flex w-full items-center justify-center rounded-lg font-medium disabled:cursor-not-allowed disabled:opacity-50",
+          "ui-boton ui-movimiento inline-flex w-full touch-manipulation items-center justify-center rounded-lg font-medium disabled:cursor-not-allowed disabled:opacity-50",
           VARIANTES[variant],
           TAMANOS[size],
           hayError && !ocupado && "ui-sacudir",

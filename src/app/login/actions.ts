@@ -4,7 +4,7 @@ import { redirect, unstable_rethrow } from "next/navigation";
 
 import { registrarAuditoria } from "@/lib/auth/auditoria";
 import { AccesoError } from "@/lib/auth/errors";
-import { usuarioVerificado } from "@/lib/auth/staff";
+import { usuarioEsSuperAdmin, usuarioVerificado } from "@/lib/auth/staff";
 import { tiendasDelUsuario } from "@/lib/auth/tiendas";
 import { createClient } from "@/lib/supabase/server";
 import { destinoTrasLogin } from "@/lib/tenant";
@@ -35,11 +35,14 @@ export async function entrar(_estado: EstadoLogin, formData: FormData): Promise<
     });
 
     const tiendas = await tiendasDelUsuario(user.id);
+    const superAdmin = await usuarioEsSuperAdmin(user.id);
+    if (siguiente === "/super" && superAdmin) redirect("/super");
     if (siguiente) {
       const slug = siguiente.slice("/t/".length);
       if (tiendas.some((tienda) => tienda.slug === slug)) redirect(siguiente);
     }
-    if (tiendas.length === 1) redirect(`/t/${tiendas[0].slug}`);
+    if (tiendas.length === 0 && superAdmin) redirect("/super");
+    if (tiendas.length === 1 && !superAdmin) redirect(`/t/${tiendas[0].slug}`);
   } catch (error) {
     unstable_rethrow(error);
     if (error instanceof AccesoError && error.codigo === "configuracion") {

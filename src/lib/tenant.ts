@@ -79,6 +79,7 @@ export function etiquetaEstado(estado: EstadoTienda): string {
 
 /** Solo /t/{slug} con un slug usable. Evita redirigir fuera de la app. */
 export function destinoTrasLogin(valor: string | null | undefined): string | null {
+  if (valor === "/super") return "/super";
   if (!valor || !valor.startsWith("/t/")) return null;
   if (valor.includes("\\") || valor.includes("?") || valor.includes("#") || valor.includes("//")) {
     return null;

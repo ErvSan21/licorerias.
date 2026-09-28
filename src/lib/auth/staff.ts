@@ -84,7 +84,20 @@ export async function requireStaff(input: {
   };
 }
 
-export async function requireSuperAdmin(): Promise<{ userId: string }> {
+export const usuarioEsSuperAdmin = cache(async (userId: string) => {
+  const service = createServiceClient();
+  const { data, error } = await service
+    .from("super_admins")
+    .select("user_id")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  const fila = data as { user_id: string } | null;
+  return Boolean(fila && fila.user_id === userId);
+});
+
+export const requireSuperAdmin = cache(async (): Promise<{ userId: string }> => {
   const user = await usuarioVerificado();
   if (!user) throw new AccesoError("no_autenticado");
 
@@ -100,4 +113,4 @@ export async function requireSuperAdmin(): Promise<{ userId: string }> {
   const fila = data as { user_id: string } | null;
   if (!fila || fila.user_id !== user.id) throw new AccesoError("prohibido");
   return { userId: user.id };
-}
+});

@@ -8,7 +8,7 @@ export async function GET(
   const { slug } = await params;
 
   try {
-    const { tienda, staff } = await cargarPanel(slug);
+    const { tienda, staff, vigente } = await cargarPanel(slug);
     return Response.json(
       {
         tienda: {
@@ -18,6 +18,7 @@ export async function GET(
           estado: tienda.estado,
         },
         rol: staff.rol,
+        licenciaVigente: vigente,
       },
       { headers: { "Cache-Control": "private, no-store" } },
     );
