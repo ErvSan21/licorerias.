@@ -6,7 +6,7 @@ export default function ErrorPanel({ reset }: { error: Error; reset: () => void 
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 py-10">
       <ErrorState
-        titulo="No se pudo abrir el panel"
+        titulo="No se pudo abrir esta página"
         descripcion="Inténtalo de nuevo. Si sigue fallando, vuelve a entrar."
         onRetry={reset}
       />

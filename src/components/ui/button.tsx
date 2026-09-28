@@ -60,7 +60,6 @@ export function Button({
   if (loading && !cargaVista) setCargaVista(true);
   if (!loading && cargaVista) {
     setCargaVista(false);
-    bloqueoRef.current = false;
     if (bloqueo) setBloqueo(false);
   }
   if (success !== firmaExito) {
@@ -73,12 +72,15 @@ export function Button({
   const hayError = Boolean(error);
   const muestraCheck = success && !ocupado && !exitoTerminado;
   const cargaRef = useRef(Boolean(loading));
-  cargaRef.current = Boolean(loading);
 
   useEffect(() => {
-    if (bloqueo) return;
+    cargaRef.current = Boolean(loading);
+  }, [loading]);
+
+  useEffect(() => {
+    if (bloqueo || loading) return;
     bloqueoRef.current = false;
-  }, [bloqueo]);
+  }, [bloqueo, loading]);
 
   useEffect(() => {
     if (!muestraCheck) return;

@@ -37,12 +37,12 @@ export async function entrar(_estado: EstadoLogin, formData: FormData): Promise<
     const tiendas = await tiendasDelUsuario(user.id);
     const superAdmin = await usuarioEsSuperAdmin(user.id);
     if (siguiente === "/super" && superAdmin) redirect("/super");
-    if (siguiente) {
-      const slug = siguiente.slice("/t/".length);
+    if (siguiente && siguiente.startsWith("/t/")) {
+      const slug = siguiente.slice("/t/".length).split("/")[0];
       if (tiendas.some((tienda) => tienda.slug === slug)) redirect(siguiente);
     }
     if (tiendas.length === 0 && superAdmin) redirect("/super");
-    if (tiendas.length === 1 && !superAdmin) redirect(`/t/${tiendas[0].slug}`);
+    if (tiendas.length === 1 && !superAdmin) redirect(`/t/${tiendas[0].slug}/panel`);
   } catch (error) {
     unstable_rethrow(error);
     if (error instanceof AccesoError && error.codigo === "configuracion") {

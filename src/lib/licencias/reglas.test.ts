@@ -74,5 +74,7 @@ test("el dinero y la fecha salen en español de Bolivia", () => {
 test("después de entrar se puede volver al panel de la plataforma", () => {
   assert.equal(destinoTrasLogin("/super"), "/super");
   assert.equal(destinoTrasLogin("/super/tiendas"), null);
-  assert.equal(destinoTrasLogin("/t/esquina"), "/t/esquina");
+  assert.equal(destinoTrasLogin("/t/esquina"), "/t/esquina/panel");
+  assert.equal(destinoTrasLogin("/t/esquina/panel"), "/t/esquina/panel");
+  assert.equal(destinoTrasLogin("/t/esquina/productos"), null);
 });

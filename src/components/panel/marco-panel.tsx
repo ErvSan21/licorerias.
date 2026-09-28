@@ -41,7 +41,7 @@ export function MarcoPanel({
               {tiendas.map((item) => (
                 <Link
                   key={item.id}
-                  href={`/t/${item.slug}`}
+                  href={`/t/${item.slug}/panel`}
                   aria-current={item.id === tienda.id ? "page" : undefined}
                   translate="no"
                   className="inline-flex min-h-11 touch-manipulation items-center rounded-lg border border-zinc-300 px-3 text-sm font-medium underline-offset-4 aria-[current=page]:border-zinc-900 aria-[current=page]:font-semibold aria-[current=page]:underline dark:border-zinc-700 dark:aria-[current=page]:border-zinc-100"

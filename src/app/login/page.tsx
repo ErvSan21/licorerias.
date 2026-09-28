@@ -50,11 +50,12 @@ export default async function LoginPage({
   const tiendas = await tiendasDelUsuario(user.id);
   const superAdmin = await usuarioEsSuperAdmin(user.id);
   if (siguiente === "/super" && superAdmin) redirect("/super");
-  if (siguiente && tiendas.some((tienda) => `/t/${tienda.slug}` === siguiente)) {
-    redirect(siguiente);
+  if (siguiente?.startsWith("/t/")) {
+    const slug = siguiente.slice("/t/".length).split("/")[0];
+    if (tiendas.some((tienda) => tienda.slug === slug)) redirect(siguiente);
   }
   if (tiendas.length === 0 && superAdmin) redirect("/super");
-  if (tiendas.length === 1 && !superAdmin) redirect(`/t/${tiendas[0].slug}`);
+  if (tiendas.length === 1 && !superAdmin) redirect(`/t/${tiendas[0].slug}/panel`);
 
   return (
     <Marco titulo="Tus tiendas">
@@ -87,7 +88,7 @@ export default async function LoginPage({
 function LinkTienda({ tienda }: { tienda: TiendaDelUsuario }) {
   return (
     <Link
-      href={`/t/${tienda.slug}`}
+      href={`/t/${tienda.slug}/panel`}
       className="flex min-h-12 items-center justify-between gap-3 rounded-lg border border-zinc-300 px-3 py-2 dark:border-zinc-700"
     >
       <span className="font-medium">{tienda.nombre}</span>

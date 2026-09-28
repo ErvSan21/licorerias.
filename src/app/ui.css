@@ -289,6 +289,20 @@ a,
   animation: pedido-resalte 2s ease forwards;
 }
 
+.carrito-salto.ui-movimiento {
+  animation: carrito-salto 280ms ease;
+}
+
+@keyframes carrito-salto {
+  40% {
+    transform: translateY(-6px);
+  }
+}
+
+.tienda-atenuada {
+  transition: opacity 150ms ease;
+}
+
 @keyframes pedido-resalte {
   from {
     opacity: 1;
@@ -336,5 +350,11 @@ a,
   .pedido-resalte {
     animation: none;
     opacity: 0.45;
+  }
+
+  .carrito-salto,
+  .tienda-atenuada {
+    animation: none;
+    transition: none;
   }
 }

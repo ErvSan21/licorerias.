@@ -166,3 +166,20 @@ Cómo probarlo:
 3. En un pedido nuevo pulsa Aceptar pedido. Luego Marcar como listo. En delivery sigue Marcar como enviado. Cancelar pide confirmación y devuelve el stock.
 4. Abre Ver historial para ver los estados. Delivery incluye dirección y Ver ubicación.
 5. `POST /api/pedidos` con ítems, sucursal, tipo y teléfono crea el pedido (201). Un precio enviado en el JSON no se cobra. Sin sesión, `POST /api/admin/pedidos/{id}/estado` responde 401.
+
+## Módulo 8: tienda pública
+
+La tienda está en http://localhost:5000/t/{slug}. Si hay una sola sucursal, entra directo. Si hay varias, eliges o usas tu ubicación. El catálogo de una sucursal está en http://localhost:5000/t/{slug}/s/{sucursal}. El panel del personal pasó a http://localhost:5000/t/{slug}/panel. Al entrar, la tienda pregunta si eres mayor de 18. Una licencia que no está vigente muestra «Tienda no disponible».
+
+```bash
+npm run test:vitrina
+```
+
+Cómo probarlo:
+
+1. Abre http://localhost:5000/t/{slug} sin entrar. Confirma la edad y elige sucursal. Los productos muestran el precio de esa sucursal. Una oferta tacha el precio anterior y dice OFERTA. Agotado no deja agregar y no muestra cuántas unidades quedan.
+2. Busca un producto: mientras escribes, la lista anterior se atenúa. Filtra por categoría.
+3. Agrega al carrito. El contador da un pequeño salto. Cambia de sucursal: si un precio cambió o el producto ya no está, lo avisa.
+4. Con la sucursal cerrada puedes mirar, pero no confirmar. Con recojo, el envío es 0. Con delivery, mueve el pin: verás «Calculando envío...» y luego el total, o «Fuera de zona de entrega».
+5. `?tel=5917XXXXXXX` rellena el celular. Confirmar pedido dice «Enviando pedido…» y luego «Pedido recibido».
+6. Entra como personal: Inicio abre http://localhost:5000/t/{slug}/panel.

@@ -85,8 +85,10 @@ export function destinoTrasLogin(valor: string | null | undefined): string | nul
     return null;
   }
 
-  const slug = valor.slice("/t/".length);
+  const [slug, extra, ...resto] = valor.slice("/t/".length).split("/");
   if (!slug || normalizarSlug(slug) !== slug) return null;
   if (!slugValido(slug) || slugReservado(slug)) return null;
-  return `/t/${slug}`;
+  if (resto.length > 0) return null;
+  if (!extra || extra === "panel") return `/t/${slug}/panel`;
+  return null;
 }

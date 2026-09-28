@@ -1,8 +1,8 @@
 import { EstadoCarga, SkeletonCard } from "@/components/ui/skeleton";
 
-export default function CargandoTienda() {
+export default function CargandoSucursal() {
   return (
-    <EstadoCarga etiqueta="Cargando la tienda…" className="mx-auto grid w-full max-w-lg grid-cols-2 gap-3 px-4 py-6">
+    <EstadoCarga etiqueta="Cargando productos…" className="mx-auto grid w-full max-w-lg grid-cols-2 gap-3 px-4 py-6">
       <SkeletonCard />
       <SkeletonCard />
       <SkeletonCard />

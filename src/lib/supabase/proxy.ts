@@ -3,8 +3,14 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { clavePublica, supabaseUrl } from "@/lib/supabase/env";
 
+function continuar(request: NextRequest) {
+  const headers = new Headers(request.headers);
+  headers.set("x-ruta", request.nextUrl.pathname);
+  return NextResponse.next({ request: { headers } });
+}
+
 export async function updateSession(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request });
+  let supabaseResponse = continuar(request);
   const url = supabaseUrl();
   const key = clavePublica();
   if (!url || !key) return supabaseResponse;
@@ -18,7 +24,7 @@ export async function updateSession(request: NextRequest) {
         cookiesToSet.forEach(({ name, value }) => {
           request.cookies.set(name, value);
         });
-        supabaseResponse = NextResponse.next({ request });
+        supabaseResponse = continuar(request);
         cookiesToSet.forEach(({ name, value, options }) => {
           supabaseResponse.cookies.set(name, value, options);
         });

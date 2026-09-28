@@ -8,7 +8,7 @@ export function TiendaNoDisponible({ slug }: { slug: string }) {
         Esta tienda no está disponible en este momento.
       </p>
       <Link
-        href={`/login?siguiente=${encodeURIComponent(`/t/${slug}`)}`}
+        href={`/login?siguiente=${encodeURIComponent(`/t/${slug}/panel`)}`}
         className="mt-6 inline-flex min-h-11 touch-manipulation items-center text-sm font-medium underline-offset-4 hover:underline"
       >
         Entrar como personal

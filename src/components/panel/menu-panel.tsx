@@ -7,7 +7,7 @@ export function MenuDueno({ slug }: { slug: string }) {
   const actual = seccion(usePathname(), slug);
   return (
     <nav aria-label="Panel" className="flex flex-wrap gap-2">
-      <Enlace href={`/t/${slug}`} activo={actual === "inicio"}>
+      <Enlace href={`/t/${slug}/panel`} activo={actual === "inicio"}>
         Inicio
       </Enlace>
       <Enlace href={`/t/${slug}/sucursales`} activo={actual === "sucursales"}>
@@ -45,7 +45,7 @@ export function MenuOperacion({ slug }: { slug: string }) {
   const actual = seccion(usePathname(), slug);
   return (
     <nav aria-label="Panel" className="flex flex-wrap gap-2">
-      <Enlace href={`/t/${slug}`} activo={actual === "inicio"}>
+      <Enlace href={`/t/${slug}/panel`} activo={actual === "inicio"}>
         Inicio
       </Enlace>
       <Enlace href={`/t/${slug}/sucursales`} activo={actual === "sucursales"}>
@@ -76,7 +76,9 @@ export function MenuOperacion({ slug }: { slug: string }) {
 function seccion(
   pathname: string,
   slug: string,
-): "inicio" | "sucursales" | "personal" | "productos" | "precios" | "inventario" | "ofertas" | "colecciones" | "envio" | "pedidos" {
+): "inicio" | "vitrina" | "sucursales" | "personal" | "productos" | "precios" | "inventario" | "ofertas" | "colecciones" | "envio" | "pedidos" {
+  if (pathname === `/t/${slug}/panel`) return "inicio";
+  if (pathname === `/t/${slug}` || pathname.startsWith(`/t/${slug}/s/`)) return "vitrina";
   if (pathname.startsWith(`/t/${slug}/personal`)) return "personal";
   if (pathname.startsWith(`/t/${slug}/sucursales`)) return "sucursales";
   if (pathname.startsWith(`/t/${slug}/pedidos`)) return "pedidos";
@@ -86,7 +88,7 @@ function seccion(
   if (pathname.startsWith(`/t/${slug}/inventario`)) return "inventario";
   if (pathname.startsWith(`/t/${slug}/productos/precios`)) return "precios";
   if (pathname.startsWith(`/t/${slug}/productos`)) return "productos";
-  return "inicio";
+  return "vitrina";
 }
 
 function Enlace({ href, activo, children }: { href: string; activo: boolean; children: string }) {
