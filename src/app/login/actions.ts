@@ -1,6 +1,6 @@
 "use server";
 
-import { redirect } from "next/navigation";
+import { redirect, unstable_rethrow } from "next/navigation";
 
 import { registrarAuditoria } from "@/lib/auth/auditoria";
 import { AccesoError } from "@/lib/auth/errors";
@@ -41,6 +41,7 @@ export async function entrar(_estado: EstadoLogin, formData: FormData): Promise<
     }
     if (tiendas.length === 1) redirect(`/t/${tiendas[0].slug}`);
   } catch (error) {
+    unstable_rethrow(error);
     if (error instanceof AccesoError && error.codigo === "configuracion") {
       return { error: "Falta la configuración de Supabase en el servidor." };
     }

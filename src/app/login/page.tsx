@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { redirect, unstable_rethrow } from "next/navigation";
 
 import { salir } from "@/app/login/actions";
 import { LoginForm } from "@/app/login/login-form";
@@ -91,6 +91,7 @@ async function leerUsuario() {
   try {
     return await usuarioVerificado();
   } catch (error) {
+    unstable_rethrow(error);
     if (error instanceof AccesoError && error.codigo === "configuracion") {
       return "configuracion" as const;
     }

@@ -1,9 +1,8 @@
 import "server-only";
 
 import { cache } from "react";
-import { notFound, redirect } from "next/navigation";
 
-import { AccesoError, NoEncontrado } from "@/lib/auth/errors";
+import { NoEncontrado } from "@/lib/auth/errors";
 import { requireStaff, type Staff } from "@/lib/auth/staff";
 import { createServiceClient } from "@/lib/supabase/service";
 import {
@@ -68,17 +67,3 @@ export const cargarPanel = cache(async (slugCrudo: string) => {
 
   return { tienda, staff };
 });
-
-export async function exigirPanel(slug: string) {
-  try {
-    return await cargarPanel(slug);
-  } catch (error) {
-    if (error instanceof NoEncontrado) notFound();
-    if (error instanceof AccesoError && error.codigo === "no_autenticado") {
-      const destino = `/t/${normalizarSlug(slug)}`;
-      redirect(`/login?siguiente=${encodeURIComponent(destino)}`);
-    }
-    if (error instanceof AccesoError && error.codigo === "prohibido") notFound();
-    throw error;
-  }
-}
