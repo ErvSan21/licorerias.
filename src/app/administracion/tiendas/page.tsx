@@ -1,8 +1,8 @@
-import { InactivarTienda } from "@/components/administracion/inactivar-tienda";
+import { MenuTienda } from "@/components/administracion/menu-tienda";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { fechaAlta } from "@/lib/administracion/reglas";
-import { formatoFecha } from "@/lib/licencias/reglas";
+import { esPlazo, etiquetaPlazo, formatoFecha } from "@/lib/licencias/reglas";
 import { listarTiendas } from "@/lib/licencias/servicio";
 import { etiquetaEstado } from "@/lib/tenant";
 
@@ -18,13 +18,25 @@ export default async function TiendasPage() {
         <ul className="flex flex-col gap-3">
           {tiendas.map((tienda) => {
             const fin = tienda.licencia?.vence ?? null;
-            const puedeInactivar = tienda.estado === "activa" && Boolean(tienda.licencia);
+            const plazo = tienda.licencia && esPlazo(tienda.licencia.plazo) ? tienda.licencia.plazo : null;
             return (
               <li key={tienda.id}>
                 <Card className="flex flex-col gap-3 p-4">
                   <div className="flex items-start justify-between gap-3">
                     <h3 className="font-semibold">{tienda.nombre}</h3>
-                    <span className="text-sm text-[var(--mu)]">{etiquetaEstado(tienda.estado)}</span>
+                    <div className="flex items-center gap-1">
+                      <span className="text-sm text-[var(--mu)]">{etiquetaEstado(tienda.estado)}</span>
+                      <MenuTienda
+                        tienda={{
+                          id: tienda.id,
+                          nombre: tienda.nombre,
+                          estado: tienda.estado,
+                          inicio: tienda.licencia?.inicio ?? null,
+                          vence: fin,
+                          plazo,
+                        }}
+                      />
+                    </div>
                   </div>
                   <dl className="grid grid-cols-2 gap-3 text-sm">
                     <div>
@@ -35,14 +47,13 @@ export default async function TiendasPage() {
                     </div>
                     <div>
                       <dt className="text-[var(--mu)]">Fin</dt>
-                      <dd className="tabular-nums">{fin ? <time dateTime={fin}>{formatoFecha(fin)}</time> : "Sin fecha"}</dd>
+                      <dd className="tabular-nums">{fin ? <time dateTime={fin}>{formatoFecha(fin)}</time> : null}</dd>
                     </div>
                     <div className="col-span-2">
                       <dt className="text-[var(--mu)]">Plan</dt>
-                      <dd>{tienda.licencia?.plan.nombre ?? "Sin plan"}</dd>
+                      <dd>{plazo ? etiquetaPlazo(plazo) : "Sin plan"}</dd>
                     </div>
                   </dl>
-                  {puedeInactivar ? <InactivarTienda tiendaId={tienda.id} nombre={tienda.nombre} /> : null}
                 </Card>
               </li>
             );

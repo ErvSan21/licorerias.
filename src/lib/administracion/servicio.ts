@@ -47,7 +47,7 @@ export type Tablero = {
   hasta: string;
 };
 
-const CEROS: PreciosSuscripcion = { mes: 0, tres_meses: 0, anio: 0 };
+const CEROS: PreciosSuscripcion = { mensual: 0, trimestral: 0, anual: 0, demo: 0 };
 
 export async function leerTablero(): Promise<Tablero> {
   await requireSuperAdmin();
@@ -61,7 +61,7 @@ export async function leerTablero(): Promise<Tablero> {
     leerMetricas(desde, hasta),
   ]);
   const porVencer = tiendas.flatMap((tienda) => {
-    if (!proximaAVencer(tienda, hoy) || !tienda.licencia) return [];
+    if (!proximaAVencer(tienda, hoy) || !tienda.licencia?.vence) return [];
     return [{ id: tienda.id, nombre: tienda.nombre, vence: tienda.licencia.vence }];
   });
   const totales = metricas.reduce(
@@ -88,9 +88,10 @@ export async function leerTablero(): Promise<Tablero> {
 export async function guardarPrecios(input: Record<ClavePrecio, string>): Promise<void> {
   const { userId } = await requireSuperAdmin();
   const precios = {
-    mes: exigirMonto(input.mes, "1 mes"),
-    tres_meses: exigirMonto(input.tres_meses, "3 meses"),
-    anio: exigirMonto(input.anio, "1 año"),
+    mensual: exigirMonto(input.mensual, "mensual"),
+    trimestral: exigirMonto(input.trimestral, "trimestral"),
+    anual: exigirMonto(input.anual, "anual"),
+    demo: exigirMonto(input.demo, "demo"),
   };
   const service = createServiceClient();
   const filas = CLAVES_PRECIO.map((clave) => ({ clave, precio: precios[clave] }));
@@ -105,6 +106,33 @@ export async function guardarPrecios(input: Record<ClavePrecio, string>): Promis
 
 export async function inactivarTienda(tiendaId: string): Promise<void> {
   await suspenderLicencia(tiendaId);
+}
+
+export async function eliminarTienda(tiendaId: string): Promise<void> {
+  const { userId } = await requireSuperAdmin();
+  if (!esUuid(tiendaId)) throw new NegocioError("Tienda no encontrada.");
+  const service = createServiceClient();
+  const { data, error } = await service.from("tiendas").select("id, nombre").eq("id", tiendaId).maybeSingle();
+  if (error) throw new Error(error.message);
+  const tienda = data as { id: string; nombre: string } | null;
+  if (!tienda) throw new NegocioError("Tienda no encontrada.");
+
+  const pagos = await service.from("pagos_licencia").delete().eq("tienda_id", tiendaId);
+  if (pagos.error) throw new Error(pagos.error.message);
+  const auditoria = await service.from("auditoria").delete().eq("tienda_id", tiendaId);
+  if (auditoria.error) throw new Error(auditoria.error.message);
+  const pedidos = await service.from("pedidos").delete().eq("tienda_id", tiendaId);
+  if (pedidos.error) throw new Error(pedidos.error.message);
+  const productos = await service.from("productos").update({ categoria_id: null }).eq("tienda_id", tiendaId);
+  if (productos.error) throw new Error(productos.error.message);
+  const borrada = await service.from("tiendas").delete().eq("id", tiendaId);
+  if (borrada.error) throw new Error(borrada.error.message);
+
+  await registrarAuditoria({
+    userId,
+    accion: "administracion.tienda.eliminar",
+    detalle: { tienda_id: tiendaId, nombre: tienda.nombre },
+  });
 }
 
 export async function listarUsuarios(): Promise<{
@@ -284,11 +312,26 @@ async function leerPrecios(): Promise<PreciosSuscripcion> {
 
 async function leerIngresos(): Promise<IngresosSuscripcion> {
   const service = createServiceClient();
-  const { data, error } = await service.from("pagos_licencia").select("monto, periodo_desde, periodo_hasta");
-  if (error) throw new Error(error.message);
+  const [pagosRes, licenciasRes] = await Promise.all([
+    service.from("pagos_licencia").select("monto, periodo_desde, periodo_hasta, tienda_id"),
+    service.from("licencias").select("tienda_id, plazo"),
+  ]);
+  if (pagosRes.error) throw new Error(pagosRes.error.message);
+  if (licenciasRes.error) throw new Error(licenciasRes.error.message);
+  const plazoPorTienda = new Map(
+    ((licenciasRes.data ?? []) as { tienda_id: string; plazo: string }[]).map((fila) => [fila.tienda_id, fila.plazo]),
+  );
   const ingresos = { ...CEROS };
-  for (const fila of (data ?? []) as { monto: number | string; periodo_desde: string; periodo_hasta: string }[]) {
-    const clave = clavePorPeriodo(String(fila.periodo_desde).slice(0, 10), String(fila.periodo_hasta).slice(0, 10));
+  for (const fila of (pagosRes.data ?? []) as {
+    monto: number | string;
+    periodo_desde: string;
+    periodo_hasta: string;
+    tienda_id: string;
+  }[]) {
+    const clave =
+      plazoPorTienda.get(fila.tienda_id) === "demo"
+        ? "demo"
+        : clavePorPeriodo(String(fila.periodo_desde).slice(0, 10), String(fila.periodo_hasta).slice(0, 10));
     ingresos[clave] += Number(fila.monto) || 0;
   }
   return ingresos;
@@ -333,14 +376,14 @@ async function leerMetricas(desde: string, hasta: string): Promise<MetricaTienda
   );
 }
 
-function clavePorPeriodo(desde: string, hasta: string): ClavePrecio {
+function clavePorPeriodo(desde: string, hasta: string): Exclude<ClavePrecio, "demo"> {
   const inicio = Date.parse(`${desde}T12:00:00.000Z`);
   const fin = Date.parse(`${hasta}T12:00:00.000Z`);
-  if (!Number.isFinite(inicio) || !Number.isFinite(fin)) return "mes";
+  if (!Number.isFinite(inicio) || !Number.isFinite(fin)) return "mensual";
   const dias = Math.round((fin - inicio) / 86_400_000);
-  if (dias <= 45) return "mes";
-  if (dias <= 120) return "tres_meses";
-  return "anio";
+  if (dias <= 45) return "mensual";
+  if (dias <= 120) return "trimestral";
+  return "anual";
 }
 
 function exigirMonto(texto: string, etiqueta: string): number {

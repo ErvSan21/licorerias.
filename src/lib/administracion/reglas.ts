@@ -1,4 +1,4 @@
-export const CLAVES_PRECIO = ["mes", "tres_meses", "anio"] as const;
+export const CLAVES_PRECIO = ["mensual", "trimestral", "anual", "demo"] as const;
 export type ClavePrecio = (typeof CLAVES_PRECIO)[number];
 
 export type PreciosSuscripcion = Record<ClavePrecio, number>;

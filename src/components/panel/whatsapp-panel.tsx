@@ -2,24 +2,28 @@
 
 import { useState } from "react";
 
+import { guardarWhatsappAccion, probarWhatsappAccion } from "@/app/administracion/actions";
+import { PieHoja } from "@/components/administracion/pie-hoja";
 import { Campo, claseCampo, useAvisoSalida } from "@/components/super/campo";
 import { Button } from "@/components/ui/button";
+import { CampoContrasena } from "@/components/ui/campo-contrasena";
 import { useAsyncAction } from "@/components/ui/use-async-action";
 import type { VistaCredencial } from "@/lib/whatsapp/reglas";
 
 type Sucursal = { id: string; nombre: string };
 
 export function WhatsappPanel({
-  slug,
-  lectura,
+  tiendaId,
   sucursales,
   iniciales,
+  alCancelar,
 }: {
-  slug: string;
-  lectura: boolean;
+  tiendaId: string;
   sucursales: Sucursal[];
   iniciales: VistaCredencial[];
+  alCancelar: () => void;
 }) {
+  const formId = `wa-${tiendaId}`;
   const [credenciales, setCredenciales] = useState(iniciales);
   const [ambito, setAmbito] = useState("");
   const actual = credenciales.find((fila) => (fila.sucursalId ?? "") === ambito) ?? null;
@@ -43,56 +47,45 @@ export function WhatsappPanel({
 
   const guardar = useAsyncAction(async () => {
     setPruebaOk(null);
-    const respuesta = await fetch(`/api/t/${slug}/whatsapp`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        sucursalId: ambito || null,
-        phoneNumberId,
-        wabaId,
-        token: token || null,
-        activo,
-      }),
+    const resultado = await guardarWhatsappAccion(tiendaId, {
+      sucursalId: ambito || null,
+      phoneNumberId,
+      wabaId,
+      token: token || null,
+      activo,
     });
-    const cuerpo = (await respuesta.json().catch(() => null)) as { error?: string; credenciales?: VistaCredencial[] } | null;
-    if (!respuesta.ok || !cuerpo?.credenciales) {
-      throw new Error(cuerpo?.error || "No se pudo guardar. Revisa los datos e inténtalo de nuevo.");
-    }
-    setCredenciales(cuerpo.credenciales);
+    if (!resultado.ok) throw new Error(resultado.error);
+    setCredenciales(resultado.credenciales);
     setToken("");
     sucio.limpiar();
+    return resultado.aviso;
   });
 
   const probar = useAsyncAction(async () => {
     setPruebaOk(null);
-    const respuesta = await fetch(`/api/t/${slug}/whatsapp/prueba`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ sucursalId: ambito || null, telefono }),
-    });
-    const cuerpo = (await respuesta.json().catch(() => null)) as { error?: string } | null;
-    if (!respuesta.ok) {
-      throw new Error(cuerpo?.error || "No se pudo enviar. Revisa el número e inténtalo de nuevo.");
-    }
-    setPruebaOk("Mensaje de prueba enviado.");
+    const resultado = await probarWhatsappAccion(tiendaId, ambito || null, telefono);
+    if (!resultado.ok) throw new Error(resultado.error);
+    setPruebaOk(resultado.aviso);
+    return resultado.aviso;
   });
 
   return (
     <div className="flex flex-col gap-6">
       <form
-        className="flex max-w-lg flex-col gap-3"
+        id={formId}
+        className="flex flex-col gap-3"
         onSubmit={(event) => {
           event.preventDefault();
+          if (!event.currentTarget.reportValidity()) return;
           void guardar.run();
         }}
         onChange={() => sucio.marcarSucio()}
       >
-        <Campo id="wa-ambito" etiqueta="Dónde aplica">
+        <Campo id={`${formId}-ambito`} etiqueta="Dónde aplica">
           <select
-            id="wa-ambito"
+            id={`${formId}-ambito`}
             name="ambito"
             value={ambito}
-            disabled={lectura}
             onChange={(event) => elegir(event.target.value)}
             className={claseCampo}
           >
@@ -104,84 +97,81 @@ export function WhatsappPanel({
             ))}
           </select>
         </Campo>
-        <Campo id="wa-phone" etiqueta="Identificador del número" ayuda="El phone number ID de Meta. No es el celular.">
+        <Campo id={`${formId}-phone`} etiqueta="Identificador del número" ayuda="El phone number ID de Meta. No es el celular.">
           <input
-            id="wa-phone"
+            id={`${formId}-phone`}
             name="phone-number-id"
             inputMode="numeric"
             autoComplete="off"
             spellCheck={false}
             required
-            disabled={lectura}
             value={phoneNumberId}
             onChange={(event) => setPhoneNumberId(event.target.value)}
             className={claseCampo}
           />
         </Campo>
-        <Campo id="wa-waba" etiqueta="Identificador de la cuenta">
+        <Campo id={`${formId}-waba`} etiqueta="Identificador de la cuenta">
           <input
-            id="wa-waba"
+            id={`${formId}-waba`}
             name="waba-id"
             inputMode="numeric"
             autoComplete="off"
             spellCheck={false}
             required
-            disabled={lectura}
             value={wabaId}
             onChange={(event) => setWabaId(event.target.value)}
             className={claseCampo}
           />
         </Campo>
         <Campo
-          id="wa-token"
+          id={`${formId}-token`}
           etiqueta="Token"
-          ayuda={actual ? `Hay un token guardado que termina en ${actual.tokenUltimos}. Déjalo vacío para conservarlo.` : "Se guarda cifrado. No vuelve a mostrarse completo."}
+          ayuda={
+            actual
+              ? `Hay un token guardado que termina en ${actual.tokenUltimos}. Déjalo vacío para conservarlo.`
+              : "Se guarda cifrado. No vuelve a mostrarse completo."
+          }
         >
-          <input
-            id="wa-token"
+          <CampoContrasena
+            id={`${formId}-token`}
             name="token"
-            type="password"
             autoComplete="new-password"
             spellCheck={false}
             required={!actual}
             minLength={actual ? undefined : 20}
             maxLength={400}
-            disabled={lectura}
             value={token}
             onChange={(event) => setToken(event.target.value)}
+            nombreSecreto="token"
             className={claseCampo}
           />
         </Campo>
         <label className="flex min-h-11 items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            name="activo"
-            checked={activo}
-            disabled={lectura}
-            onChange={(event) => setActivo(event.target.checked)}
-          />
+          <input type="checkbox" name="activo" checked={activo} onChange={(event) => setActivo(event.target.checked)} />
           Activo
         </label>
-        <Button type="submit" loading={guardar.loading} loadingLabel="Guardando…" success={guardar.success} error={guardar.error ?? false} disabled={lectura}>
-          Guardar credenciales
-        </Button>
+        {guardar.error ? (
+          <p role="alert" className="text-sm text-red-700 dark:text-red-400">
+            {guardar.error}
+          </p>
+        ) : null}
       </form>
       <form
-        className="flex max-w-lg flex-col gap-3"
+        className="flex flex-col gap-3"
         onSubmit={(event) => {
           event.preventDefault();
+          if (!event.currentTarget.reportValidity()) return;
           void probar.run();
         }}
       >
-        <Campo id="wa-prueba" etiqueta="Celular de prueba" ayuda="Si la sucursal no tiene número propio, se usa el de la tienda.">
+        <Campo id={`${formId}-prueba`} etiqueta="Celular de prueba" ayuda="Si la sucursal no tiene número propio, se usa el de la tienda.">
           <input
-            id="wa-prueba"
+            id={`${formId}-prueba`}
             name="tel"
             type="tel"
             inputMode="tel"
             autoComplete="tel"
             required
-            disabled={lectura}
             value={telefono}
             onChange={(event) => setTelefono(event.target.value)}
             className={claseCampo}
@@ -192,18 +182,22 @@ export function WhatsappPanel({
             {pruebaOk}
           </p>
         ) : null}
+        {probar.error ? (
+          <p role="alert" className="text-sm text-red-700 dark:text-red-400">
+            {probar.error}
+          </p>
+        ) : null}
         <Button
           type="submit"
           variant="secundario"
           loading={probar.loading}
           loadingLabel="Enviando mensaje de prueba…"
           success={probar.success}
-          error={probar.error ?? false}
-          disabled={lectura}
         >
           Enviar mensaje de prueba
         </Button>
       </form>
+      <PieHoja form={formId} alCancelar={alCancelar} cargando={guardar.loading} />
     </div>
   );
 }

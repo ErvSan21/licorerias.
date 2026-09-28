@@ -4,6 +4,7 @@ import { useActionState } from "react";
 
 import { entrar, type EstadoLogin } from "@/app/login/actions";
 import { BotonPendiente } from "@/components/boton-pendiente";
+import { CampoContrasena } from "@/components/ui/campo-contrasena";
 
 const inicial: EstadoLogin = { error: null };
 
@@ -31,13 +32,12 @@ export function LoginForm({ siguiente }: { siguiente: string | null }) {
         <label htmlFor="password" className="text-sm font-medium">
           Contraseña
         </label>
-        <input
+        <CampoContrasena
           id="password"
           name="password"
-          type="password"
           autoComplete="current-password"
           required
-          className="h-12 rounded-lg border border-zinc-300 bg-white px-3 text-base dark:border-zinc-700 dark:bg-zinc-950"
+          className="h-12 w-full rounded-lg border border-zinc-300 bg-white px-3 text-base dark:border-zinc-700 dark:bg-zinc-950"
         />
       </div>
       {estado.error ? (

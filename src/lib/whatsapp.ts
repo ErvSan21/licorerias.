@@ -1,10 +1,9 @@
 import "server-only";
 
 import { registrarAuditoria } from "@/lib/auth/auditoria";
-import { NoEncontrado } from "@/lib/auth/errors";
-import { resolveTenantBySlug } from "@/lib/auth/panel";
-import { requireStaff } from "@/lib/auth/staff";
-import { exigirLicenciaParaEscribir } from "@/lib/licencias/servicio";
+import { AccesoError } from "@/lib/auth/errors";
+import { requireSuperAdmin } from "@/lib/auth/staff";
+import { esUuid } from "@/lib/licencias/reglas";
 import { normalizarTelefono } from "@/lib/pedidos/reglas";
 import { createServiceClient } from "@/lib/supabase/service";
 
@@ -41,27 +40,49 @@ type FilaCredencial = {
   activo: boolean;
 };
 
-export async function listarCredenciales(slug: string): Promise<VistaCredencial[]> {
-  const tienda = await tiendaDueno(slug);
+export type WhatsappTienda = {
+  sucursales: { id: string; nombre: string }[];
+  credenciales: VistaCredencial[];
+};
+
+export async function listarCredenciales(_slug: string): Promise<VistaCredencial[]> {
+  void _slug;
+  throw new AccesoError("prohibido");
+}
+
+export async function leerWhatsappTienda(tiendaId: string): Promise<WhatsappTienda> {
+  await requireSuperAdmin();
+  const tienda = await tiendaParaWhatsapp(tiendaId);
   const service = createServiceClient();
-  const { data, error } = await service
-    .from("credenciales_whatsapp")
-    .select("sucursal_id, phone_number_id, waba_id, token_ultimos, activo")
-    .eq("tienda_id", tienda.id);
-  if (error) throw new Error(error.message);
-  return ((data ?? []) as Omit<FilaCredencial, "id" | "tienda_id" | "token_cifrado">[]).map((fila) =>
-    vistaCredencial({
-      sucursalId: fila.sucursal_id,
-      phoneNumberId: fila.phone_number_id,
-      wabaId: fila.waba_id,
-      tokenUltimos: fila.token_ultimos,
-      activo: fila.activo,
-    }),
-  );
+  const sucursalesRes = await service
+    .from("sucursales")
+    .select("id, nombre")
+    .eq("tienda_id", tienda.id)
+    .order("nombre");
+  if (sucursalesRes.error) throw new Error(sucursalesRes.error.message);
+  return {
+    sucursales: (sucursalesRes.data ?? []) as { id: string; nombre: string }[],
+    credenciales: await credencialesDe(tienda.id),
+  };
 }
 
 export async function guardarCredencial(
-  slug: string,
+  _slug: string,
+  _input: {
+    sucursalId: string | null;
+    phoneNumberId: string;
+    wabaId: string;
+    token: string | null;
+    activo: boolean;
+  },
+): Promise<void> {
+  void _slug;
+  void _input;
+  throw new AccesoError("prohibido");
+}
+
+export async function guardarCredencialTienda(
+  tiendaId: string,
   input: {
     sucursalId: string | null;
     phoneNumberId: string;
@@ -70,10 +91,13 @@ export async function guardarCredencial(
     activo: boolean;
   },
 ): Promise<void> {
+  const { userId } = await requireSuperAdmin();
   const phoneNumberId = parseIdentificadorMeta(input.phoneNumberId, "identificador del número");
   const wabaId = parseIdentificadorMeta(input.wabaId, "identificador de la cuenta");
   const tokenNuevo = parseTokenNuevo(input.token);
-  const { tienda, staff } = await exigirDueno(slug, input.sucursalId);
+  const tienda = await tiendaParaWhatsapp(tiendaId);
+  await sucursalDeTienda(tienda.id, input.sucursalId);
+  const staff = { userId };
   const service = createServiceClient();
   const existente = await filaCredencial(tienda.id, input.sucursalId);
   if (!tokenNuevo && !existente) throw new NegocioError("Escribe el token de WhatsApp.");
@@ -112,9 +136,19 @@ export async function guardarCredencial(
   });
 }
 
-export async function enviarPrueba(slug: string, sucursalId: string | null, telefono: string): Promise<void> {
+export async function enviarPrueba(_slug: string, _sucursalId: string | null, _telefono: string): Promise<void> {
+  void _slug;
+  void _sucursalId;
+  void _telefono;
+  throw new AccesoError("prohibido");
+}
+
+export async function enviarPruebaTienda(tiendaId: string, sucursalId: string | null, telefono: string): Promise<void> {
+  const { userId } = await requireSuperAdmin();
   const destino = normalizarTelefono(telefono);
-  const { tienda, staff } = await exigirDueno(slug, sucursalId);
+  const tienda = await tiendaParaWhatsapp(tiendaId);
+  await sucursalDeTienda(tienda.id, sucursalId);
+  const staff = { userId };
   await enviarTexto(tienda.id, sucursalId, destino, `Mensaje de prueba de ${tienda.nombre}.`);
   await registrarAuditoria({
     userId: staff.userId,
@@ -268,34 +302,45 @@ function claveWhatsapp(): Buffer {
   return bytes;
 }
 
-async function tiendaDueno(slug: string) {
-  const tienda = await resolveTenantBySlug(slug);
-  if (!tienda) throw new NoEncontrado();
-  await requireStaff({ tiendaId: tienda.id, sucursalId: null, roles: ["dueno"] });
+async function tiendaParaWhatsapp(tiendaId: string): Promise<{ id: string; nombre: string }> {
+  if (!esUuid(tiendaId)) throw new NegocioError("Tienda no encontrada.");
+  const service = createServiceClient();
+  const { data, error } = await service.from("tiendas").select("id, nombre").eq("id", tiendaId).maybeSingle();
+  if (error) throw new Error(error.message);
+  const tienda = data as { id: string; nombre: string } | null;
+  if (!tienda) throw new NegocioError("Tienda no encontrada.");
   return tienda;
 }
 
-async function exigirDueno(slug: string, sucursalId: string | null) {
-  const tienda = await resolveTenantBySlug(slug);
-  if (!tienda) throw new NoEncontrado();
-  const staff = await requireStaff({
-    tiendaId: tienda.id,
-    sucursalId,
-    roles: ["dueno"],
-  });
-  await exigirLicenciaParaEscribir(tienda.id);
-  if (sucursalId) {
-    const service = createServiceClient();
-    const { data, error } = await service
-      .from("sucursales")
-      .select("id")
-      .eq("id", sucursalId)
-      .eq("tienda_id", tienda.id)
-      .maybeSingle();
-    if (error) throw new Error(error.message);
-    if (!data) throw new NegocioError("La sucursal no pertenece a la tienda.");
-  }
-  return { tienda, staff };
+async function sucursalDeTienda(tiendaId: string, sucursalId: string | null): Promise<void> {
+  if (!sucursalId) return;
+  const service = createServiceClient();
+  const { data, error } = await service
+    .from("sucursales")
+    .select("id")
+    .eq("id", sucursalId)
+    .eq("tienda_id", tiendaId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) throw new NegocioError("La sucursal no pertenece a la tienda.");
+}
+
+async function credencialesDe(tiendaId: string): Promise<VistaCredencial[]> {
+  const service = createServiceClient();
+  const { data, error } = await service
+    .from("credenciales_whatsapp")
+    .select("sucursal_id, phone_number_id, waba_id, token_ultimos, activo")
+    .eq("tienda_id", tiendaId);
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as Omit<FilaCredencial, "id" | "tienda_id" | "token_cifrado">[]).map((fila) =>
+    vistaCredencial({
+      sucursalId: fila.sucursal_id,
+      phoneNumberId: fila.phone_number_id,
+      wabaId: fila.waba_id,
+      tokenUltimos: fila.token_ultimos,
+      activo: fila.activo,
+    }),
+  );
 }
 
 async function filaCredencial(tiendaId: string, sucursalId: string | null): Promise<FilaCredencial | null> {

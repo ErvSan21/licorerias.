@@ -20,8 +20,7 @@ type Seccion =
   | "envio"
   | "pedidos"
   | "reportes"
-  | "marca"
-  | "whatsapp";
+  | "marca";
 
 type Destino = {
   id: Exclude<Seccion, "vitrina">;
@@ -51,7 +50,6 @@ export function MenuDueno({ slug }: { slug: string }) {
         destino(slug, "envio", "Envío", "pedidos"),
         destino(slug, "reportes", "Reportes", "precios"),
         destino(slug, "marca", "Marca", "tienda"),
-        destino(slug, "whatsapp", "WhatsApp", "pedidos"),
       ]}
     />
   );
@@ -212,7 +210,6 @@ function seccion(pathname: string, slug: string): Seccion {
   if (pathname.startsWith(`/t/${slug}/sucursales`)) return "sucursales";
   if (pathname.startsWith(`/t/${slug}/reportes`)) return "reportes";
   if (pathname.startsWith(`/t/${slug}/marca`)) return "marca";
-  if (pathname.startsWith(`/t/${slug}/whatsapp`)) return "whatsapp";
   if (pathname.startsWith(`/t/${slug}/pedidos`)) return "pedidos";
   if (pathname.startsWith(`/t/${slug}/envio`)) return "envio";
   if (pathname.startsWith(`/t/${slug}/colecciones`)) return "colecciones";

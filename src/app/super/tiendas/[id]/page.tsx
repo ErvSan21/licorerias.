@@ -62,7 +62,7 @@ export default async function TiendaSuperPage({
               valor={`${tienda.licencia.plan.nombre} · ${formatoBs(tienda.licencia.plan.precioMensual)} / mes`}
             />
             <Dato termino="Inicio" valor={formatoFecha(tienda.licencia.inicio)} />
-            <Dato termino="Vence" valor={formatoFecha(tienda.licencia.vence)} />
+            <Dato termino="Vence" valor={tienda.licencia.vence ? formatoFecha(tienda.licencia.vence) : ""} />
             <Dato termino="Días de gracia" valor={String(tienda.licencia.diasGracia)} />
             <Dato
               termino="Sucursales"
@@ -86,7 +86,7 @@ export default async function TiendaSuperPage({
         {tienda.licencia ? (
           <>
             <FormularioPlan tiendaId={tienda.id} planId={tienda.licencia.plan.id} planes={opciones} />
-            <FormularioExtender tiendaId={tienda.id} vence={tienda.licencia.vence} />
+            <FormularioExtender tiendaId={tienda.id} vence={tienda.licencia.vence ?? ""} />
             <FormularioPago tiendaId={tienda.id} />
             <section className="flex flex-col gap-3 rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
               <h3 className="text-base font-semibold">Estado de la licencia</h3>

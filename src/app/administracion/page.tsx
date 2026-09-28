@@ -90,16 +90,20 @@ export default async function DashboardPage() {
         </h2>
         <div className="panel-kpis">
           <article className="panel-kpi">
-            <p>1 mes</p>
-            <strong className="tabular-nums">{formatoBs(tablero.ingresos.mes)}</strong>
+            <p>Mensual</p>
+            <strong className="tabular-nums">{formatoBs(tablero.ingresos.mensual)}</strong>
           </article>
           <article className="panel-kpi">
-            <p>3 meses</p>
-            <strong className="tabular-nums">{formatoBs(tablero.ingresos.tres_meses)}</strong>
+            <p>Trimestral</p>
+            <strong className="tabular-nums">{formatoBs(tablero.ingresos.trimestral)}</strong>
           </article>
           <article className="panel-kpi">
-            <p>1 año</p>
-            <strong className="tabular-nums">{formatoBs(tablero.ingresos.anio)}</strong>
+            <p>Anual</p>
+            <strong className="tabular-nums">{formatoBs(tablero.ingresos.anual)}</strong>
+          </article>
+          <article className="panel-kpi">
+            <p>Demo</p>
+            <strong className="tabular-nums">{formatoBs(tablero.ingresos.demo)}</strong>
           </article>
         </div>
         <FormularioPrecios precios={tablero.precios} />

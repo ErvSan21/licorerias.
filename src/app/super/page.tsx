@@ -119,7 +119,7 @@ function Fila({ tienda, hoy }: { tienda: TiendaLicencia; hoy: string }) {
         {tienda.licencia ? etiquetaLicencia(tienda.licencia.estado) : "Sin licencia"}
       </td>
       <td className="px-2 py-3 tabular-nums">
-        {tienda.licencia ? (
+        {tienda.licencia?.vence ? (
           <>
             <time dateTime={tienda.licencia.vence}>{formatoFecha(tienda.licencia.vence)}</time>
             {pronto ? (

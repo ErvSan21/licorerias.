@@ -75,22 +75,38 @@ export function sumarDias(fecha: string, dias: number): string {
   return resultado.toISOString().slice(0, 10);
 }
 
+export const PLAZOS = ["mensual", "trimestral", "anual", "demo"] as const;
+export type Plazo = (typeof PLAZOS)[number];
+
+export function esPlazo(valor: string): valor is Plazo {
+  return (PLAZOS as readonly string[]).includes(valor);
+}
+
+export function etiquetaPlazo(plazo: Plazo): string {
+  if (plazo === "mensual") return "Mensual";
+  if (plazo === "trimestral") return "Trimestral";
+  if (plazo === "anual") return "Anual";
+  return "Demo";
+}
+
 export function licenciaEstaVigente(input: {
   estadoTienda: string;
   estadoLicencia: string;
-  vence: string;
+  vence: string | null;
   diasGracia: number;
   hoy: string;
 }): boolean {
   if (input.estadoTienda !== "activa") return false;
   if (input.estadoLicencia !== "prueba" && input.estadoLicencia !== "activa") return false;
-  if (!fechaValida(input.vence) || !fechaValida(input.hoy)) return false;
+  if (!fechaValida(input.hoy)) return false;
   if (!Number.isInteger(input.diasGracia) || input.diasGracia < 0) return false;
+  if (input.vence == null) return true;
+  if (!fechaValida(input.vence)) return false;
   return input.hoy <= sumarDias(input.vence, input.diasGracia);
 }
 
-export function vencePronto(vence: string, hoy: string): boolean {
-  if (!fechaValida(vence) || !fechaValida(hoy)) return false;
+export function vencePronto(vence: string | null, hoy: string): boolean {
+  if (!vence || !fechaValida(vence) || !fechaValida(hoy)) return false;
   const limite = sumarDias(hoy, 7);
   return vence >= hoy && vence <= limite;
 }

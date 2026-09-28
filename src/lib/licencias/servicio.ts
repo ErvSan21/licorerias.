@@ -16,6 +16,7 @@ import {
 import {
   esEstadoLicencia,
   esMetodoPago,
+  esPlazo,
   esUuid,
   fechaValida,
   hoyBolivia,
@@ -26,6 +27,7 @@ import {
   sumarDias,
   type EstadoLicencia,
   type MetodoPago,
+  type Plazo,
 } from "./reglas";
 
 export type PlanResumen = {
@@ -42,7 +44,8 @@ export type LicenciaResumen = {
   id: string;
   estado: EstadoLicencia;
   inicio: string;
-  vence: string;
+  vence: string | null;
+  plazo: Plazo;
   diasGracia: number;
   notas: string | null;
   plan: PlanResumen;
@@ -120,7 +123,8 @@ type FilaLicencia = {
   id: string;
   estado: string;
   inicio: string;
-  vence: string;
+  vence: string | null;
+  plazo: string;
   dias_gracia: number;
   notas: string | null;
   plan_id: string;
@@ -182,7 +186,7 @@ export async function listarTiendas(): Promise<TiendaLicencia[]> {
   const { data, error } = await service
     .from("tiendas")
     .select(
-      "id, slug, nombre, estado, creado_en, licencias(id, estado, inicio, vence, dias_gracia, notas, plan_id, planes(id, nombre, precio_mensual, max_sucursales, max_productos, max_usuarios, activo))",
+      "id, slug, nombre, estado, creado_en, licencias(id, estado, inicio, vence, plazo, dias_gracia, notas, plan_id, planes(id, nombre, precio_mensual, max_sucursales, max_productos, max_usuarios, activo))",
     )
     .order("nombre");
 
@@ -206,7 +210,7 @@ export async function leerTiendaSuper(tiendaId: string): Promise<{
   const tiendaPromesa = service
     .from("tiendas")
     .select(
-      "id, slug, nombre, estado, creado_en, licencias(id, estado, inicio, vence, dias_gracia, notas, plan_id, planes(id, nombre, precio_mensual, max_sucursales, max_productos, max_usuarios, activo))",
+      "id, slug, nombre, estado, creado_en, licencias(id, estado, inicio, vence, plazo, dias_gracia, notas, plan_id, planes(id, nombre, precio_mensual, max_sucursales, max_productos, max_usuarios, activo))",
     )
     .eq("id", tiendaId)
     .maybeSingle();
@@ -439,9 +443,10 @@ export async function extenderLicencia(tiendaId: string, vence: string): Promise
   }
 
   const estado = actual.estado === "vencida" ? "activa" : actual.estado;
+  const plazo = actual.plazo === "demo" ? "mensual" : actual.plazo;
   const { error } = await service
     .from("licencias")
-    .update({ vence, estado })
+    .update({ vence, estado, plazo })
     .eq("id", actual.id);
 
   if (error) throw new Error(error.message);
@@ -502,7 +507,7 @@ export async function reactivarLicencia(tiendaId: string): Promise<void> {
   if (!esUuid(tiendaId)) throw new NegocioError("Tienda no encontrada.");
   const actual = await licenciaDe(tiendaId);
   const hoy = hoyBolivia();
-  if (hoy > sumarDias(actual.vence, actual.diasGracia)) {
+  if (actual.vence && hoy > sumarDias(actual.vence, actual.diasGracia)) {
     throw new NegocioError("Extiende la fecha antes de reactivar.");
   }
 
@@ -568,12 +573,14 @@ export async function registrarPago(input: PagoNuevo): Promise<void> {
 
   if (error || !pago) throw new Error(error?.message ?? "No se pudo registrar el pago.");
 
-  const vence = input.periodoHasta > actual.vence ? input.periodoHasta : actual.vence;
+  const vence =
+    actual.vence == null || input.periodoHasta > actual.vence ? input.periodoHasta : actual.vence;
+  const plazo = actual.plazo === "demo" ? "mensual" : actual.plazo;
   const estado =
     actual.estado === "prueba" || actual.estado === "vencida" ? "activa" : actual.estado;
   const { error: errorLicencia } = await service
     .from("licencias")
-    .update({ vence, estado })
+    .update({ vence, estado, plazo })
     .eq("id", actual.id);
   if (errorLicencia) throw new Error(errorLicencia.message);
 
@@ -658,7 +665,7 @@ async function licenciaDe(tiendaId: string): Promise<LicenciaResumen> {
   const { data, error } = await service
     .from("licencias")
     .select(
-      "id, estado, inicio, vence, dias_gracia, notas, plan_id, planes(id, nombre, precio_mensual, max_sucursales, max_productos, max_usuarios, activo)",
+      "id, estado, inicio, vence, plazo, dias_gracia, notas, plan_id, planes(id, nombre, precio_mensual, max_sucursales, max_productos, max_usuarios, activo)",
     )
     .eq("tienda_id", tiendaId)
     .maybeSingle();
@@ -731,16 +738,59 @@ function tiendaDesdeFila(fila: FilaTienda | null): TiendaLicencia | null {
 function licenciaDesdeFila(fila: FilaLicencia | null): LicenciaResumen | null {
   if (!fila || !esEstadoLicencia(fila.estado)) return null;
   const plan = planDesdeFila(uno(fila.planes));
-  if (!plan) return null;
+  if (!plan || !esPlazo(fila.plazo)) return null;
+  const vence = fila.vence ? String(fila.vence).slice(0, 10) : null;
   return {
     id: fila.id,
     estado: fila.estado,
     inicio: String(fila.inicio).slice(0, 10),
-    vence: String(fila.vence).slice(0, 10),
+    vence: fila.plazo === "demo" ? null : vence,
+    plazo: fila.plazo,
     diasGracia: fila.dias_gracia,
     notas: fila.notas,
     plan,
   };
+}
+
+export async function guardarPlazoTienda(tiendaId: string, plazo: string, vence: string | null): Promise<void> {
+  const { userId } = await requireSuperAdmin();
+  if (!esUuid(tiendaId)) throw new NegocioError("Tienda no encontrada.");
+  if (!esPlazo(plazo)) throw new NegocioError("Elige un plan.");
+  const actual = await licenciaDe(tiendaId);
+  const service = createServiceClient();
+
+  if (plazo === "demo") {
+    const { error } = await service.from("licencias").update({ plazo: "demo", vence: null }).eq("id", actual.id);
+    if (error) throw new Error(error.message);
+    await registrarAuditoria({
+      userId,
+      tiendaId,
+      accion: "licencia.plazo",
+      detalle: { plazo: "demo" },
+    });
+    return;
+  }
+
+  if (!vence || !fechaValida(vence)) throw new NegocioError("La fecha de vencimiento no es válida.");
+  const hoy = hoyBolivia();
+  if (vence < hoy) throw new NegocioError("La nueva fecha tiene que ser hoy o posterior.");
+  if (vence < actual.inicio) throw new NegocioError("La nueva fecha no puede ser anterior al inicio.");
+  if (actual.vence && vence < actual.vence) {
+    throw new NegocioError("La nueva fecha tiene que alargar el plan, no acortarlo.");
+  }
+
+  const estado = actual.estado === "vencida" ? "activa" : actual.estado;
+  const { error } = await service.from("licencias").update({ plazo, vence, estado }).eq("id", actual.id);
+  if (error) throw new Error(error.message);
+  if (actual.estado === "vencida") {
+    await service.from("tiendas").update({ estado: "activa" }).eq("id", tiendaId).neq("estado", "cancelada");
+  }
+  await registrarAuditoria({
+    userId,
+    tiendaId,
+    accion: "licencia.plazo",
+    detalle: { plazo, vence },
+  });
 }
 
 function planDesdeFila(fila: FilaPlan | null): PlanResumen | null {

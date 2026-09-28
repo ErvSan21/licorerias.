@@ -13,11 +13,12 @@ import type { PreciosSuscripcion } from "@/lib/administracion/reglas";
 export function FormularioPrecios({ precios }: { precios: PreciosSuscripcion }) {
   const router = useRouter();
   const publicar = useToast();
-  const [mes, setMes] = useState(texto(precios.mes));
-  const [tresMeses, setTresMeses] = useState(texto(precios.tres_meses));
-  const [anio, setAnio] = useState(texto(precios.anio));
+  const [mensual, setMensual] = useState(texto(precios.mensual));
+  const [trimestral, setTrimestral] = useState(texto(precios.trimestral));
+  const [anual, setAnual] = useState(texto(precios.anual));
+  const [demo, setDemo] = useState(texto(precios.demo));
   const { run, loading, error, success } = useAsyncAction(async () => {
-    const resultado = await guardarPreciosAccion({ mes, tresMeses, anio });
+    const resultado = await guardarPreciosAccion({ mensual, trimestral, anual, demo });
     if (!resultado.ok) throw new Error(resultado.error);
     return resultado.aviso;
   });
@@ -36,40 +37,11 @@ export function FormularioPrecios({ precios }: { precios: PreciosSuscripcion }) 
       }}
     >
       <h2 className="text-lg font-semibold">Precios de los planes</h2>
-      <div className="grid gap-3 sm:grid-cols-3">
-        <Campo id="precio-mes" etiqueta="1 mes">
-          <input
-            id="precio-mes"
-            inputMode="decimal"
-            required
-            autoComplete="off"
-            value={mes}
-            onChange={(event) => setMes(event.target.value)}
-            className={`${claseCampo} tabular-nums`}
-          />
-        </Campo>
-        <Campo id="precio-tres" etiqueta="3 meses">
-          <input
-            id="precio-tres"
-            inputMode="decimal"
-            required
-            autoComplete="off"
-            value={tresMeses}
-            onChange={(event) => setTresMeses(event.target.value)}
-            className={`${claseCampo} tabular-nums`}
-          />
-        </Campo>
-        <Campo id="precio-anio" etiqueta="1 año">
-          <input
-            id="precio-anio"
-            inputMode="decimal"
-            required
-            autoComplete="off"
-            value={anio}
-            onChange={(event) => setAnio(event.target.value)}
-            className={`${claseCampo} tabular-nums`}
-          />
-        </Campo>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <CampoPrecio id="precio-mensual" etiqueta="Mensual" valor={mensual} alCambiar={setMensual} />
+        <CampoPrecio id="precio-trimestral" etiqueta="Trimestral" valor={trimestral} alCambiar={setTrimestral} />
+        <CampoPrecio id="precio-anual" etiqueta="Anual" valor={anual} alCambiar={setAnual} />
+        <CampoPrecio id="precio-demo" etiqueta="Demo" valor={demo} alCambiar={setDemo} />
       </div>
       {error ? (
         <p role="alert" className="text-sm text-red-700 dark:text-red-400">
@@ -80,6 +52,32 @@ export function FormularioPrecios({ precios }: { precios: PreciosSuscripcion }) 
         Guardar precios
       </Button>
     </form>
+  );
+}
+
+function CampoPrecio({
+  id,
+  etiqueta,
+  valor,
+  alCambiar,
+}: {
+  id: string;
+  etiqueta: string;
+  valor: string;
+  alCambiar: (valor: string) => void;
+}) {
+  return (
+    <Campo id={id} etiqueta={etiqueta}>
+      <input
+        id={id}
+        inputMode="decimal"
+        required
+        autoComplete="off"
+        value={valor}
+        onChange={(event) => alCambiar(event.target.value)}
+        className={`${claseCampo} tabular-nums`}
+      />
+    </Campo>
   );
 }
 
