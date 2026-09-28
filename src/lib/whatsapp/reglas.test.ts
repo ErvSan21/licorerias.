@@ -12,6 +12,7 @@ import {
   mensajeEstado,
   mensajesWebhook,
   parseTokenNuevo,
+  textoBienvenida,
   ultimosToken,
   ventanaSaludoMs,
   vistaCredencial,
@@ -56,6 +57,10 @@ test("la bienvenida lleva el enlace de la tienda o de la sucursal", () => {
     "http://localhost:5000/t/barril/s/centro?tel=59171234567",
   );
   assert.equal(enlaceCatalogo("http://localhost:5000", "barril", null, "59171234567"), "http://localhost:5000/t/barril?tel=59171234567");
+  const link = "http://localhost:5000/t/barril?tel=59171234567";
+  assert.equal(textoBienvenida(null, "Barril", link), mensajeBienvenida("Barril", link));
+  assert.match(textoBienvenida("Pide por aquí", "Barril", link), /Pide por aquí\nhttp/);
+  assert.equal(textoBienvenida(`Ya incluye ${link}`, "Barril", link), `Ya incluye ${link}`);
 });
 
 test("la credencial de la sucursal gana y, si no hay, se usa la de la tienda", () => {

@@ -5,7 +5,10 @@ import { useEffect, useSyncExternalStore, useState } from "react";
 
 import { PuertaEdad } from "@/components/tienda/puerta-edad";
 import { Button } from "@/components/ui/button";
+import { ImagenConCarga } from "@/components/ui/imagen";
+import { Marca } from "@/components/ui/marca";
 import { SkeletonCard } from "@/components/ui/skeleton";
+import { nombreVisible } from "@/lib/marca/reglas";
 import { sucursalMasCercana } from "@/lib/tienda/reglas";
 import type { Escaparate } from "@/lib/tienda/servicio";
 
@@ -57,9 +60,23 @@ function Selector({ escaparate, elegir }: { escaparate: Escaparate; elegir: bool
     );
   }
 
+  const nombre = nombreVisible(escaparate.marca, escaparate.nombre);
+
   return (
+    <Marca color={escaparate.marca.colorPrimario ?? undefined}>
     <main className="mx-auto flex w-full max-w-lg flex-col gap-4 px-4 py-6">
-      <h1 className="text-pretty text-2xl font-semibold tracking-tight">{escaparate.nombre}</h1>
+      {escaparate.marca.bannerUrl ? (
+        <ImagenConCarga src={escaparate.marca.bannerUrl} alt="" width={640} height={200} className="h-32 w-full" />
+      ) : null}
+      <header className="flex min-w-0 items-center gap-3">
+        {escaparate.marca.logoUrl ? (
+          <ImagenConCarga src={escaparate.marca.logoUrl} alt="" width={48} height={48} className="size-12 shrink-0" />
+        ) : null}
+        <h1 className="min-w-0 truncate text-pretty text-2xl font-semibold tracking-tight">{nombre}</h1>
+      </header>
+      {escaparate.marca.mensajeBienvenida ? (
+        <p className="text-pretty text-sm leading-6 text-zinc-700 dark:text-zinc-300">{escaparate.marca.mensajeBienvenida}</p>
+      ) : null}
       <p className="text-sm text-zinc-700 dark:text-zinc-300">Elige la sucursal.</p>
       <Button
         type="button"
@@ -110,5 +127,6 @@ function Selector({ escaparate, elegir }: { escaparate: Escaparate; elegir: bool
         ))}
       </ul>
     </main>
+    </Marca>
   );
 }

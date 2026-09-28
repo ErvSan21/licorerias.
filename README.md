@@ -216,3 +216,19 @@ Cómo probarlo:
 4. Crea un pedido. El cliente debería recibir «Pedido #XXXX recibido». Si el aviso falla, al cambiar el estado el panel dice «No se pudo avisar por WhatsApp» y ofrece abrir el chat.
 5. `GET /api/whatsapp?hub.mode=subscribe&hub.verify_token=TU_TOKEN&hub.challenge=hola` responde `hola`. Un token distinto responde 403. `POST /api/whatsapp` con un evento de estado responde 200.
 6. Como gerente o vendedor, esa pantalla no existe.
+
+## Módulo 11: marca de la tienda
+
+El dueño edita la marca en http://localhost:5000/t/{slug}/marca. El nombre comercial, el logo, el color, el banner y el mensaje de bienvenida son de toda la tienda. El horario y la ubicación siguen en cada sucursal. La vista previa cambia al escribir. Al guardar, la tienda pública usa esos datos. El color tiene que contrastar con el texto del botón. Las imágenes van en Storage, en `{tienda_id}/marca/`. Si hay un mensaje de bienvenida, WhatsApp lo usa y le agrega el enlace de la tienda.
+
+```bash
+npm run test:marca
+```
+
+Cómo probarlo:
+
+1. Entra como dueño en http://localhost:5000/t/{slug}/marca. Escribe un nombre, un color oscuro y un mensaje. La vista previa cambia antes de guardar.
+2. Prueba un gris medio, por ejemplo `#888888`. El formulario dice que no contrasta y no lo guarda.
+3. Pulsa Guardar marca. El botón dice «Guardando…». Abre http://localhost:5000/t/{slug}: ves el nombre, el mensaje y los botones con ese color.
+4. Sube un logo y un banner JPG, PNG o WebP de menos de 1,5 MB. Vuelven a aparecer en la tienda.
+5. Como gerente o vendedor, esa pantalla no existe. Con la licencia suspendida, la tienda pública sigue diciendo «Tienda no disponible».

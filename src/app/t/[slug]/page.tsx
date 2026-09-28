@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { EscaparatePanel } from "@/components/tienda/escaparate";
 import { falloPublico } from "@/components/tienda/fallo-publico";
 import { cargarEscaparate } from "@/lib/tienda/servicio";
+import { nombreVisible } from "@/lib/marca/reglas";
 import { normalizarSlug, slugReservado, slugValido } from "@/lib/tenant";
 
 export default async function TiendaPage({
@@ -27,7 +28,7 @@ export default async function TiendaPage({
     redirect(`/t/${normalizado}/s/${escaparate.sucursales[0].slug}`);
   }
   if (escaparate.sucursales.length === 0) {
-    return <SucursalesVacias nombre={escaparate.nombre} />;
+    return <SucursalesVacias nombre={nombreVisible(escaparate.marca, escaparate.nombre)} />;
   }
   return <EscaparatePanel escaparate={escaparate} elegir={elegir === "1"} />;
 }

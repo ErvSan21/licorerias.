@@ -53,6 +53,13 @@ export function mensajeBienvenida(nombreTienda: string, link: string): string {
   return `👋 Hola, te damos la bienvenida a ${nombreTienda}. Mira la tienda y haz tu pedido: ${link}`;
 }
 
+export function textoBienvenida(personalizado: string | null, nombreTienda: string, link: string): string {
+  const texto = personalizado?.trim() ?? "";
+  if (!texto) return mensajeBienvenida(nombreTienda, link);
+  if (texto.includes(link)) return texto;
+  return `${texto}\n${link}`;
+}
+
 export function enlacePedido(origen: string, slug: string, pedidoId: string): string {
   return `${origen.replace(/\/$/, "")}/t/${slug}/pedido/${pedidoId}`;
 }

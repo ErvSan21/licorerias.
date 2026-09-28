@@ -14,13 +14,13 @@ import {
   debeSaludar,
   elegirCredencial,
   enlaceCatalogo,
-  mensajeBienvenida,
   mensajeEstado,
   mensajesWebhook,
   NegocioError,
   origenPublico,
   parseIdentificadorMeta,
   parseTokenNuevo,
+  textoBienvenida,
   ultimosToken,
   vistaCredencial,
   type EstadoAviso,
@@ -232,7 +232,13 @@ async function saludar(phoneNumberId: string, from: string): Promise<void> {
   const ultimo = (previa as { ultimo_saludo: string } | null)?.ultimo_saludo ?? null;
   if (!debeSaludar(ultimo ? new Date(ultimo) : null, new Date())) return;
   const link = enlaceCatalogo(origenPublico(), nombres.slug, sucursalSlug, from);
-  await enviarTexto(credencial.tienda_id, credencial.sucursal_id, from, mensajeBienvenida(nombres.nombre, link));
+  const { data: config } = await service
+    .from("configuracion_tienda")
+    .select("mensaje_bienvenida")
+    .eq("tienda_id", credencial.tienda_id)
+    .maybeSingle();
+  const personalizado = (config as { mensaje_bienvenida: string | null } | null)?.mensaje_bienvenida ?? null;
+  await enviarTexto(credencial.tienda_id, credencial.sucursal_id, from, textoBienvenida(personalizado, nombres.nombre, link));
   await service.from("conversaciones").upsert(
     { tienda_id: credencial.tienda_id, telefono: from, ultimo_saludo: new Date().toISOString() },
     { onConflict: "tienda_id,telefono" },

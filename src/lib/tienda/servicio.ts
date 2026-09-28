@@ -3,8 +3,11 @@ import "server-only";
 import { AccesoError, NoEncontrado } from "@/lib/auth/errors";
 import { createServiceClient } from "@/lib/supabase/service";
 
-import { horarioDesdeJson } from "./reglas";
+import { leerMarcaPublica } from "@/lib/marca/servicio";
+import type { MarcaPublica } from "@/lib/marca/reglas";
 import type { Horario } from "@/lib/sucursales/reglas";
+
+import { horarioDesdeJson } from "./reglas";
 
 export class TiendaCerrada extends Error {
   constructor() {
@@ -30,6 +33,7 @@ export type Escaparate = {
   nombre: string;
   slug: string;
   sucursales: SucursalPublica[];
+  marca: MarcaPublica;
 };
 
 export type ProductoPublico = {
@@ -45,6 +49,7 @@ export type ProductoPublico = {
 };
 
 export type Vitrina = {
+  marca: MarcaPublica;
   tienda: { nombre: string; slug: string };
   sucursal: {
     id: string;
@@ -66,19 +71,33 @@ export type Vitrina = {
 
 export async function cargarEscaparate(slug: string): Promise<Escaparate> {
   const service = createServiceClient();
-  const { data, error } = await service.rpc("escaparate", { p_slug: slug });
+  const rpcPromise = service.rpc("escaparate", { p_slug: slug });
+  const marcaPromise = leerMarcaPublica(slug);
+  const { data, error } = await rpcPromise;
   if (error) lanzar(error.message);
+  const marca = await marcaDe(marcaPromise);
   const fila = data as { nombre?: unknown; slug?: unknown; sucursales?: unknown } | null;
   if (!fila || typeof fila.nombre !== "string") throw new NoEncontrado();
   const sucursales = Array.isArray(fila.sucursales) ? fila.sucursales.flatMap(sucursalPublica) : [];
-  return { nombre: fila.nombre, slug: String(fila.slug ?? slug), sucursales };
+  return { nombre: fila.nombre, slug: String(fila.slug ?? slug), sucursales, marca };
 }
 
 export async function cargarVitrina(tienda: string, sucursal: string): Promise<Vitrina> {
   const service = createServiceClient();
-  const { data, error } = await service.rpc("vitrina_publica", { p_tienda: tienda, p_sucursal: sucursal });
+  const rpcPromise = service.rpc("vitrina_publica", { p_tienda: tienda, p_sucursal: sucursal });
+  const marcaPromise = leerMarcaPublica(tienda);
+  const { data, error } = await rpcPromise;
   if (error) lanzar(error.message);
-  return vitrinaDesdeJson(data);
+  const marca = await marcaDe(marcaPromise);
+  return { ...vitrinaDesdeJson(data), marca };
+}
+
+async function marcaDe(promesa: Promise<MarcaPublica>): Promise<MarcaPublica> {
+  try {
+    return await promesa;
+  } catch (error) {
+    lanzar(error instanceof Error ? error.message : "No se pudo cargar la marca.");
+  }
 }
 
 function sucursalPublica(valor: unknown): SucursalPublica[] {
@@ -101,7 +120,7 @@ function sucursalPublica(valor: unknown): SucursalPublica[] {
   ];
 }
 
-function vitrinaDesdeJson(data: unknown): Vitrina {
+function vitrinaDesdeJson(data: unknown): Omit<Vitrina, "marca"> {
   const fila = data as {
     tienda?: { nombre?: unknown; slug?: unknown };
     sucursal?: Record<string, unknown>;
