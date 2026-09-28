@@ -5,7 +5,7 @@ export const duraciones = {
   lenta: 400,
 } as const;
 
-export const easing = "cubic-bezier(0.2, 0, 0, 1)";
+export const easing = "cubic-bezier(0.2, 0.8, 0.2, 1)";
 
 /** No mostrar un loader si la carga termina antes de esto. */
 export const esperaLoaderMs = duraciones.rapida;

@@ -23,7 +23,7 @@ export function ResalteFila({ clave, children }: { clave: number; children: Reac
         <span
           key={clave}
           aria-hidden="true"
-          className="ui-resalte pointer-events-none absolute inset-0 rounded-lg bg-[var(--color-primario)]"
+          className="ui-resalte pointer-events-none absolute inset-0 rounded-[12px] bg-[var(--br)]"
         />
       ) : null}
       <div className="relative">{children}</div>
@@ -62,9 +62,9 @@ export function LineaTiempo({
   const progreso = Math.min(Math.max(actual, 0), tope) / tope;
   return (
     <div>
-      <div className="mb-4 h-1 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800" aria-hidden="true">
+      <div className="mb-4 h-1 overflow-hidden rounded-full bg-[var(--sf2)]" aria-hidden="true">
         <div
-          className="ui-linea-avance h-full origin-left bg-[var(--color-primario)]"
+          className="ui-linea-avance ui-punto h-full origin-left"
           style={{ transform: `scaleX(${progreso})` }}
         />
       </div>
@@ -75,7 +75,7 @@ export function LineaTiempo({
               aria-hidden="true"
               className={cx(
                 "h-2.5 w-2.5 rounded-full",
-                indice <= actual ? "bg-[var(--color-primario)]" : "bg-zinc-300 dark:bg-zinc-700",
+                indice <= actual ? "ui-punto" : "bg-[var(--ln)]",
               )}
             />
             <span
@@ -85,7 +85,7 @@ export function LineaTiempo({
                   ? ciclo > 0
                     ? "seguimiento-paso ui-movimiento font-medium"
                     : "font-medium"
-                  : "text-zinc-600 dark:text-zinc-400"
+                  : "text-[var(--mu)]"
               }
             >
               {paso}

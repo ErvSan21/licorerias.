@@ -2,9 +2,123 @@
 @import "./ui.css";
 
 @theme inline {
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  --color-bg: var(--bg);
+  --color-surface: var(--sf);
+  --color-surface2: var(--sf2);
+  --color-fg: var(--tx);
+  --color-muted: var(--mu);
+  --color-line: var(--ln);
+  --color-brand: var(--br);
+  --color-brand2: var(--br2);
+  --color-ok: var(--ok);
+  --color-danger: var(--er);
+  --color-warn: var(--wa);
+}
+
+:root {
+  color-scheme: dark;
+  --bg: #0c1424;
+  --sf: #142038;
+  --sf2: #1d2d4a;
+  --tx: #eef3fc;
+  --mu: #9db0cf;
+  --ln: #2a3c5e;
+  --br: #4f7cff;
+  --br2: #0891b2;
+  --gr: linear-gradient(135deg, var(--br), var(--br2));
+  --brt: #fff;
+  --ok: #5fbf8a;
+  --er: #ef6b6b;
+  --wa: #e8b44a;
+  --e1: 150ms;
+  --e2: 250ms;
+  --e3: 400ms;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --bgi: none;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+    --bg: #eef3fb;
+    --sf: #fff;
+    --sf2: #e2eaf6;
+    --tx: #10203a;
+    --mu: #586d8e;
+    --ln: #d2dded;
+    --ok: #307550;
+    --er: #dc1515;
+    --wa: #916712;
+    --bgi: radial-gradient(60% 40% at 100% -5%, color-mix(in srgb, var(--br2) 26%, transparent), transparent),
+      radial-gradient(55% 40% at -10% 8%, color-mix(in srgb, var(--br) 20%, transparent), transparent),
+      var(--bg);
+  }
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #eef3fb;
+  --sf: #fff;
+  --sf2: #e2eaf6;
+  --tx: #10203a;
+  --mu: #586d8e;
+  --ln: #d2dded;
+  --ok: #307550;
+  --er: #dc1515;
+  --wa: #916712;
+  --bgi: radial-gradient(60% 40% at 100% -5%, color-mix(in srgb, var(--br2) 26%, transparent), transparent),
+    radial-gradient(55% 40% at -10% 8%, color-mix(in srgb, var(--br) 20%, transparent), transparent),
+    var(--bg);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0c1424;
+  --sf: #142038;
+  --sf2: #1d2d4a;
+  --tx: #eef3fc;
+  --mu: #9db0cf;
+  --ln: #2a3c5e;
+  --ok: #5fbf8a;
+  --er: #ef6b6b;
+  --wa: #e8b44a;
+  --bgi: none;
+}
+
+html {
+  background-color: var(--bg);
 }
 
 body {
-  font-family: var(--font-sans), sans-serif;
+  font-family: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  background-color: var(--bg);
+  background-image: var(--bgi);
+  background-attachment: fixed;
+  color: var(--tx);
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: -0.01em;
+}
+
+h1 {
+  font-weight: 800;
+}
+
+h2,
+h3 {
+  font-weight: 600;
+}
+
+input,
+select,
+textarea {
+  font-size: 16px;
 }

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist } from "next/font/google";
+import { Bricolage_Grotesque, Figtree } from "next/font/google";
 
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { ProveedorToast } from "@/components/ui/toast";
@@ -7,9 +7,20 @@ import { TransicionPagina } from "@/components/ui/transicion-pagina";
 
 import "./globals.css";
 
-const geist = Geist({
-  variable: "--font-geist-sans",
+const bricolage = Bricolage_Grotesque({
+  variable: "--font-bricolage",
   subsets: ["latin"],
+  weight: ["600", "800"],
+  display: "swap",
+  fallback: ["ui-sans-serif", "system-ui", "sans-serif"],
+});
+
+const figtree = Figtree({
+  variable: "--font-figtree",
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  display: "swap",
+  fallback: ["ui-sans-serif", "system-ui", "sans-serif"],
 });
 
 export const metadata: Metadata = {
@@ -20,15 +31,15 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#09090b" },
+    { media: "(prefers-color-scheme: light)", color: "#eef3fb" },
+    { media: "(prefers-color-scheme: dark)", color: "#0c1424" },
   ],
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="es" className={`${geist.variable} h-full antialiased`}>
-      <body className="flex min-h-full flex-col bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
+    <html lang="es" className={`${bricolage.variable} ${figtree.variable} h-full antialiased`}>
+      <body className="flex min-h-full flex-col">
         <script
           dangerouslySetInnerHTML={{
             __html:
@@ -37,7 +48,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         />
         <a
           href="#contenido"
-          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-[max(1rem,env(safe-area-inset-top))] focus:z-[100] focus:rounded-lg focus:bg-white focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-zinc-900 dark:focus:bg-zinc-950 dark:focus:text-zinc-100"
+          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-[max(1rem,env(safe-area-inset-top))] focus:z-[100] focus:rounded-[12px] focus:bg-[var(--sf)] focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-[var(--tx)]"
         >
           Saltar al contenido
         </a>

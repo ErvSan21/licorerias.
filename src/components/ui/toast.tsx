@@ -20,9 +20,9 @@ type ValorToast = {
 const ContextoToast = createContext<ValorToast | null>(null);
 
 const TONOS: Record<Tono, string> = {
-  exito: "border-green-700 dark:border-green-400",
-  error: "border-red-700 dark:border-red-400",
-  aviso: "border-amber-700 dark:border-amber-300",
+  exito: "ui-aviso-exito",
+  error: "ui-aviso-error",
+  aviso: "ui-aviso-aviso",
 };
 
 export function ProveedorToast({ children }: { children: ReactNode }) {
@@ -48,7 +48,7 @@ export function ProveedorToast({ children }: { children: ReactNode }) {
   return (
     <ContextoToast value={valor}>
       {children}
-      <div className="ui-anclado-inferior pointer-events-none fixed inset-x-0 bottom-0 z-[70] flex flex-col items-center gap-2 px-4 sm:items-end">
+      <div className="pointer-events-none fixed inset-x-0 top-0 z-[70] flex flex-col items-center gap-2 px-4 pt-[max(0.75rem,env(safe-area-inset-top))]">
         {avisos.map((aviso) => (
           <AvisoToast key={aviso.id} aviso={aviso} alCerrar={() => actions.cerrar(aviso.id)} />
         ))}
@@ -84,14 +84,15 @@ function AvisoToast({ aviso, alCerrar }: { aviso: Aviso; alCerrar: () => void })
   return (
     <div
       className={cx(
-        "ui-dialogo ui-movimiento pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-xl border bg-white px-3 py-3 text-sm text-zinc-900 shadow-lg dark:bg-zinc-950 dark:text-zinc-100",
+        "ui-dialogo ui-aviso ui-movimiento pointer-events-auto flex w-full max-w-sm items-start gap-3 px-3 py-3 text-sm",
         TONOS[aviso.tono],
       )}
       data-abierto={visible ? "true" : "false"}
       role={aviso.tono === "error" ? "alert" : "status"}
+      aria-live={aviso.tono === "error" ? "assertive" : "polite"}
     >
       <p className="flex-1 leading-5">{aviso.mensaje}</p>
-      <button type="button" className="ui-boton min-h-11 shrink-0 rounded-lg px-2 text-sm" onClick={() => setAbierto(false)}>
+      <button type="button" className="ui-boton ui-boton-fantasma min-h-10 min-w-10 shrink-0 px-2 text-sm" onClick={() => setAbierto(false)}>
         Cerrar
       </button>
     </div>

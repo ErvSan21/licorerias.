@@ -10,17 +10,16 @@ type Variante = "primario" | "secundario" | "peligro" | "fantasma";
 type Tamano = "sm" | "md" | "lg";
 
 const VARIANTES: Record<Variante, string> = {
-  primario: "ui-boton-primario bg-[var(--color-primario)] text-[var(--color-sobre-primario)]",
-  secundario:
-    "border border-zinc-300 bg-transparent text-zinc-900 dark:border-zinc-700 dark:text-zinc-100",
-  peligro: "bg-red-700 text-white dark:bg-red-500 dark:text-zinc-950",
-  fantasma: "bg-transparent text-zinc-900 dark:text-zinc-100",
+  primario: "ui-boton-primario",
+  secundario: "ui-boton-secundario",
+  peligro: "ui-boton-peligro",
+  fantasma: "ui-boton-fantasma",
 };
 
 const TAMANOS: Record<Tamano, string> = {
-  sm: "min-h-11 px-3 text-sm",
-  md: "min-h-12 px-4 text-base",
-  lg: "min-h-14 px-5 text-base",
+  sm: "min-h-10 px-3 text-sm",
+  md: "min-h-11 px-4 text-base",
+  lg: "min-h-12 px-5 text-base",
 };
 
 type Props = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children"> & {
@@ -96,14 +95,15 @@ export function Button({
         type={type}
         disabled={Boolean(disabled)}
         aria-disabled={Boolean(disabled) || ocupado || undefined}
+        aria-busy={ocupado || undefined}
         aria-describedby={mensaje ? errorId : undefined}
         aria-labelledby={muestraCheck ? estadoId : undefined}
         className={cx(
-          "ui-boton ui-movimiento inline-flex w-full touch-manipulation items-center justify-center rounded-lg font-medium disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50",
+          "ui-boton ui-movimiento inline-flex w-full touch-manipulation items-center justify-center font-semibold disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50",
           VARIANTES[variant],
           TAMANOS[size],
           hayError && !ocupado && "ui-sacudir",
-          hayError && "ring-2 ring-red-700 ring-offset-2 ring-offset-white dark:ring-red-400 dark:ring-offset-zinc-950",
+          hayError && "ui-boton-error",
         )}
         onClick={(event) => {
           const form = event.currentTarget.form;
@@ -179,7 +179,7 @@ export function Button({
         {muestraCarga ? loadingLabel : muestraCheck ? "Listo" : ""}
       </span>
       {mensaje ? (
-        <p id={errorId} role="alert" className="text-sm text-red-700 dark:text-red-400">
+        <p id={errorId} role="alert" className="text-sm text-[var(--er)]">
           {mensaje}
         </p>
       ) : null}

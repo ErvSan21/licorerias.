@@ -1,6 +1,6 @@
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 
-import { colorTextoSobre } from "@/components/ui/tokens";
+import { estiloMarca } from "@/components/ui/tema";
 
 export function Marca({
   color,
@@ -11,15 +11,8 @@ export function Marca({
   children: ReactNode;
   className?: string;
 }) {
-  const style: CSSProperties | undefined = color
-    ? {
-        ["--color-primario" as string]: color,
-        ["--color-sobre-primario" as string]: colorTextoSobre(color),
-      }
-    : undefined;
-
   return (
-    <div style={style} className={className}>
+    <div style={estiloMarca(color)} className={className}>
       {children}
     </div>
   );

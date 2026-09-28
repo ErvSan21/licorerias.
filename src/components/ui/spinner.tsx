@@ -14,16 +14,15 @@ export function Spinner({
   const px = TAMANOS[size];
   return (
     <span
-      className={cx("inline-flex", className ?? "text-[var(--color-primario)]")}
+      className={cx("inline-flex", className ?? "text-[var(--br)]")}
       role={etiqueta ? "status" : undefined}
       aria-label={etiqueta}
     >
+      <span className="ui-spinner ui-movimiento inline-flex" aria-hidden="true">
       <svg
-        className="ui-spinner ui-movimiento"
         width={px}
         height={px}
         viewBox="0 0 24 24"
-        aria-hidden="true"
       >
         <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" strokeWidth="3" opacity="0.25" />
         <path
@@ -34,6 +33,7 @@ export function Spinner({
           strokeLinecap="round"
         />
       </svg>
+      </span>
     </span>
   );
 }

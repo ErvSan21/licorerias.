@@ -14,9 +14,9 @@ export function ErrorState({
   etiqueta?: string;
 }) {
   return (
-    <div className="flex flex-col items-start gap-3 rounded-xl border border-red-200 px-4 py-6 dark:border-red-900" role="alert">
-      <h3 className="text-base font-semibold">{titulo}</h3>
-      <p className="text-sm leading-6 text-zinc-700 dark:text-zinc-300">{descripcion}</p>
+    <div className="ui-error" role="alert">
+      <h3 className="text-base">{titulo}</h3>
+      <p className="text-sm leading-6 text-[var(--mu)]">{descripcion}</p>
       <Button type="button" variant="secundario" onClick={onRetry}>
         {etiqueta}
       </Button>

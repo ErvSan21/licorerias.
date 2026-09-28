@@ -1,14 +1,17 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { ChipCategoria } from "@/components/ui/chip-categoria";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Drawer } from "@/components/ui/drawer";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { ImagenConCarga } from "@/components/ui/imagen";
 import { InlineLoader } from "@/components/ui/inline-loader";
+import { ItemMenu } from "@/components/ui/item-menu";
 import { LoadingOverlay } from "@/components/ui/loading-overlay";
 import { Marca } from "@/components/ui/marca";
 import { Modal } from "@/components/ui/modal";
@@ -21,6 +24,8 @@ import {
   useSalto,
 } from "@/components/ui/movimientos";
 import { PageLoader } from "@/components/ui/page-loader";
+import { SegmentedControl } from "@/components/ui/segmented-control";
+import { SelectorCantidad } from "@/components/ui/selector-cantidad";
 import {
   Skeleton,
   SkeletonAvatar,
@@ -30,15 +35,21 @@ import {
   SkeletonText,
 } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
+import { Table } from "@/components/ui/table";
+import { EtiquetaOferta, Tag } from "@/components/ui/tag";
+import { parejaMarca } from "@/components/ui/tema";
 import { useToast } from "@/components/ui/toast";
 import { useAsyncAction } from "@/components/ui/use-async-action";
+import { formatoBs } from "@/lib/catalogo/reglas";
 
 const PRODUCTOS = ["Singani", "Vino tinto", "Cerveza", "Whisky", "Ron", "Pisco", "Vodka", "Ginebra", "Espumante"];
 
 const PASOS = ["Recibido", "Preparando", "En camino", "Entregado"];
 
+const CATEGORIAS = ["Todos", "Vinos", "Destilados", "Cervezas"];
+
 const FOTO = `data:image/svg+xml,${encodeURIComponent(
-  '<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480"><rect width="100%" height="100%" fill="#3f3f46"/><text x="50%" y="52%" fill="#fafafa" font-family="sans-serif" font-size="42" text-anchor="middle">Licorerías</text></svg>',
+  '<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480"><rect width="100%" height="100%" fill="#142038"/><text x="50%" y="52%" fill="#eef3fc" font-family="sans-serif" font-size="42" text-anchor="middle">Licorerías</text></svg>',
 )}`;
 
 function esperar(ms: number) {
@@ -50,21 +61,23 @@ function esperar(ms: number) {
 export function GaleriaUi() {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-10 px-4 py-8">
-      <header className="flex flex-col gap-2">
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">Solo en desarrollo</p>
-        <h1 className="text-2xl font-semibold tracking-tight">Sistema de interfaz</h1>
-        <p className="text-sm leading-6 text-zinc-700 dark:text-zinc-300">
-          Loaders, skeletons y botones con estado. El modo oscuro sigue el sistema. La barra superior aparece al
-          cambiar de página.
+      <header className="flex flex-col gap-3">
+        <p className="text-sm text-[var(--mu)]">Solo en desarrollo</p>
+        <h1 className="text-2xl tracking-tight">Sistema de interfaz</h1>
+        <p className="text-sm leading-6 text-[var(--mu)]">
+          Tokens, tema claro y oscuro, y piezas de components/ui. La noche es el tema base. El degradado vive en
+          acciones y estados; los precios quedan en color de texto.
         </p>
+        <SelectorTema />
         <a
           href="/login"
-          className="inline-flex min-h-11 items-center text-sm font-medium text-[var(--color-primario)] underline underline-offset-4 hover:decoration-2"
+          className="inline-flex min-h-10 items-center text-sm font-medium text-[color-mix(in_srgb,var(--br)_45%,var(--tx))] underline underline-offset-4"
         >
           Ir a entrar
         </a>
       </header>
 
+      <DemoPiezas />
       <Seccion titulo="Spinners">
         <div className="flex items-end gap-4">
           <Spinner size="sm" etiqueta="Cargando, pequeño" />
@@ -84,12 +97,129 @@ export function GaleriaUi() {
   );
 }
 
+type Tema = "sistema" | "light" | "dark";
+
+function suscribirTema() {
+  return () => undefined;
+}
+
+function temaDesdeUrl(): Tema {
+  const valor = new URLSearchParams(window.location.search).get("tema");
+  if (valor === "light" || valor === "dark" || valor === "sistema") return valor;
+  return "sistema";
+}
+
+function temaServidor(): Tema {
+  return "sistema";
+}
+
+function SelectorTema() {
+  const desdeUrl = useSyncExternalStore(suscribirTema, temaDesdeUrl, temaServidor);
+  const [elegido, setElegido] = useState<Tema | null>(null);
+  const tema = elegido ?? desdeUrl;
+
+  useEffect(() => {
+    const raiz = document.documentElement;
+    if (tema === "sistema") delete raiz.dataset.theme;
+    else raiz.dataset.theme = tema;
+    return () => {
+      delete raiz.dataset.theme;
+    };
+  }, [tema]);
+
+  function cambiar(siguiente: Tema) {
+    setElegido(siguiente);
+    const url = new URL(window.location.href);
+    if (siguiente === "sistema") url.searchParams.delete("tema");
+    else url.searchParams.set("tema", siguiente);
+    window.history.replaceState(null, "", url);
+  }
+
+  return (
+    <SegmentedControl
+      etiqueta="Tema de la galería"
+      valor={tema}
+      onChange={cambiar}
+      opciones={[
+        { valor: "sistema", etiqueta: "Sistema" },
+        { valor: "light", etiqueta: "Claro" },
+        { valor: "dark", etiqueta: "Oscuro" },
+      ]}
+    />
+  );
+}
+
 function Seccion({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
     <section className="flex flex-col gap-4">
-      <h2 className="text-lg font-semibold tracking-tight">{titulo}</h2>
+      <h2 className="text-lg tracking-tight">{titulo}</h2>
       {children}
     </section>
+  );
+}
+
+function DemoPiezas() {
+  const [categoria, setCategoria] = useState(CATEGORIAS[0]);
+  const [cantidad, setCantidad] = useState(1);
+
+  return (
+    <Seccion titulo="Piezas">
+      <div className="flex flex-wrap gap-2">
+        <Tag>Neutro</Tag>
+        <Tag tono="ok">Ok</Tag>
+        <Tag tono="warn">Aviso</Tag>
+        <Tag tono="danger">Peligro</Tag>
+        <Tag tono="brand">Marca</Tag>
+        <EtiquetaOferta />
+      </div>
+      <div className="flex flex-wrap gap-2" role="group" aria-label="Categorías">
+        {CATEGORIAS.map((nombre) => (
+          <ChipCategoria key={nombre} activo={categoria === nombre} onClick={() => setCategoria(nombre)}>
+            {nombre}
+          </ChipCategoria>
+        ))}
+      </div>
+      <p className="text-sm text-[var(--mu)]" aria-live="polite">
+        Categoría: {categoria}
+      </p>
+      <Card className="flex flex-col gap-4 p-4">
+        <div className="ui-banner px-4 py-5">
+          <p className="text-sm text-[var(--mu)]">Banner</p>
+          <p className="text-lg">Noche en la tienda</p>
+        </div>
+        <div className="flex items-center justify-between gap-3">
+          <p>Singani</p>
+          <p className="font-semibold tabular-nums">{formatoBs(120)}</p>
+        </div>
+        <SelectorCantidad valor={cantidad} onChange={setCantidad} />
+      </Card>
+      <div className="flex max-w-xs flex-col gap-1">
+        <ItemMenu activo>Resumen</ItemMenu>
+        <ItemMenu>Pedidos</ItemMenu>
+      </div>
+      <Table etiqueta="Precios de ejemplo">
+        <thead>
+          <tr>
+            <th scope="col">Producto</th>
+            <th scope="col">Precio</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Vino tinto</td>
+            <td className="tabular-nums">{formatoBs(64.5)}</td>
+          </tr>
+          <tr>
+            <td>
+              <span className="inline-flex items-center gap-2">
+                Whisky <EtiquetaOferta />
+              </span>
+            </td>
+            <td className="tabular-nums">{formatoBs(180)}</td>
+          </tr>
+        </tbody>
+      </Table>
+    </Seccion>
   );
 }
 
@@ -114,7 +244,7 @@ function DemoCarga() {
           Ver carga de página
         </Button>
         <PageLoader activo={pantalla} />
-        <div className="relative min-h-28 rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
+        <Card className="relative min-h-28 p-4">
           <p className="text-sm">Sección con overlay mientras se guarda.</p>
           <Button
             type="button"
@@ -128,7 +258,7 @@ function DemoCarga() {
             Guardar sección
           </Button>
           <LoadingOverlay activo={zona} etiqueta="Guardando…" />
-        </div>
+        </Card>
         <div className="flex flex-wrap items-center gap-3">
           <Button
             type="button"
@@ -149,7 +279,10 @@ function DemoCarga() {
 }
 
 function DemoMarca() {
-  const [color, setColor] = useState("#3f3f46");
+  const [color, setColor] = useState("#4f7cff");
+  const pareja = parejaMarca(color);
+  const ajustado = pareja ? pareja.br !== color.toLowerCase() : false;
+
   return (
     <Seccion titulo="Marca">
       <label htmlFor="color-marca" className="flex flex-col gap-1 text-sm font-medium">
@@ -158,11 +291,19 @@ function DemoMarca() {
           id="color-marca"
           name="color-marca"
           type="color"
+          autoComplete="off"
           value={color}
           onChange={(event) => setColor(event.target.value)}
-          className="h-12 w-20 cursor-pointer rounded-lg border border-zinc-300 bg-white p-1 dark:border-zinc-700"
+          className="h-12 w-20 cursor-pointer rounded-[12px] border border-[var(--ln)] bg-[var(--sf)] p-1"
         />
       </label>
+      <p className="text-sm text-[var(--mu)]" aria-live="polite">
+        {pareja
+          ? ajustado
+            ? `El degradado se oscureció para que el texto blanco contraste. Se inyectan ${pareja.br} y ${pareja.br2}. El color guardado no cambia.`
+            : `Segundo color derivado: ${pareja.br2}. No se guarda.`
+          : "El color tiene que ser #RRGGBB."}
+      </p>
       <Marca color={color} className="flex flex-col gap-3">
         <Spinner etiqueta="Color de marca" />
         <Skeleton className="h-4 w-40" />
@@ -222,7 +363,7 @@ function DemoLista() {
               setActualizando(false);
             }, 400);
           }}
-          className="h-12 w-full rounded-lg border border-zinc-300 bg-white px-3 text-base dark:border-zinc-700 dark:bg-zinc-950"
+          className="ui-campo"
         />
       </div>
       <ResultadosAtenuados actualizando={actualizando}>
@@ -234,9 +375,7 @@ function DemoLista() {
           <ul className="flex flex-col gap-2">
             {visibles.map((nombre, indice) => (
               <EntradaLista key={nombre} indice={indice}>
-                <span className="block rounded-lg border border-zinc-200 px-3 py-3 text-sm dark:border-zinc-800">
-                  {nombre}
-                </span>
+                <span className="ui-tarjeta block px-3 py-3 text-sm">{nombre}</span>
               </EntradaLista>
             ))}
           </ul>
@@ -292,7 +431,7 @@ function DemoPedido() {
         </Button>
       </div>
       <ResalteFila clave={fila}>
-        <p className="rounded-lg border border-zinc-200 px-3 py-3 text-sm dark:border-zinc-800">Pedido de mostrador</p>
+        <p className="ui-tarjeta px-3 py-3 text-sm">Pedido de mostrador</p>
       </ResalteFila>
       <Button type="button" variant="secundario" onClick={() => setFila((valor) => valor + 1)}>
         Simular pedido nuevo
@@ -346,9 +485,6 @@ function DemoBotones() {
           </Button>
           <Button type="button" size="md">
             Mediano
-          </Button>
-          <Button type="button" size="lg">
-            Grande
           </Button>
         </div>
         <Button type="button" disabled>
@@ -426,7 +562,7 @@ function DemoDialogos() {
         descripcion="En el celular el panel sale desde abajo."
         alCerrar={() => setDrawer(false)}
       >
-        <p className="text-sm leading-6">Misma animación de opacidad y escala leve.</p>
+        <p className="text-sm leading-6">Hoja inferior, radio 22 px arriba. Opacidad y escala, sin sombra pesada.</p>
       </Drawer>
       <ConfirmDialog
         abierto={confirm}

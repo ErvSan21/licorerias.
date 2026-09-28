@@ -55,17 +55,17 @@ export function Dialogo({
         tabIndex={-1}
         data-abierto={visible ? "true" : "false"}
         className={cx(
-          "ui-dialogo ui-movimiento relative z-[1] w-full max-w-md rounded-xl border border-zinc-200 bg-white p-4 text-zinc-900 shadow-lg dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100",
-          alineacion === "inferior" && "origin-bottom",
+          "ui-dialogo ui-dialogo-panel ui-movimiento relative z-[1] w-full max-w-md p-4",
+          alineacion === "inferior" && "ui-hoja origin-bottom",
         )}
       >
         <div className="mb-3 flex items-start justify-between gap-3">
-          <h2 id={tituloId} className="text-lg font-semibold tracking-tight">
+          <h2 id={tituloId} className="text-lg tracking-tight">
             {titulo}
           </h2>
           <button
             type="button"
-            className="ui-boton min-h-11 min-w-11 rounded-lg px-3 text-sm"
+            className="ui-boton ui-boton-fantasma min-h-10 min-w-10 px-3 text-sm"
             onClick={alCerrar}
             disabled={bloquearCierre}
             aria-disabled={bloquearCierre || undefined}
@@ -74,7 +74,7 @@ export function Dialogo({
           </button>
         </div>
         {descripcion ? (
-          <p id={descripcionId} className="mb-4 text-sm leading-6 text-zinc-700 dark:text-zinc-300">
+          <p id={descripcionId} className="mb-4 text-sm leading-6 text-[var(--mu)]">
             {descripcion}
           </p>
         ) : null}

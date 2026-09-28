@@ -17,7 +17,7 @@ export function PageLoader({
 
   return (
     <div
-      className="ui-anclado-inferior fixed inset-0 z-[90] flex items-center justify-center bg-white px-6 pt-[env(safe-area-inset-top)] text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100"
+      className="ui-anclado-inferior fixed inset-0 z-[90] flex items-center justify-center bg-[var(--bg)] px-6 pt-[env(safe-area-inset-top)] text-[var(--tx)]"
       aria-busy="true"
       role="status"
       aria-live="polite"
@@ -37,7 +37,7 @@ export function PageLoader({
 
 function MarcaTexto({ nombre }: { nombre: string }) {
   return (
-    <p translate="no" className="text-2xl font-semibold tracking-tight text-[var(--color-primario)]">
+    <p translate="no" className="font-display text-2xl font-extrabold tracking-tight text-[var(--br)]">
       {nombre}
     </p>
   );

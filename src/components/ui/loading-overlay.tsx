@@ -15,7 +15,7 @@ export function LoadingOverlay({
 
   return (
     <div
-      className="absolute inset-0 z-10 flex items-center justify-center bg-white/80 px-4 dark:bg-zinc-950/80"
+      className="absolute inset-0 z-10 flex items-center justify-center bg-[color-mix(in_srgb,var(--bg)_82%,transparent)] px-4"
       aria-busy="true"
       role="status"
       aria-live="polite"

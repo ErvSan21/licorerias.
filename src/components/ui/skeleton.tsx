@@ -45,7 +45,7 @@ export function SkeletonCard() {
   return (
     <div
       aria-hidden="true"
-      className="flex flex-col gap-3 rounded-xl border border-zinc-200 p-4 dark:border-zinc-800"
+      className="ui-tarjeta flex flex-col gap-3 p-4"
     >
       <SkeletonImage />
       <SkeletonText lineas={2} />

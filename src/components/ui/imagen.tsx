@@ -20,7 +20,7 @@ export function ImagenConCarga({
   const [lista, setLista] = useState(false);
 
   return (
-    <span className={cx("ui-imagen relative block overflow-hidden rounded-lg", className)}>
+    <span className={cx("ui-imagen relative block overflow-hidden", className)}>
       <span aria-hidden="true" className={cx("ui-skeleton ui-movimiento absolute inset-0", lista && "opacity-0")} />
       {/* La spec pide loading=lazy y un fundido al terminar; next/image no expone ese contrato igual. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
