@@ -22,6 +22,7 @@ export function LoginForm({ siguiente }: { siguiente: string | null }) {
           name="email"
           type="email"
           autoComplete="email"
+          spellCheck={false}
           required
           className="h-12 rounded-lg border border-zinc-300 bg-white px-3 text-base dark:border-zinc-700 dark:bg-zinc-950"
         />

@@ -1,0 +1,321 @@
+:root {
+  --ui-duracion-rapida: 150ms;
+  --ui-duracion-media: 250ms;
+  --ui-duracion-lenta: 400ms;
+  --ui-ease: cubic-bezier(0.2, 0, 0, 1);
+  --color-primario: #3f3f46;
+  --color-sobre-primario: #fafafa;
+  --ui-superficie: #f4f4f5;
+  --ui-skeleton: color-mix(in srgb, var(--color-primario) 16%, var(--ui-superficie));
+  --ui-skeleton-brillo: rgb(255 255 255 / 0.72);
+  --ui-overlay: rgb(24 24 27 / 0.5);
+  --ui-foco: #18181b;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-primario: #e4e4e7;
+    --color-sobre-primario: #18181b;
+    --ui-superficie: #27272a;
+    --ui-skeleton: color-mix(in srgb, var(--color-primario) 22%, #18181b);
+    --ui-skeleton-brillo: rgb(255 255 255 / 0.14);
+    --ui-overlay: rgb(0 0 0 / 0.62);
+    --ui-foco: #fafafa;
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+h1,
+h2,
+h3 {
+  scroll-margin-top: 1.5rem;
+  text-wrap: balance;
+}
+
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--ui-foco);
+  outline-offset: 3px;
+}
+
+a,
+.ui-boton {
+  -webkit-tap-highlight-color: color-mix(in srgb, var(--color-primario) 28%, transparent);
+}
+
+.ui-boton {
+  touch-action: manipulation;
+  transition-property: background-color, color, border-color, filter, opacity;
+  transition-duration: var(--ui-duracion-rapida);
+  transition-timing-function: var(--ui-ease);
+}
+
+.ui-boton:focus-visible {
+  outline: 2px solid var(--ui-foco);
+  outline-offset: 3px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .ui-boton.ui-movimiento:hover:not(:disabled) {
+    transform: translateY(-1px);
+  }
+
+  .ui-boton-primario:hover:not(:disabled) {
+    filter: brightness(1.08);
+  }
+
+  .ui-boton:not(.ui-boton-primario):hover:not(:disabled) {
+    background-color: color-mix(in srgb, var(--ui-foco) 8%, transparent);
+  }
+}
+
+.ui-boton.ui-movimiento:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.ui-boton.ui-movimiento.ui-sacudir {
+  animation: ui-sacudir var(--ui-duracion-lenta) var(--ui-ease);
+}
+
+.ui-skeleton {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  background: var(--ui-skeleton);
+  border-radius: 0.5rem;
+}
+
+.ui-skeleton.ui-circulo {
+  border-radius: 999px;
+}
+
+.ui-skeleton.ui-movimiento::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, var(--ui-skeleton-brillo), transparent);
+  transform: translateX(-100%);
+  animation: ui-shimmer 1.4s var(--ui-ease) infinite;
+}
+
+.ui-spinner.ui-movimiento {
+  animation: ui-girar 0.7s linear infinite;
+}
+
+.ui-check {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.ui-check.ui-movimiento {
+  animation: ui-aparecer-check var(--ui-duracion-media) var(--ui-ease);
+}
+
+.ui-entrada-item.ui-movimiento {
+  animation: ui-subir var(--ui-duracion-media) var(--ui-ease) both;
+}
+
+.ui-rebote.ui-movimiento {
+  animation: ui-rebote var(--ui-duracion-lenta) var(--ui-ease);
+}
+
+.ui-entrada-pagina {
+  animation: ui-aparecer var(--ui-duracion-media) var(--ui-ease);
+}
+
+.ui-resalte {
+  animation: ui-resalte 2s var(--ui-ease) forwards;
+}
+
+.ui-dialogo {
+  opacity: 0;
+  transform: scale(0.97);
+  overscroll-behavior: contain;
+  transition:
+    opacity var(--ui-duracion-media) var(--ui-ease),
+    transform var(--ui-duracion-media) var(--ui-ease);
+}
+
+.ui-dialogo[data-abierto="true"] {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.ui-fondo {
+  opacity: 0;
+  transition: opacity var(--ui-duracion-media) var(--ui-ease);
+}
+
+.ui-fondo[data-abierto="true"] {
+  opacity: 1;
+}
+
+.ui-progreso-pista {
+  position: fixed;
+  top: env(safe-area-inset-top);
+  right: 0;
+  left: 0;
+  z-index: 80;
+  height: 3px;
+  pointer-events: none;
+}
+
+.ui-progreso-barra.ui-movimiento {
+  width: 40%;
+  height: 100%;
+  background: var(--color-primario);
+  animation: ui-progreso 0.9s var(--ui-ease) infinite;
+}
+
+.ui-linea-avance {
+  transition: transform var(--ui-duracion-lenta) var(--ui-ease);
+}
+
+.ui-atenuado {
+  opacity: 0.55;
+  transition: opacity var(--ui-duracion-media) var(--ui-ease);
+}
+
+.ui-imagen {
+  aspect-ratio: 4 / 3;
+  background: var(--ui-skeleton);
+}
+
+.ui-anclado-inferior {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+@keyframes ui-shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes ui-girar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes ui-sacudir {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-4px);
+  }
+  40% {
+    transform: translateX(4px);
+  }
+  60% {
+    transform: translateX(-3px);
+  }
+  80% {
+    transform: translateX(2px);
+  }
+}
+
+@keyframes ui-subir {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ui-rebote {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes ui-progreso {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(350%);
+  }
+}
+
+@keyframes ui-aparecer-check {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes ui-aparecer {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes ui-resalte {
+  from {
+    opacity: 0.35;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes ui-latido {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .ui-movimiento,
+  .ui-movimiento::before,
+  .ui-movimiento::after {
+    animation: none !important;
+  }
+
+  .ui-boton.ui-movimiento:hover,
+  .ui-boton.ui-movimiento:active {
+    transform: none !important;
+  }
+
+  .ui-dialogo {
+    transform: none !important;
+    transition-property: opacity !important;
+  }
+
+  .ui-linea-avance {
+    transition: none !important;
+  }
+
+  .ui-spinner {
+    animation: ui-latido 1.2s ease-in-out infinite !important;
+  }
+
+  .ui-progreso-barra {
+    width: 100%;
+    transform: none !important;
+    animation: ui-latido 1.2s ease-in-out infinite !important;
+  }
+}

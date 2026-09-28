@@ -7,6 +7,8 @@
     "build": "next build",
     "start": "next start -p 5000",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test:ui": "node --experimental-strip-types --test src/components/ui/ui-sistema.test.ts",
     "test:aislamiento": "bash scripts/probar-aislamiento.sh"
   },
   "dependencies": {
