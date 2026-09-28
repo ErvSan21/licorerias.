@@ -12,10 +12,6 @@ insert into public.tiendas (id, slug, nombre) values
   ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'esquina-a', 'Esquina A'),
   ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 'barril-b', 'Barril B');
 
-insert into public.miembros (user_id, tienda_id, rol) values
-  ('11111111-1111-4111-8111-111111111111', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'dueno'),
-  ('22222222-2222-4222-8222-222222222222', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 'vendedor');
-
 insert into public.super_admins (user_id) values
   ('33333333-3333-4333-8333-333333333333');
 
@@ -40,6 +36,10 @@ select
   0
 from public.planes
 where nombre = 'Pro';
+
+insert into public.miembros (user_id, tienda_id, rol) values
+  ('11111111-1111-4111-8111-111111111111', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'dueno'),
+  ('22222222-2222-4222-8222-222222222222', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 'vendedor');
 
 do $$
 declare

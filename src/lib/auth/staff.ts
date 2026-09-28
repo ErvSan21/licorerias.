@@ -5,6 +5,7 @@ import { cache } from "react";
 import { AccesoError } from "@/lib/auth/errors";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
+import { accesoSucursal } from "@/lib/sucursales/reglas";
 import { esRolTienda, type RolTienda } from "@/lib/tenant";
 
 const UUID =
@@ -15,7 +16,7 @@ export type Staff = {
   miembroId: string;
   rol: RolTienda;
   tiendaId: string;
-  sucursalId: null;
+  sucursalId: string | null;
 };
 
 type FilaMiembro = {
@@ -34,19 +35,18 @@ export const usuarioVerificado = cache(async () => {
 });
 
 /**
- * Verifica el token de Auth y la membresía en la base.
- * tiendaId tiene que salir del servidor (slug resuelto), nunca del navegador.
- * sucursalId forma parte del contrato; el acceso por sucursal es el Módulo 2.
+ * Verifica el token de Auth, la membresía y, si viene sucursalId, el acceso a esa sucursal.
+ * tiendaId y sucursalId tienen que salir del servidor, nunca del navegador sin esta comprobación.
  */
 export async function requireStaff(input: {
   tiendaId: string;
   sucursalId: string | null;
   roles: readonly RolTienda[];
 }): Promise<Staff> {
-  if (input.sucursalId) {
+  if (!UUID.test(input.tiendaId) || input.roles.length === 0) {
     throw new AccesoError("prohibido");
   }
-  if (!UUID.test(input.tiendaId) || input.roles.length === 0) {
+  if (input.sucursalId !== null && !UUID.test(input.sucursalId)) {
     throw new AccesoError("prohibido");
   }
   for (const rol of input.roles) {
@@ -75,12 +75,37 @@ export async function requireStaff(input: {
     throw new AccesoError("prohibido");
   }
 
+  if (input.sucursalId) {
+    const { data: sucursal, error: errorSucursal } = await service
+      .from("sucursales")
+      .select("id, tienda_id")
+      .eq("id", input.sucursalId)
+      .eq("tienda_id", input.tiendaId)
+      .maybeSingle();
+    if (errorSucursal) throw new Error(errorSucursal.message);
+    const filaSucursal = sucursal as { id: string; tienda_id: string } | null;
+    if (!filaSucursal || filaSucursal.tienda_id !== input.tiendaId) {
+      throw new AccesoError("prohibido");
+    }
+
+    const { data: asignacion, error: errorAsignacion } = await service
+      .from("miembro_sucursales")
+      .select("sucursal_id")
+      .eq("miembro_id", fila.id)
+      .eq("sucursal_id", input.sucursalId)
+      .maybeSingle();
+    if (errorAsignacion) throw new Error(errorAsignacion.message);
+    if (!accesoSucursal(fila.rol, Boolean(asignacion))) {
+      throw new AccesoError("prohibido");
+    }
+  }
+
   return {
     userId: user.id,
     miembroId: fila.id,
     rol: fila.rol,
     tiendaId: fila.tienda_id,
-    sucursalId: null,
+    sucursalId: input.sucursalId,
   };
 }
 

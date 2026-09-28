@@ -5,7 +5,10 @@ import { cache } from "react";
 import { NoEncontrado } from "@/lib/auth/errors";
 import { requireStaff, type Staff } from "@/lib/auth/staff";
 import { licenciaVigente } from "@/lib/licencias/servicio";
+import { leerSeleccion } from "@/lib/sucursales/seleccion";
+import { listarSucursalesVisibles, type SucursalResumen } from "@/lib/sucursales/servicio";
 import { createServiceClient } from "@/lib/supabase/service";
+import { tiendasDelUsuario, type TiendaDelUsuario } from "@/lib/auth/tiendas";
 import {
   esEstadoTienda,
   normalizarSlug,
@@ -71,3 +74,22 @@ export const cargarPanel = cache(async (slugCrudo: string) => {
 
   return { tienda, staff: staff as Staff, vigente };
 });
+
+export const contextoPanel = cache(async (slugCrudo: string) => {
+  const base = await cargarPanel(slugCrudo);
+  const { sucursales } = await listarSucursalesVisibles(base.tienda.slug);
+  const [tiendas, seleccion] = await Promise.all([
+    tiendasDelUsuario(base.staff.userId),
+    leerSeleccion(base.staff, sucursales),
+  ]);
+  return { ...base, sucursales, tiendas, seleccion };
+});
+
+export type ContextoPanel = {
+  tienda: TiendaResuelta;
+  staff: Staff;
+  vigente: boolean;
+  sucursales: SucursalResumen[];
+  tiendas: TiendaDelUsuario[];
+  seleccion: string | null;
+};

@@ -30,7 +30,7 @@ La migración espera `auth.users` y `auth.uid()`, que Supabase ya trae. El archi
 
 El aislamiento está en RLS. `es_super_admin()` y `tiene_rol_tienda(tienda_id, roles)` son `security definer`, con `search_path = public`, y no las puede ejecutar `public`, `anon` ni `authenticated`. Las rutas de servidor verifican el token con `requireStaff` o `requireSuperAdmin` y resuelven la tienda por el slug de `/t/[slug]`. No aceptan un `tienda_id` del navegador.
 
-El acceso por sucursal (`sucursalId`) queda en la firma de `requireStaff` y se rechaza hasta el Módulo 2, que es el que crea sucursales.
+`requireStaff` comprueba la sucursal cuando la ruta la pide. El dueño entra a todas; gerente y vendedor solo a las asignadas.
 
 ## Cómo probarlo
 
@@ -66,3 +66,18 @@ Cómo probarlo:
 2. Crea una tienda. El listado muestra el plan y el vencimiento. “Por vencer” lista las que vencen en 7 días.
 3. En la tienda, registra un pago, extiende la fecha y suspende. Al suspender, `/t/{slug}` sin sesión dice “Tienda no disponible” y el panel del personal avisa que está en solo lectura.
 4. `GET /api/super/tiendas` y `GET /api/super/sesion` responden 401 sin sesión.
+
+## Módulo 2: sucursales y personal
+
+El dueño crea sucursales en http://localhost:5000/t/{slug}/sucursales, con mapa, horario y el interruptor Abierta. El personal se invita en `/t/{slug}/personal`. Gerente y vendedor solo ven sus sucursales. “Todas las sucursales” aparece solo para el dueño. El cupo del plan bloquea sucursales y usuarios de más.
+
+```bash
+npm run test:sucursales
+```
+
+Cómo probarlo:
+
+1. Entra como dueño en http://localhost:5000/t/{slug}/sucursales y crea una sucursal. Arrastra el pin o escribe latitud y longitud.
+2. Cambia Abierta. Si la licencia no está vigente, el cambio se revierte y el panel sigue en solo lectura.
+3. Invita a un gerente con una sucursal. Con el plan Básico, la segunda sucursal activa responde que se alcanzó el máximo.
+4. `GET /api/t/{slug}/sucursales` sin sesión responde 401.

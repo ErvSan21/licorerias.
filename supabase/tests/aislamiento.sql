@@ -13,6 +13,19 @@ insert into public.tiendas (id, slug, nombre) values
   ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'esquina-a', 'Esquina A'),
   ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 'barril-b', 'Barril B');
 
+-- El cupo de usuarios exige licencia. Cadena no tiene tope.
+insert into public.licencias (tienda_id, plan_id, estado, inicio, vence, dias_gracia)
+select
+  t.id,
+  p.id,
+  'activa',
+  (now() at time zone 'America/La_Paz')::date,
+  (now() at time zone 'America/La_Paz')::date + 30,
+  3
+from public.tiendas as t
+cross join public.planes as p
+where p.nombre = 'Cadena';
+
 insert into public.miembros (user_id, tienda_id, rol) values
   ('11111111-1111-4111-8111-111111111111', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'dueno'),
   ('22222222-2222-4222-8222-222222222222', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 'vendedor');
