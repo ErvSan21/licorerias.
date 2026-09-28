@@ -37,6 +37,9 @@ export function MenuDueno({ slug }: { slug: string }) {
       <Enlace href={`/t/${slug}/pedidos`} activo={actual === "pedidos"}>
         Pedidos
       </Enlace>
+      <Enlace href={`/t/${slug}/reportes`} activo={actual === "reportes"}>
+        Reportes
+      </Enlace>
       <Enlace href={`/t/${slug}/marca`} activo={actual === "marca"}>
         Marca
       </Enlace>
@@ -47,7 +50,7 @@ export function MenuDueno({ slug }: { slug: string }) {
   );
 }
 
-export function MenuOperacion({ slug }: { slug: string }) {
+export function MenuOperacion({ slug, verReportes = false }: { slug: string; verReportes?: boolean }) {
   const actual = seccion(usePathname(), slug);
   return (
     <nav aria-label="Panel" className="flex flex-wrap gap-2">
@@ -75,6 +78,11 @@ export function MenuOperacion({ slug }: { slug: string }) {
       <Enlace href={`/t/${slug}/pedidos`} activo={actual === "pedidos"}>
         Pedidos
       </Enlace>
+      {verReportes ? (
+        <Enlace href={`/t/${slug}/reportes`} activo={actual === "reportes"}>
+          Reportes
+        </Enlace>
+      ) : null}
     </nav>
   );
 }
@@ -94,12 +102,14 @@ function seccion(
   | "colecciones"
   | "envio"
   | "pedidos"
+  | "reportes"
   | "marca"
   | "whatsapp" {
   if (pathname === `/t/${slug}/panel`) return "inicio";
   if (pathname === `/t/${slug}` || pathname.startsWith(`/t/${slug}/s/`)) return "vitrina";
   if (pathname.startsWith(`/t/${slug}/personal`)) return "personal";
   if (pathname.startsWith(`/t/${slug}/sucursales`)) return "sucursales";
+  if (pathname.startsWith(`/t/${slug}/reportes`)) return "reportes";
   if (pathname.startsWith(`/t/${slug}/marca`)) return "marca";
   if (pathname.startsWith(`/t/${slug}/whatsapp`)) return "whatsapp";
   if (pathname.startsWith(`/t/${slug}/pedidos`)) return "pedidos";

@@ -56,7 +56,11 @@ export function MarcoPanel({
           ) : (
             <BarraSucursalesAsignadas slug={tienda.slug} sucursales={activas} seleccion={seleccion} />
           )}
-          {staff.rol === "dueno" ? <MenuDueno slug={tienda.slug} /> : <MenuOperacion slug={tienda.slug} />}
+          {staff.rol === "dueno" ? (
+            <MenuDueno slug={tienda.slug} />
+          ) : (
+            <MenuOperacion slug={tienda.slug} verReportes={staff.rol === "gerente"} />
+          )}
         </div>
       </header>
       <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4 px-4 py-6">

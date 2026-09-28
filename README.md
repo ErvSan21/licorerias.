@@ -232,3 +232,19 @@ Cómo probarlo:
 3. Pulsa Guardar marca. El botón dice «Guardando…». Abre http://localhost:5000/t/{slug}: ves el nombre, el mensaje y los botones con ese color.
 4. Sube un logo y un banner JPG, PNG o WebP de menos de 1,5 MB. Vuelven a aparecer en la tienda.
 5. Como gerente o vendedor, esa pantalla no existe. Con la licencia suspendida, la tienda pública sigue diciendo «Tienda no disponible».
+
+## Módulo 12: reportes
+
+Los reportes están en http://localhost:5000/t/{slug}/reportes. El dueño ve toda la tienda y puede comparar sucursales. El gerente solo ve las suyas. El vendedor no entra. El filtro es un rango de fechas y una sucursal, y queda en la dirección. Las tarjetas muestran ventas, pedidos y ticket promedio. Los gráficos (sucursal, categoría, producto, entrega, día, hora, origen del precio, personal e inventario) se cargan después. Si el rango no tiene pedidos, verás un estado vacío. Exportar CSV descarga el mismo corte.
+
+```bash
+npm run test:reportes
+```
+
+Cómo probarlo:
+
+1. Entra como dueño en http://localhost:5000/t/{slug}/reportes. Elige la última semana y pulsa Ver.
+2. Cambia la sucursal. Las tarjetas y la comparación cambian. Un gerente no ve sucursales que no tiene asignadas.
+3. Entra como vendedor: el menú no tiene Reportes y la dirección responde que no existe.
+4. Pulsa Exportar CSV. El botón dice «Exportando…» y baja un archivo con ventas, cancelaciones e inventario.
+5. Un rango de más de un año no se consulta.
