@@ -116,3 +116,20 @@ Cómo probarlo:
 4. Transfiere a otra sucursal donde el producto ya se ofrece. Confirma el diálogo. Si no se ofrece, el mensaje pide definir la disponibilidad.
 5. Como vendedor, la misma pantalla no muestra botones de cambio.
 6. `GET /api/t/{slug}/inventario` sin sesión responde 401.
+
+## Módulo 5: ofertas y colecciones
+
+Las ofertas están en http://localhost:5000/t/{slug}/ofertas y las colecciones en http://localhost:5000/t/{slug}/colecciones. El porcentaje puede ser de toda la tienda y se calcula sobre el precio base de cada sucursal. El precio fijo exige sucursal. `precio_vigente` devuelve el menor precio final vigente, con el origen central, propio u oferta. El gerente solo guarda ofertas de sus sucursales. Las colecciones las arma el dueño.
+
+```bash
+npm run test:ofertas
+```
+
+Cómo probarlo:
+
+1. Entra como dueño en http://localhost:5000/t/{slug}/ofertas. Crea un porcentaje para todas las sucursales, con inicio y fin.
+2. Crea un precio fijo más bajo en una sucursal. `GET /api/t/{slug}/precio?producto={id}&sucursal={id}` devuelve ese precio y origen oferta.
+3. Una oferta con fecha futura queda como Programada y no cambia el precio.
+4. Como gerente, el formulario no ofrece «Todas las sucursales». Como vendedor, la lista no tiene botones de cambio.
+5. En http://localhost:5000/t/{slug}/colecciones crea una colección con productos e imagen. El gerente ve la lista sin poder guardarla.
+6. `GET /api/t/{slug}/ofertas` sin sesión responde 401.
