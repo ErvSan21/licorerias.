@@ -229,7 +229,7 @@ export async function crearPedidoPublico(input: {
   return data;
 }
 
-export async function cambiarEstadoPedido(slug: string, pedidoId: string, estado: string): Promise<void> {
+export async function cambiarEstadoPedido(slug: string, pedidoId: string, estado: string): Promise<boolean> {
   if (!esUuid(pedidoId) || !esEstado(estado) || estado === "pendiente") {
     throw new NegocioError("Ese cambio de estado no está permitido.");
   }
@@ -262,7 +262,7 @@ export async function cambiarEstadoPedido(slug: string, pedidoId: string, estado
     accion: "pedido.estado",
     detalle: { pedido_id: pedido.id, estado },
   });
-  await notificarEstado(pedido.id, estado);
+  return notificarEstado(pedido.id, estado);
 }
 
 export function pedidoDesdeJson(cuerpo: Record<string, unknown>): {

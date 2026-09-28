@@ -8,8 +8,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const cuerpo = await leerCuerpo(request);
     const slug = String(cuerpo.slug ?? "");
     if (!slug) throw new NegocioError("La solicitud no es válida.");
-    await cambiarEstadoPedido(slug, id, String(cuerpo.estado ?? ""));
-    return jsonPrivado({ ok: true });
+    const whatsappOk = await cambiarEstadoPedido(slug, id, String(cuerpo.estado ?? ""));
+    return jsonPrivado({ ok: true, whatsappOk });
   } catch (error) {
     return responderEnvio(error);
   }

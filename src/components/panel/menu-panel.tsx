@@ -37,6 +37,9 @@ export function MenuDueno({ slug }: { slug: string }) {
       <Enlace href={`/t/${slug}/pedidos`} activo={actual === "pedidos"}>
         Pedidos
       </Enlace>
+      <Enlace href={`/t/${slug}/whatsapp`} activo={actual === "whatsapp"}>
+        WhatsApp
+      </Enlace>
     </nav>
   );
 }
@@ -76,11 +79,24 @@ export function MenuOperacion({ slug }: { slug: string }) {
 function seccion(
   pathname: string,
   slug: string,
-): "inicio" | "vitrina" | "sucursales" | "personal" | "productos" | "precios" | "inventario" | "ofertas" | "colecciones" | "envio" | "pedidos" {
+):
+  | "inicio"
+  | "vitrina"
+  | "sucursales"
+  | "personal"
+  | "productos"
+  | "precios"
+  | "inventario"
+  | "ofertas"
+  | "colecciones"
+  | "envio"
+  | "pedidos"
+  | "whatsapp" {
   if (pathname === `/t/${slug}/panel`) return "inicio";
   if (pathname === `/t/${slug}` || pathname.startsWith(`/t/${slug}/s/`)) return "vitrina";
   if (pathname.startsWith(`/t/${slug}/personal`)) return "personal";
   if (pathname.startsWith(`/t/${slug}/sucursales`)) return "sucursales";
+  if (pathname.startsWith(`/t/${slug}/whatsapp`)) return "whatsapp";
   if (pathname.startsWith(`/t/${slug}/pedidos`)) return "pedidos";
   if (pathname.startsWith(`/t/${slug}/envio`)) return "envio";
   if (pathname.startsWith(`/t/${slug}/colecciones`)) return "colecciones";

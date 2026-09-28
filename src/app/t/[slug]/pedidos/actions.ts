@@ -6,14 +6,18 @@ import { AccesoError, mensajeAcceso, NoEncontrado } from "@/lib/auth/errors";
 import { NegocioError } from "@/lib/licencias/reglas";
 import { cambiarEstadoPedido } from "@/lib/pedidos/servicio";
 
-type Resultado = { ok: true; aviso: string } | { ok: false; error: string };
+type Resultado = { ok: true; aviso: string; whatsappOk: boolean } | { ok: false; error: string };
 
 export async function cambiarEstadoAccion(slug: string, pedidoId: string, estado: string): Promise<Resultado> {
   try {
-    await cambiarEstadoPedido(slug, pedidoId, estado);
+    const whatsappOk = await cambiarEstadoPedido(slug, pedidoId, estado);
     revalidatePath(`/t/${slug}/pedidos`);
     revalidatePath(`/t/${slug}/pedidos/${pedidoId}`);
-    return { ok: true, aviso: "Estado actualizado." };
+    return {
+      ok: true,
+      whatsappOk,
+      aviso: whatsappOk ? "Estado actualizado." : "No se pudo avisar por WhatsApp.",
+    };
   } catch (error) {
     return { ok: false, error: mensaje(error) };
   }

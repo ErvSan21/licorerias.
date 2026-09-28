@@ -102,17 +102,18 @@ export function AccionesPedido({
 }) {
   const accion = accionPedido(pedido.estado, pedido.tipo);
   const [cancelar, setCancelar] = useState(false);
+  const [falloWhatsapp, setFalloWhatsapp] = useState(false);
   const publicar = useToast();
   const principal = useAsyncAction(async () => {
-    if (!accion) return "Listo.";
+    if (!accion) return { aviso: "Listo.", whatsappOk: true };
     const resultado = await cambiarEstadoAccion(slug, pedido.id, accion.estado);
     if (!resultado.ok) throw new Error(resultado.error);
-    return resultado.aviso;
+    return { aviso: resultado.aviso, whatsappOk: resultado.whatsappOk };
   });
   const baja = useAsyncAction(async () => {
     const resultado = await cambiarEstadoAccion(slug, pedido.id, "cancelado");
     if (!resultado.ok) throw new Error(resultado.error);
-    return resultado.aviso;
+    return { aviso: resultado.aviso, whatsappOk: resultado.whatsappOk };
   });
   if (lectura || !accion) return null;
   return (
@@ -126,7 +127,9 @@ export function AccionesPedido({
         onClick={() => {
           void principal.run().then((hecho) => {
             if (hecho.omitida || !hecho.valor.ok) return;
-            publicar("exito", hecho.valor.valor);
+            const aviso = hecho.valor.valor;
+            setFalloWhatsapp(!aviso.whatsappOk);
+            publicar(aviso.whatsappOk ? "exito" : "aviso", aviso.aviso);
           });
         }}
       >
@@ -149,11 +152,26 @@ export function AccionesPedido({
         alConfirmar={() => {
           void baja.run().then((hecho) => {
             if (hecho.omitida || !hecho.valor.ok) return;
-            publicar("exito", hecho.valor.valor);
+            const aviso = hecho.valor.valor;
+            setFalloWhatsapp(!aviso.whatsappOk);
+            publicar(aviso.whatsappOk ? "exito" : "aviso", aviso.aviso);
             setCancelar(false);
           });
         }}
       />
+      {falloWhatsapp ? (
+        <p className="basis-full text-sm leading-6 text-zinc-800 dark:text-zinc-200">
+          No se pudo avisar por WhatsApp.{" "}
+          <a
+            href={`https://wa.me/${pedido.telefono}`}
+            target="_blank"
+            className="inline-flex min-h-11 items-center font-medium underline underline-offset-4 touch-manipulation"
+            rel="noopener noreferrer"
+          >
+            Abrir chat
+          </a>
+        </p>
+      ) : null}
     </div>
   );
 }

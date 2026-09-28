@@ -153,7 +153,7 @@ Cómo probarlo:
 
 ## Módulo 7: pedidos y estados
 
-Los pedidos del panel están en http://localhost:5000/t/{slug}/pedidos. El cliente los crea con `POST /api/pedidos`. El servidor ignora precios, envío y tienda del navegador: el recojo queda con envío 0 y sin coordenadas; el delivery se recalcula con las tarifas de la sucursal. El stock baja en esa sucursal y, si se cancela, vuelve a la misma. Un pedido nuevo se resalta dos segundos. El aviso de WhatsApp todavía no se envía.
+Los pedidos del panel están en http://localhost:5000/t/{slug}/pedidos. El cliente los crea con `POST /api/pedidos`. El servidor ignora precios, envío y tienda del navegador: el recojo queda con envío 0 y sin coordenadas; el delivery se recalcula con las tarifas de la sucursal. El stock baja en esa sucursal y, si se cancela, vuelve a la misma. Un pedido nuevo se resalta dos segundos. Si el aviso de WhatsApp falla, el pedido igual cambia de estado.
 
 ```bash
 npm run test:pedidos
@@ -199,3 +199,20 @@ Cómo probarlo:
 3. Un recojo no muestra «En camino». Uno cancelado dice «Pedido cancelado».
 4. Abre el mismo enlace con la licencia suspendida: «Tienda no disponible». Un id de otra tienda o inventado responde 404.
 5. `GET /api/t/{slug}/pedido/{id}` no incluye teléfono, coordenadas ni `tienda_id`.
+
+## Módulo 10: WhatsApp
+
+El dueño registra el número en http://localhost:5000/t/{slug}/whatsapp. Si una sucursal tiene el suyo, sus pedidos salen por ese número. Si no, salen por el de la tienda. El token se guarda cifrado y la pantalla solo muestra los últimos 4 caracteres. `GET` y `POST /api/whatsapp` atienden el webhook de Meta. Un número desconocido se ignora y la respuesta sigue siendo 200. El saludo se envía si no hay conversación o si el último saludo tiene más de 12 horas, con el enlace `/t/{slug}?tel=` o el de la sucursal. Crear un pedido y cambiar su estado avisan al cliente. Si WhatsApp no responde, el pedido no se deshace.
+
+```bash
+npm run test:whatsapp
+```
+
+Cómo probarlo:
+
+1. En `.env.local` define `WHATSAPP_CLAVE` (32 bytes en base64) y `WA_VERIFY_TOKEN`. Reinicia el servidor del puerto 5000.
+2. Entra como dueño en http://localhost:5000/t/{slug}/whatsapp. Guarda el identificador del número, el de la cuenta y el token. El token no vuelve a verse completo.
+3. Pulsa Enviar mensaje de prueba con un celular. El botón dice «Enviando mensaje de prueba…».
+4. Crea un pedido. El cliente debería recibir «Pedido #XXXX recibido». Si el aviso falla, al cambiar el estado el panel dice «No se pudo avisar por WhatsApp» y ofrece abrir el chat.
+5. `GET /api/whatsapp?hub.mode=subscribe&hub.verify_token=TU_TOKEN&hub.challenge=hola` responde `hola`. Un token distinto responde 403. `POST /api/whatsapp` con un evento de estado responde 200.
+6. Como gerente o vendedor, esa pantalla no existe.

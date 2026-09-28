@@ -1,9 +1,10 @@
-/** Punto de extensión del Módulo 10. Vacío a propósito. */
-export async function notificarEstado(pedidoId: string, estado: string): Promise<void> {
+import { avisarPedido } from "@/lib/whatsapp";
+
+/** Un fallo de WhatsApp nunca revierte el pedido ni el cambio de estado. */
+export async function notificarEstado(pedidoId: string, estado: string): Promise<boolean> {
   try {
-    void pedidoId;
-    void estado;
+    return await avisarPedido(pedidoId, estado);
   } catch {
-    // Un fallo de aviso no puede revertir el pedido.
+    return false;
   }
 }
