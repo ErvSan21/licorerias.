@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { guardarPrecioCentralAccion, guardarPrecioSucursalAccion } from "@/app/t/[slug]/productos/actions";
 import { Button } from "@/components/ui/button";
+import { Tag } from "@/components/ui/tag";
 import { useToast } from "@/components/ui/toast";
 import { formatoBs } from "@/lib/catalogo/reglas";
 import type { ProductoLista, SucursalCatalogo } from "@/lib/catalogo/tipos";
@@ -27,12 +28,12 @@ export function TablaPreciosDueno({
   if (productos.length === 0) return null;
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[40rem] border-separate border-spacing-0 text-left text-sm">
+    <div className="panel-scroll-x">
+      <table className="panel-tabla min-w-[40rem]">
         <caption className="sr-only">Precios por sucursal</caption>
         <thead>
           <tr>
-            <th className="sticky left-0 z-10 bg-white px-3 py-2 font-medium dark:bg-zinc-950">Producto</th>
+            <th className="panel-tabla-fija">Producto</th>
             <th className="px-3 py-2 font-medium">Central</th>
             {sucursales.map((sucursal) => (
               <th key={sucursal.id} className="px-3 py-2 font-medium">
@@ -46,7 +47,7 @@ export function TablaPreciosDueno({
             <tr key={producto.id} className="align-top">
               <th
                 scope="row"
-                className="sticky left-0 z-10 bg-white px-3 py-3 font-medium dark:bg-zinc-950"
+                className="panel-tabla-fija font-medium"
                 style={{ contentVisibility: "auto", containIntrinsicSize: "auto 72px" }}
               >
                 <span className="break-words">{producto.nombre}</span>
@@ -156,8 +157,8 @@ export function TablaPreciosLectura({
 }) {
   if (productos.length === 0) return null;
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[36rem] text-left text-sm">
+    <div className="panel-scroll-x">
+      <table className="panel-tabla min-w-[36rem]">
         <caption className="sr-only">Precios por sucursal</caption>
         <thead>
           <tr>
@@ -184,7 +185,9 @@ export function TablaPreciosLectura({
                     ) : (
                       <>
                         {formatoBs(oferta.precioEfectivo)}{" "}
-                        <span className="font-medium">{oferta.usaPrecioCentral ? "Central" : "Propio"}</span>
+                        <Tag tono={oferta.usaPrecioCentral ? "neutro" : "warn"}>
+                          {oferta.usaPrecioCentral ? "Central" : "Propio"}
+                        </Tag>
                       </>
                     )}
                   </td>
@@ -266,7 +269,7 @@ function CeldaSucursal({
     return (
       <div className="flex flex-col items-start gap-1">
         <span className="tabular-nums">{formatoBs(precio)}</span>
-        <span className="font-medium">{propio ? "Propio" : "Central"}</span>
+        <Tag tono={propio ? "warn" : "neutro"}>{propio ? "Propio" : "Central"}</Tag>
         <button
           type="button"
           disabled={lectura}

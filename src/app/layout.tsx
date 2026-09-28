@@ -43,7 +43,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <script
           dangerouslySetInnerHTML={{
             __html:
-              "try{var m=performance.measure.bind(performance);performance.measure=function(){try{return m.apply(performance,arguments)}catch(e){if(!e||String(e.message).indexOf('negative time stamp')===-1)throw e}}}catch(e){}",
+              "try{var m=performance.measure.bind(performance);performance.measure=function(){try{return m.apply(performance,arguments)}catch(e){if(!e||String(e.message).indexOf('negative time stamp')===-1)throw e}}}catch(e){}try{var t=localStorage.getItem('licorerias-tema');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch(e){}",
           }}
         />
         <a

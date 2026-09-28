@@ -3,12 +3,14 @@ import Link from "next/link";
 import { salir } from "@/app/login/actions";
 import { AvisoSoloLectura } from "@/components/aviso-solo-lectura";
 import { BotonPendiente } from "@/components/boton-pendiente";
+import { AvisoPedidos } from "@/components/panel/aviso-pedidos";
 import { MenuDueno, MenuOperacion } from "@/components/panel/menu-panel";
 import {
   BarraSucursalesAsignadas,
   BarraSucursalesDueno,
   SelectorTiendas,
 } from "@/components/panel/selector-contexto";
+import { BotonTema } from "@/components/ui/boton-tema";
 import type { ContextoPanel } from "@/lib/auth/panel";
 import { etiquetaRol } from "@/lib/tenant";
 
@@ -21,20 +23,29 @@ export function MarcoPanel({
 }) {
   const { tienda, staff, vigente, sucursales, tiendas, seleccion } = contexto;
   const activas = sucursales.filter((sucursal) => sucursal.activa || sucursal.id === seleccion);
+  const iniciales = tienda.nombre.trim().slice(0, 1).toUpperCase() || "L";
 
   return (
-    <div className="flex min-h-full flex-1 flex-col pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
-      <header className="border-b border-zinc-200 dark:border-zinc-800">
-        <div className="mx-auto flex w-full max-w-3xl flex-col gap-3 px-4 py-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <p className="text-sm text-zinc-600 dark:text-zinc-400">Licorerías</p>
-              <h1 className="break-words text-xl font-semibold tracking-tight">{tienda.nombre}</h1>
-              <p className="text-sm text-zinc-600 dark:text-zinc-400">{etiquetaRol(staff.rol)}</p>
+    <AvisoPedidos sucursales={activas.map((sucursal) => sucursal.id)}>
+      <div className="panel-marco">
+        <header className="panel-barra">
+          <div className="panel-barra-fila">
+            <div className="panel-identidad">
+              <span className="panel-logo" aria-hidden="true">
+                {iniciales}
+              </span>
+              <div className="min-w-0">
+                <p className="panel-kicker">Licorerías</p>
+                <h1 className="truncate text-lg">{tienda.nombre}</h1>
+                <p className="text-sm text-[var(--mu)]">{etiquetaRol(staff.rol)}</p>
+              </div>
             </div>
-            <form action={salir} className="sm:w-40">
-              <BotonPendiente idle="Salir" pending="Saliendo…" variant="contorno" />
-            </form>
+            <div className="panel-barra-acciones">
+              <BotonTema />
+              <form action={salir} className="panel-salir">
+                <BotonPendiente idle="Salir" pending="Saliendo…" variant="contorno" />
+              </form>
+            </div>
           </div>
           {tiendas.length > 1 ? (
             <SelectorTiendas>
@@ -44,7 +55,7 @@ export function MarcoPanel({
                   href={`/t/${item.slug}/panel`}
                   aria-current={item.id === tienda.id ? "page" : undefined}
                   translate="no"
-                  className="inline-flex min-h-11 touch-manipulation items-center rounded-lg border border-zinc-300 px-3 text-sm font-medium underline-offset-4 aria-[current=page]:border-zinc-900 aria-[current=page]:font-semibold aria-[current=page]:underline dark:border-zinc-700 dark:aria-[current=page]:border-zinc-100"
+                  className="panel-chip"
                 >
                   {item.nombre}
                 </Link>
@@ -56,17 +67,17 @@ export function MarcoPanel({
           ) : (
             <BarraSucursalesAsignadas slug={tienda.slug} sucursales={activas} seleccion={seleccion} />
           )}
-          {staff.rol === "dueno" ? (
-            <MenuDueno slug={tienda.slug} />
-          ) : (
-            <MenuOperacion slug={tienda.slug} verReportes={staff.rol === "gerente"} />
-          )}
+        </header>
+        <div id="contenido" className="panel-cuerpo">
+          {vigente ? null : <AvisoSoloLectura />}
+          {children}
         </div>
-      </header>
-      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4 px-4 py-6">
-        {vigente ? null : <AvisoSoloLectura />}
-        {children}
+        {staff.rol === "dueno" ? (
+          <MenuDueno slug={tienda.slug} />
+        ) : (
+          <MenuOperacion slug={tienda.slug} verReportes={staff.rol === "gerente"} />
+        )}
       </div>
-    </div>
+    </AvisoPedidos>
   );
 }

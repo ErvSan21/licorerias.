@@ -13,6 +13,7 @@ import {
 import { Campo, claseCampo } from "@/components/super/campo";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Tag } from "@/components/ui/tag";
 import { useToast } from "@/components/ui/toast";
 import { useAsyncAction } from "@/components/ui/use-async-action";
 import { esStockBajo, type FilaInventario, type GrupoInventario } from "@/lib/inventario/reglas";
@@ -49,17 +50,30 @@ export function InventarioPanel({
               <p className="text-sm text-zinc-600 dark:text-zinc-400">Sin stock bajo</p>
             )}
           </div>
-          <ul className="flex flex-col gap-3">
-            {grupo.filas.map((fila) => (
-              <FilaStock
-                key={`${fila.productoId}-${fila.sucursalId}`}
-                slug={slug}
-                fila={fila}
-                lectura={lectura}
-                destinos={sucursales.filter((sucursal) => sucursal.id !== fila.sucursalId)}
-              />
-            ))}
-          </ul>
+          <div className="panel-scroll-x">
+            <table className="panel-tabla min-w-[36rem]">
+              <caption className="sr-only">{grupo.categoria}</caption>
+              <thead>
+                <tr>
+                  <th>Producto</th>
+                  <th>Nivel</th>
+                  <th>Stock</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {grupo.filas.map((fila) => (
+                  <FilaStock
+                    key={`${fila.productoId}-${fila.sucursalId}`}
+                    slug={slug}
+                    fila={fila}
+                    lectura={lectura}
+                    destinos={sucursales.filter((sucursal) => sucursal.id !== fila.sucursalId)}
+                  />
+                ))}
+              </tbody>
+            </table>
+          </div>
         </section>
       ))}
     </div>
@@ -139,22 +153,15 @@ function FilaStock({
 }) {
   const clave = `${fila.productoId}-${fila.sucursalId}`;
   const bajo = esStockBajo(fila.stock, fila.stockMinimo);
+  const agotado = fila.stock <= 0;
 
   return (
-    <li
-      className="flex flex-col gap-3 rounded-xl border border-zinc-200 p-4 dark:border-zinc-800"
-      style={{ contentVisibility: "auto", containIntrinsicSize: "auto 220px" }}
-    >
-      <div className="flex flex-col gap-1">
-        <p className="break-words font-semibold">{fila.nombre}</p>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">{fila.sucursal}</p>
-        <p className="text-sm tabular-nums">
-          Stock {fila.stock}
-          {bajo ? <span className="ml-2 font-medium text-amber-800 dark:text-amber-200">Stock bajo</span> : null}
-        </p>
-        <p className="text-sm tabular-nums text-zinc-600 dark:text-zinc-400">Mínimo {fila.stockMinimo}</p>
+    <tr style={{ contentVisibility: "auto", containIntrinsicSize: "auto 220px" }}>
+      <th scope="row" className="align-top font-medium">
+        <p className="break-words">{fila.nombre}</p>
+        <p className="text-sm font-normal text-[var(--mu)]">{fila.sucursal}</p>
         {fila.disponible && fila.activo ? null : (
-          <p className="text-sm">{fila.activo ? "No se ofrece en esta sucursal" : "Producto inactivo"}</p>
+          <p className="text-sm font-normal">{fila.activo ? "No se ofrece en esta sucursal" : "Producto inactivo"}</p>
         )}
         <Link
           href={`/t/${slug}/inventario/${fila.productoId}?sucursal=${fila.sucursalId}`}
@@ -162,9 +169,21 @@ function FilaStock({
         >
           Ver movimientos
         </Link>
-      </div>
-      {lectura ? null : (
-        <div className="flex flex-col gap-4">
+      </th>
+      <td className="align-top">
+        <BarraNivel stock={fila.stock} minimo={fila.stockMinimo} />
+        <span className="mt-2 flex flex-wrap gap-1">
+          {agotado ? <Tag tono="danger">Agotado</Tag> : null}
+          {bajo && !agotado ? <Tag tono="warn">Bajo</Tag> : null}
+        </span>
+      </td>
+      <td className="align-top tabular-nums">
+        <p>{fila.stock}</p>
+        <p className="text-sm text-[var(--mu)]">Mínimo {fila.stockMinimo}</p>
+      </td>
+      <td className="align-top">
+      {lectura ? <span className="text-sm text-[var(--mu)]">Solo lectura</span> : (
+        <div className="flex min-w-56 flex-col gap-4">
           <FormularioSimple
             id={`reponer-${clave}`}
             etiqueta="Cantidad a reponer"
@@ -191,7 +210,22 @@ function FilaStock({
           {destinos.length > 0 ? <FormularioTransferencia slug={slug} fila={fila} destinos={destinos} clave={clave} /> : null}
         </div>
       )}
-    </li>
+      </td>
+    </tr>
+  );
+}
+
+function BarraNivel({ stock, minimo }: { stock: number; minimo: number }) {
+  const bajo = esStockBajo(stock, minimo);
+  const tope = Math.max(minimo * 2, stock, 1);
+  const escala = Math.min(1, stock / tope);
+  return (
+    <span className="barra-nivel" aria-hidden="true">
+      <span
+        className={bajo ? "barra-nivel-alerta" : "barra-nivel-ok"}
+        style={{ transform: `scaleX(${escala})` }}
+      />
+    </span>
   );
 }
 

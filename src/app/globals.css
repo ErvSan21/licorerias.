@@ -36,7 +36,14 @@
   --e2: 250ms;
   --e3: 400ms;
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --px: 22px;
   --bgi: none;
+}
+
+@media (min-width: 700px) {
+  :root {
+    --px: 32px;
+  }
 }
 
 @media (prefers-color-scheme: light) {

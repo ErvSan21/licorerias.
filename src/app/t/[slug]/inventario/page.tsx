@@ -28,9 +28,27 @@ export default async function InventarioPage({ params }: { params: Promise<{ slu
     ? `/api/t/${contexto.tienda.slug}/inventario/csv?sucursal=${contexto.seleccion}`
     : `/api/t/${contexto.tienda.slug}/inventario/csv`;
 
+  const productosDistintos = new Set(filas.map((fila) => fila.productoId)).size;
+  const unidades = filas.reduce((suma, fila) => suma + fila.stock, 0);
+  const stockBajo = filas.filter((fila) => fila.stock <= fila.stockMinimo).length;
+
   return (
     <main className="flex flex-col gap-4">
       <h2 className="text-pretty text-lg font-semibold">Inventario</h2>
+      <section className="panel-kpis" aria-label="Resumen de inventario">
+        <article className="panel-kpi">
+          <p>Productos</p>
+          <strong className="tabular-nums">{productosDistintos}</strong>
+        </article>
+        <article className="panel-kpi">
+          <p>Stock bajo</p>
+          <strong className="tabular-nums">{stockBajo}</strong>
+        </article>
+        <article className="panel-kpi">
+          <p>Unidades</p>
+          <strong className="tabular-nums">{unidades}</strong>
+        </article>
+      </section>
       {lectura ? (
         <p className="text-sm leading-6 text-zinc-700 dark:text-zinc-300">
           {contexto.staff.rol === "vendedor"

@@ -1,19 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { startTransition, useEffect, useState } from "react";
+import { useState } from "react";
 
 import { cambiarEstadoAccion } from "@/app/t/[slug]/pedidos/actions";
+import { useAvisoPedidos } from "@/components/panel/aviso-pedidos";
 import { Campo, claseCampo } from "@/components/super/campo";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Tag } from "@/components/ui/tag";
 import { useToast } from "@/components/ui/toast";
 import { useAsyncAction } from "@/components/ui/use-async-action";
 import { formatoBs, formatoFechaPrecio } from "@/lib/catalogo/reglas";
-import { accionPedido, etiquetaEntrega, etiquetaEstadoPedido, type EstadoPedido } from "@/lib/pedidos/reglas";
+import { accionPedido, etiquetaEstadoPedido, type EstadoPedido } from "@/lib/pedidos/reglas";
 import type { PedidoLista } from "@/lib/pedidos/servicio";
-import { crearClienteNavegador } from "@/lib/supabase/navegador";
 
 type Sucursal = { id: string; nombre: string };
 
@@ -23,7 +23,6 @@ export function PedidosPanel({
   pedidos,
   sucursales,
   filtro,
-  sucursalesVivas,
 }: {
   slug: string;
   lectura: boolean;
@@ -32,7 +31,7 @@ export function PedidosPanel({
   filtro: { estado: string | null; tipo: string | null; sucursalId: string | null; fecha: string | null };
   sucursalesVivas: string[];
 }) {
-  const resaltados = usePedidosNuevos(sucursalesVivas);
+  const resaltados = useAvisoPedidos();
   return (
     <div className="flex flex-col gap-4">
       <Filtros slug={slug} sucursales={sucursales} filtro={filtro} />
@@ -43,24 +42,27 @@ export function PedidosPanel({
           {pedidos.map((pedido) => (
             <li key={pedido.id} className="relative [content-visibility:auto]">
               {resaltados.has(pedido.id) ? <span aria-hidden="true" className="pedido-resalte pointer-events-none absolute inset-0 rounded-xl" /> : null}
-              <article className="relative flex flex-col gap-2 rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <article className="pedido-tarjeta">
+                <div className="flex flex-wrap items-center gap-2">
                   <h3 className="text-pretty text-base font-semibold">
-                    {etiquetaEntrega(pedido.tipo)} · {pedido.cliente}
+                    <span className="tabular-nums text-[var(--mu)]">#{referenciaPedido(pedido.id)}</span>{" "}
+                    {pedido.cliente}
                   </h3>
+                  <Tag>{pedido.tipo === "delivery" ? "DELIVERY" : "RECOJO"}</Tag>
                   <Estado estado={pedido.estado} />
                 </div>
-                <p className="text-sm tabular-nums text-zinc-700 dark:text-zinc-300">
-                  {pedido.sucursal} · {formatoBs(pedido.total)} · {formatoFechaPrecio(pedido.creadoEn)}
+                <p className="text-base font-semibold tabular-nums">{formatoBs(pedido.total)}</p>
+                <p className="text-sm text-[var(--mu)]">
+                  {pedido.sucursal} · {formatoFechaPrecio(pedido.creadoEn)}
                 </p>
                 {pedido.tipo === "recojo" && pedido.horaRecojo ? (
-                  <p className="text-base font-semibold">Recojo {formatoFechaPrecio(pedido.horaRecojo)}</p>
+                  <p className="pedido-hora">Recojo {formatoFechaPrecio(pedido.horaRecojo)}</p>
                 ) : null}
                 {pedido.tipo === "delivery" ? (
-                  <p className="text-sm text-zinc-700 dark:text-zinc-300">
+                  <p className="text-sm text-[var(--mu)]">
                     {pedido.direccion}
                     {pedido.referencia ? ` · ${pedido.referencia}` : ""} · {pedido.distanciaKm} km · envío{" "}
-                    <span className="tabular-nums">{formatoBs(pedido.costoEnvio)}</span>
+                    <span className="tabular-nums text-[var(--tx)]">{formatoBs(pedido.costoEnvio)}</span>
                     {pedido.lat != null && pedido.lng != null ? (
                       <>
                         {" "}
@@ -225,68 +227,10 @@ function Filtros({
 }
 
 function Estado({ estado }: { estado: EstadoPedido }) {
-  const tono =
-    estado === "pendiente"
-      ? "text-amber-800 dark:text-amber-200"
-      : estado === "cancelado"
-        ? "text-red-800 dark:text-red-200"
-        : estado === "enviado"
-          ? "text-sky-800 dark:text-sky-200"
-          : "text-emerald-800 dark:text-emerald-200";
-  return <p className={`text-sm font-medium ${tono}`}>{etiquetaEstadoPedido(estado)}</p>;
+  const tono = estado === "pendiente" ? "warn" : estado === "cancelado" ? "danger" : estado === "enviado" ? "brand" : "ok";
+  return <Tag tono={tono}>{etiquetaEstadoPedido(estado)}</Tag>;
 }
 
-function usePedidosNuevos(sucursales: string[]) {
-  const router = useRouter();
-  const [resaltados, setResaltados] = useState<Set<string>>(() => new Set());
-  const clave = sucursales.toSorted().join(",");
-
-  useEffect(() => {
-    const ids = clave ? clave.split(",") : [];
-    const supabase = crearClienteNavegador();
-    if (!supabase || ids.length === 0) return;
-    const canal = supabase.channel(`pedidos-${clave.slice(0, 48)}`);
-    for (const sucursalId of ids) {
-      canal.on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "pedidos", filter: `sucursal_id=eq.${sucursalId}` },
-        (payload) => {
-          const id = String((payload.new as { id?: string }).id ?? "");
-          if (!id) return;
-          setResaltados((prev) => new Set(prev).add(id));
-          sonar();
-          startTransition(() => router.refresh());
-          window.setTimeout(() => {
-            setResaltados((prev) => {
-              const siguiente = new Set(prev);
-              siguiente.delete(id);
-              return siguiente;
-            });
-          }, 2000);
-        },
-      );
-    }
-    canal.subscribe();
-    return () => {
-      void supabase.removeChannel(canal);
-    };
-  }, [clave, router]);
-
-  return resaltados;
-}
-
-function sonar() {
-  try {
-    const audio = new AudioContext();
-    const osc = audio.createOscillator();
-    const ganancia = audio.createGain();
-    osc.frequency.value = 880;
-    ganancia.gain.value = 0.04;
-    osc.connect(ganancia).connect(audio.destination);
-    osc.start();
-    osc.stop(audio.currentTime + 0.12);
-    osc.onended = () => void audio.close();
-  } catch {
-    // Sin audio no se pierde el pedido.
-  }
+function referenciaPedido(id: string) {
+  return id.replace(/-/g, "").slice(0, 6).toUpperCase();
 }

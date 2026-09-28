@@ -6,7 +6,7 @@ import { elegirSucursalAccion } from "@/app/t/[slug]/actions";
 
 export function SelectorTiendas({ children }: { children: React.ReactNode }) {
   return (
-    <nav aria-label="Tienda" className="flex flex-wrap gap-2">
+    <nav aria-label="Tienda" className="panel-chips">
       {children}
     </nav>
   );
@@ -14,7 +14,7 @@ export function SelectorTiendas({ children }: { children: React.ReactNode }) {
 
 export function SelectorSucursales({ children }: { children: React.ReactNode }) {
   return (
-    <nav aria-label="Sucursal" className="flex gap-2 overflow-x-auto">
+    <nav aria-label="Sucursal" className="panel-chips panel-chips-scroll">
       {children}
     </nav>
   );
@@ -47,7 +47,7 @@ function BotonOpcion({ activa, children }: { activa: boolean; children: React.Re
       type="submit"
       aria-current={activa ? "page" : undefined}
       aria-busy={pending}
-      className="inline-flex min-h-11 touch-manipulation items-center rounded-lg border border-zinc-300 px-3 text-sm font-medium underline-offset-4 aria-[current=page]:border-zinc-900 aria-[current=page]:font-semibold aria-[current=page]:underline disabled:opacity-50 dark:border-zinc-700 dark:aria-[current=page]:border-zinc-100"
+      className="panel-chip"
     >
       {children}
     </button>
