@@ -483,6 +483,12 @@ export async function suspenderLicencia(tiendaId: string): Promise<void> {
 
   if (errorTienda) throw new Error(errorTienda.message);
 
+  const { error: errorSucursales } = await service
+    .from("sucursales")
+    .update({ activa: false, abierta: false })
+    .eq("tienda_id", tiendaId);
+  if (errorSucursales) throw new Error(errorSucursales.message);
+
   await registrarAuditoria({
     userId,
     tiendaId,
@@ -513,6 +519,12 @@ export async function reactivarLicencia(tiendaId: string): Promise<void> {
     .eq("id", tiendaId)
     .neq("estado", "cancelada");
   if (errorTienda) throw new Error(errorTienda.message);
+
+  const { error: errorSucursales } = await service
+    .from("sucursales")
+    .update({ activa: true })
+    .eq("tienda_id", tiendaId);
+  if (errorSucursales) throw new Error(errorSucursales.message);
 
   await registrarAuditoria({
     userId,

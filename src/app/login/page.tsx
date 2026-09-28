@@ -49,24 +49,15 @@ export default async function LoginPage({
 
   const tiendas = await tiendasDelUsuario(user.id);
   const superAdmin = await usuarioEsSuperAdmin(user.id);
-  if (siguiente === "/super" && superAdmin) redirect("/super");
+  if (superAdmin) redirect("/administracion");
   if (siguiente?.startsWith("/t/")) {
     const slug = siguiente.slice("/t/".length).split("/")[0];
     if (tiendas.some((tienda) => tienda.slug === slug)) redirect(siguiente);
   }
-  if (tiendas.length === 0 && superAdmin) redirect("/super");
-  if (tiendas.length === 1 && !superAdmin) redirect(`/t/${tiendas[0].slug}/panel`);
+  if (tiendas.length === 1) redirect(`/t/${tiendas[0].slug}/panel`);
 
   return (
     <Marco titulo="Tus tiendas">
-      {superAdmin ? (
-        <Link
-          href="/super"
-          className="mb-4 flex min-h-12 items-center rounded-lg border border-zinc-300 px-3 py-2 font-medium dark:border-zinc-700"
-        >
-          Panel de la plataforma
-        </Link>
-      ) : null}
       {tiendas.length === 0 ? (
         <p className="text-sm leading-6">Tu usuario no pertenece a ninguna tienda.</p>
       ) : (
