@@ -21,23 +21,8 @@ export function TiendaPublica({ vitrina, telefonoInicial }: { vitrina: Vitrina; 
 }
 
 function Vista({ telefonoInicial }: { telefonoInicial: string }) {
-  const { estado, acciones, meta } = useTienda();
+  const { estado, meta } = useTienda();
   const { tienda, sucursal } = meta.vitrina;
-
-  if (estado.pedidoId) {
-    return (
-      <main className="mx-auto flex w-full max-w-lg flex-col gap-3 px-4 py-8">
-        <h1 className="text-pretty text-2xl font-semibold tracking-tight">Pedido recibido</h1>
-        <p className="text-sm leading-6 text-zinc-700 dark:text-zinc-300">
-          {tienda.nombre} ya tiene tu pedido. Guarda este número por si necesitas preguntar en la sucursal.
-        </p>
-        <p className="font-mono text-sm">{estado.pedidoId}</p>
-        <Button type="button" variant="secundario" onClick={acciones.seguirMirando}>
-          Seguir mirando
-        </Button>
-      </main>
-    );
-  }
 
   return (
     <main className="mx-auto flex w-full max-w-lg scroll-pb-28 flex-col gap-4 px-4 py-6 pb-28">

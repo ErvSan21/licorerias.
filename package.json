@@ -16,6 +16,7 @@
     "test:ofertas": "node --experimental-strip-types --import ./scripts/cargar-alias.mjs --test src/lib/ofertas/reglas.test.ts && bash scripts/probar-ofertas.sh",
     "test:envio": "node --experimental-strip-types --import ./scripts/cargar-alias.mjs --test src/lib/envio/reglas.test.ts && bash scripts/probar-envio.sh",
     "test:pedidos": "node --experimental-strip-types --import ./scripts/cargar-alias.mjs --test src/lib/pedidos/reglas.test.ts && bash scripts/probar-pedidos.sh",
+    "test:seguimiento": "node --experimental-strip-types --import ./scripts/cargar-alias.mjs --test src/lib/pedidos/reglas.test.ts && bash scripts/probar-seguimiento.sh",
     "test:vitrina": "node --experimental-strip-types --import ./scripts/cargar-alias.mjs --test src/lib/tienda/reglas.test.ts && bash scripts/probar-vitrina.sh",
     "test:aislamiento": "bash scripts/probar-aislamiento.sh"
   },

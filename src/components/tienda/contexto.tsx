@@ -17,7 +17,6 @@ type Estado = {
   checkout: boolean;
   detalleId: string | null;
   pulso: number;
-  pedidoId: string | null;
   envio: { distanciaKm: number; costo: number } | null;
   envioError: string | null;
   envioCargando: boolean;
@@ -37,8 +36,7 @@ type Acciones = {
   cerrarDetalle: () => void;
   setEntrega: (entrega: Entrega) => void;
   setEnvio: (envio: { distanciaKm: number; costo: number } | null, error: string | null, cargando: boolean) => void;
-  confirmar: (datos: DatosPedido) => Promise<void>;
-  seguirMirando: () => void;
+  confirmar: (datos: DatosPedido) => Promise<string>;
 };
 
 export type DatosPedido = {
@@ -75,7 +73,6 @@ export function TiendaProvider({
   const [checkout, setCheckout] = useState(false);
   const [detalleId, setDetalleId] = useState<string | null>(null);
   const [pulso, setPulso] = useState(0);
-  const [pedidoId, setPedidoId] = useState<string | null>(null);
   const [envio, setEnvioEstado] = useState<{ distanciaKm: number; costo: number } | null>(null);
   const [envioError, setEnvioError] = useState<string | null>(null);
   const [envioCargando, setEnvioCargando] = useState(false);
@@ -180,13 +177,9 @@ export function TiendaProvider({
       if (!respuesta.ok || !cuerpo?.id) {
         throw new Error(cuerpo?.error || "No se pudo completar. Inténtalo de nuevo.");
       }
-      setPedidoId(cuerpo.id);
       setEditadas([]);
-      setCheckout(false);
       borrarCarrito(vitrina.tienda.slug);
-    },
-    seguirMirando() {
-      setPedidoId(null);
+      return cuerpo.id;
     },
   };
 
@@ -199,7 +192,6 @@ export function TiendaProvider({
     checkout,
     detalleId,
     pulso,
-    pedidoId,
     envio,
     envioError,
     envioCargando,

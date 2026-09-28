@@ -49,7 +49,15 @@ export function IconoConSalto({ ciclo, children }: { ciclo: number; children: Re
   );
 }
 
-export function LineaTiempo({ pasos, actual }: { pasos: readonly string[]; actual: number }) {
+export function LineaTiempo({
+  pasos,
+  actual,
+  ciclo = 0,
+}: {
+  pasos: readonly string[];
+  actual: number;
+  ciclo?: number;
+}) {
   const tope = Math.max(pasos.length - 1, 1);
   const progreso = Math.min(Math.max(actual, 0), tope) / tope;
   return (
@@ -70,7 +78,18 @@ export function LineaTiempo({ pasos, actual }: { pasos: readonly string[]; actua
                 indice <= actual ? "bg-[var(--color-primario)]" : "bg-zinc-300 dark:bg-zinc-700",
               )}
             />
-            <span className={indice === actual ? "font-medium" : "text-zinc-600 dark:text-zinc-400"}>{paso}</span>
+            <span
+              key={indice === actual ? `actual-${ciclo}` : paso}
+              className={
+                indice === actual
+                  ? ciclo > 0
+                    ? "seguimiento-paso ui-movimiento font-medium"
+                    : "font-medium"
+                  : "text-zinc-600 dark:text-zinc-400"
+              }
+            >
+              {paso}
+            </span>
           </li>
         ))}
       </ol>

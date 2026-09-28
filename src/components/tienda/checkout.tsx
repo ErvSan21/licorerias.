@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useEffectEvent, useState } from "react";
 
 import { MapaCliente } from "@/components/panel/mapa-cliente";
@@ -8,13 +9,16 @@ import { useTienda, type DatosPedido } from "@/components/tienda/contexto";
 import { Button } from "@/components/ui/button";
 import { Dialogo } from "@/components/ui/dialogo";
 import { InlineLoader } from "@/components/ui/inline-loader";
+import { exitoMs } from "@/components/ui/tokens";
 import { useAsyncAction } from "@/components/ui/use-async-action";
 import { formatoBs, formatoFechaPrecio } from "@/lib/catalogo/reglas";
 import { opcionesRecojo } from "@/lib/tienda/reglas";
 
 export function Checkout({ telefonoInicial }: { telefonoInicial: string }) {
+  const router = useRouter();
   const { estado, acciones, meta } = useTienda();
   const sucursal = meta.vitrina.sucursal;
+  const slug = meta.vitrina.tienda.slug;
   const [nombre, setNombre] = useState("");
   const [telefono, setTelefono] = useState(telefonoInicial);
   const [direccion, setDireccion] = useState("");
@@ -91,7 +95,14 @@ export function Checkout({ telefonoInicial }: { telefonoInicial: string }) {
         className="mt-4 flex flex-col gap-3"
         onSubmit={(event) => {
           event.preventDefault();
-          void envioAccion.run();
+          void envioAccion.run().then((resultado) => {
+            if (resultado.omitida) return;
+            if (!resultado.valor.ok) return;
+            const id = resultado.valor.valor;
+            window.setTimeout(() => {
+              router.push(`/t/${slug}/pedido/${id}`);
+            }, exitoMs);
+          });
         }}
       >
         <Campo id="pedido-nombre" etiqueta="Nombre">

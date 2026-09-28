@@ -8,6 +8,7 @@ import { calcularEnvio } from "@/lib/envio/servicio";
 import { esUuid } from "@/lib/licencias/reglas";
 import { exigirLicenciaParaEscribir } from "@/lib/licencias/servicio";
 import { createServiceClient } from "@/lib/supabase/service";
+import { TiendaCerrada } from "@/lib/tienda/servicio";
 import { ROLES_TIENDA, type RolTienda } from "@/lib/tenant";
 
 import { notificarEstado } from "./avisos";
@@ -18,7 +19,9 @@ import {
   parseNombreCliente,
   parseReferencia,
   rangoDiaBolivia,
+  seguimientoDesdeJson,
   type EstadoPedido,
+  type SeguimientoPublico,
 } from "./reglas";
 
 const OPERACION = ["dueno", "gerente", "vendedor"] as const;
@@ -154,6 +157,23 @@ export async function leerPedido(slug: string, pedidoId: string): Promise<{
       return [{ estado: fila.estado, creadoEn: fila.creado_en }];
     }),
   };
+}
+
+export async function leerSeguimiento(slug: string, pedidoId: string): Promise<SeguimientoPublico> {
+  if (!esUuid(pedidoId)) throw new NoEncontrado();
+  const service = createServiceClient();
+  const { data, error } = await service.rpc("seguimiento_pedido", {
+    p_slug: slug,
+    p_pedido: pedidoId,
+  });
+  if (error) {
+    if (error.message.includes("Tienda no disponible")) throw new TiendaCerrada();
+    if (error.message.toLowerCase().includes("no encontrad")) throw new NoEncontrado();
+    throw new Error(error.message);
+  }
+  const pedido = seguimientoDesdeJson(data);
+  if (!pedido) throw new NoEncontrado();
+  return pedido;
 }
 
 export async function crearPedidoPublico(input: {

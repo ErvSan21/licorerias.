@@ -46,5 +46,5 @@ export default async function PanelLayout({
 function esVitrina(ruta: string, slug: string) {
   if (!ruta || !slug) return false;
   const base = `/t/${slug}`;
-  return ruta === base || ruta.startsWith(`${base}/s/`);
+  return ruta === base || ruta.startsWith(`${base}/s/`) || ruta.startsWith(`${base}/pedido/`);
 }

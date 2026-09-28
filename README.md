@@ -181,5 +181,21 @@ Cómo probarlo:
 2. Busca un producto: mientras escribes, la lista anterior se atenúa. Filtra por categoría.
 3. Agrega al carrito. El contador da un pequeño salto. Cambia de sucursal: si un precio cambió o el producto ya no está, lo avisa.
 4. Con la sucursal cerrada puedes mirar, pero no confirmar. Con recojo, el envío es 0. Con delivery, mueve el pin: verás «Calculando envío...» y luego el total, o «Fuera de zona de entrega».
-5. `?tel=5917XXXXXXX` rellena el celular. Confirmar pedido dice «Enviando pedido…» y luego «Pedido recibido».
+5. `?tel=5917XXXXXXX` rellena el celular. Confirmar pedido dice «Enviando pedido…», muestra el check y abre el seguimiento.
 6. Entra como personal: Inicio abre http://localhost:5000/t/{slug}/panel.
+
+## Módulo 9: seguimiento del pedido
+
+Después de confirmar, la tienda abre http://localhost:5000/t/{slug}/pedido/{id}. Ahí se ve la línea Recibido → Aceptado → Listo y, si es delivery, En camino. El recojo termina en Listo y muestra la hora. La página se actualiza cada 15 segundos. `GET /api/t/{slug}/pedido/{id}` devuelve solo ese pedido. No hay lectura pública de la tabla `pedidos`. Si la licencia no está vigente, la página dice «Tienda no disponible».
+
+```bash
+npm run test:seguimiento
+```
+
+Cómo probarlo:
+
+1. Confirma un pedido en http://localhost:5000/t/{slug}/s/{sucursal}. Tras el check, abre el seguimiento.
+2. En otra ventana, acepta el pedido en http://localhost:5000/t/{slug}/pedidos. En menos de 15 segundos la línea avanza y el paso actual se mueve.
+3. Un recojo no muestra «En camino». Uno cancelado dice «Pedido cancelado».
+4. Abre el mismo enlace con la licencia suspendida: «Tienda no disponible». Un id de otra tienda o inventado responde 404.
+5. `GET /api/t/{slug}/pedido/{id}` no incluye teléfono, coordenadas ni `tienda_id`.

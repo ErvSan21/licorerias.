@@ -57,6 +57,107 @@ export function accionPedido(estado: EstadoPedido, tipo: "delivery" | "recojo"):
   return null;
 }
 
+export const PASOS_DELIVERY = ["Recibido", "Aceptado", "Listo", "En camino"] as const;
+export const PASOS_RECOJO = ["Recibido", "Aceptado", "Listo"] as const;
+
+/** El cliente consulta el seguimiento cada 15 segundos. */
+export const intervaloSeguimientoMs = 15_000;
+
+export type ItemSeguimiento = {
+  nombre: string;
+  cantidad: number;
+  precioUnitario: number;
+};
+
+export type SeguimientoPublico = {
+  id: string;
+  estado: EstadoPedido;
+  tipoEntrega: "delivery" | "recojo";
+  sucursal: string;
+  total: number;
+  subtotal: number;
+  costoEnvio: number;
+  descuento: number;
+  horaRecojo: string | null;
+  direccion: string;
+  referencia: string;
+  items: ItemSeguimiento[];
+  creadoEn: string;
+};
+
+export function pasosSeguimiento(tipo: "delivery" | "recojo"): readonly string[] {
+  return tipo === "delivery" ? PASOS_DELIVERY : PASOS_RECOJO;
+}
+
+/** -1 si el pedido está cancelado. Si no, el índice del paso visible. */
+export function indiceSeguimiento(estado: EstadoPedido, tipo: "delivery" | "recojo"): number {
+  if (estado === "cancelado") return -1;
+  if (estado === "pendiente") return 0;
+  if (estado === "aceptado") return 1;
+  if (estado === "listo") return 2;
+  if (estado === "enviado" && tipo === "delivery") return 3;
+  return 2;
+}
+
+export function mensajeSeguimiento(estado: EstadoPedido, tipo: "delivery" | "recojo"): string {
+  if (estado === "cancelado") return "Pedido cancelado";
+  const pasos = pasosSeguimiento(tipo);
+  return pasos[indiceSeguimiento(estado, tipo)] ?? "Recibido";
+}
+
+export function seguimientoDesdeJson(data: unknown): SeguimientoPublico | null {
+  if (!data || typeof data !== "object" || Array.isArray(data)) return null;
+  const fila = data as Record<string, unknown>;
+  const estado = fila.estado;
+  const tipo = fila.tipoEntrega;
+  if (typeof fila.id !== "string" || !esEstado(estado)) return null;
+  if (tipo !== "delivery" && tipo !== "recojo") return null;
+  if (typeof fila.sucursal !== "string" || typeof fila.creadoEn !== "string") return null;
+  const total = numero(fila.total);
+  const subtotal = numero(fila.subtotal);
+  const costoEnvio = numero(fila.costoEnvio);
+  const descuento = numero(fila.descuento);
+  if (total == null || subtotal == null || costoEnvio == null || descuento == null) return null;
+  if (!Array.isArray(fila.items)) return null;
+  const items: ItemSeguimiento[] = [];
+  for (const item of fila.items) {
+    if (!item || typeof item !== "object") return null;
+    const linea = item as Record<string, unknown>;
+    const precioUnitario = numero(linea.precioUnitario);
+    const cantidad = numero(linea.cantidad);
+    if (typeof linea.nombre !== "string" || precioUnitario == null || cantidad == null || !Number.isInteger(cantidad)) {
+      return null;
+    }
+    items.push({ nombre: linea.nombre, cantidad, precioUnitario });
+  }
+  const hora = fila.horaRecojo;
+  return {
+    id: fila.id,
+    estado,
+    tipoEntrega: tipo,
+    sucursal: fila.sucursal,
+    total,
+    subtotal,
+    costoEnvio,
+    descuento,
+    horaRecojo: typeof hora === "string" ? hora : null,
+    direccion: typeof fila.direccion === "string" ? fila.direccion : "",
+    referencia: typeof fila.referencia === "string" ? fila.referencia : "",
+    items,
+    creadoEn: fila.creadoEn,
+  };
+}
+
+function esEstado(valor: unknown): valor is EstadoPedido {
+  return typeof valor === "string" && (ESTADOS_PEDIDO as readonly string[]).includes(valor);
+}
+
+function numero(valor: unknown): number | null {
+  if (typeof valor === "number" && Number.isFinite(valor)) return valor;
+  if (typeof valor === "string" && valor.trim() !== "" && Number.isFinite(Number(valor))) return Number(valor);
+  return null;
+}
+
 export function rangoDiaBolivia(fecha: string): { desde: string; hasta: string } | null {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return null;
   return {
