@@ -133,3 +133,20 @@ Cómo probarlo:
 4. Como gerente, el formulario no ofrece «Todas las sucursales». Como vendedor, la lista no tiene botones de cambio.
 5. En http://localhost:5000/t/{slug}/colecciones crea una colección con productos e imagen. El gerente ve la lista sin poder guardarla.
 6. `GET /api/t/{slug}/ofertas` sin sesión responde 401.
+
+## Módulo 6: envío y mapa
+
+Las tarifas y las zonas están en http://localhost:5000/t/{slug}/envio. Cada sucursal tiene sus rangos (por ejemplo 1 km Bs 7) y zonas circulares de tarifa fija o bloqueadas. `POST /api/envio` con sucursalId, lat y lng no acepta un costo ni una distancia del navegador: si el punto cae en una zona bloqueada responde fuera de zona; si cae en una tarifa fija, cobra esa; si no, pide la distancia a OSRM y, si tarda más de 5 segundos o falla, usa Haversine. El mapa se carga solo en el cliente.
+
+```bash
+npm run test:envio
+```
+
+Cómo probarlo:
+
+1. Entra como dueño en http://localhost:5000/t/{slug}/envio. Elige una sucursal que ya tenga pin en Sucursales.
+2. Agrega rangos de 1, 2 y 4 km. Intentar repetir el de 1 km responde que ese rango ya existe.
+3. Dibuja una zona bloqueada y otra con tarifa fija. El círculo sigue al pin.
+4. En «Probar un punto», mueve el pin y pulsa Calcular envío. Verás el costo o «Fuera de zona».
+5. «Usar mi ubicación» pide permiso. Si lo niegas, el mapa explica que puedes mover el pin.
+6. `POST /api/envio` sin un JSON válido responde 400. `GET /api/t/{slug}/envio/tarifas` sin sesión responde 401.

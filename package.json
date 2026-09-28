@@ -14,6 +14,7 @@
     "test:catalogo": "node --experimental-strip-types --import ./scripts/cargar-alias.mjs --test src/lib/catalogo/reglas.test.ts && bash scripts/probar-catalogo.sh",
     "test:inventario": "node --experimental-strip-types --import ./scripts/cargar-alias.mjs --test src/lib/inventario/reglas.test.ts && bash scripts/probar-inventario.sh",
     "test:ofertas": "node --experimental-strip-types --import ./scripts/cargar-alias.mjs --test src/lib/ofertas/reglas.test.ts && bash scripts/probar-ofertas.sh",
+    "test:envio": "node --experimental-strip-types --import ./scripts/cargar-alias.mjs --test src/lib/envio/reglas.test.ts && bash scripts/probar-envio.sh",
     "test:aislamiento": "bash scripts/probar-aislamiento.sh"
   },
   "dependencies": {

@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 
 import { crearSucursalAccion, desactivarSucursalAccion, guardarSucursalAccion } from "@/app/t/[slug]/actions";
-import { MapaPin } from "@/components/panel/mapa-pin";
+import { MapaCliente } from "@/components/panel/mapa-cliente";
 import { useAvisoSalida } from "@/components/super/campo";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -158,7 +158,7 @@ function FormularioSucursal({
           className={`${claseCampo} tabular-nums`}
         />
       </Campo>
-      <MapaPin
+      <MapaCliente
         lat={numero(lat)}
         lng={numero(lng)}
         onMove={(siguienteLat, siguienteLng) => {
