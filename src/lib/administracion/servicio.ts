@@ -4,7 +4,9 @@ import { registrarAuditoria } from "@/lib/auth/auditoria";
 import { requireSuperAdmin } from "@/lib/auth/staff";
 import { createServiceClient } from "@/lib/supabase/service";
 import {
+  esPlazo,
   esUuid,
+  etiquetaPlazo,
   hoyBolivia,
   NegocioError,
   parseCorreo,
@@ -106,6 +108,91 @@ export async function guardarPrecios(input: Record<ClavePrecio, string>): Promis
 
 export async function inactivarTienda(tiendaId: string): Promise<void> {
   await suspenderLicencia(tiendaId);
+}
+
+export async function conteoSucursales(): Promise<Record<string, number>> {
+  await requireSuperAdmin();
+  const service = createServiceClient();
+  const { data, error } = await service.from("sucursales").select("tienda_id");
+  if (error) throw new Error(error.message);
+  const conteo: Record<string, number> = {};
+  for (const fila of (data ?? []) as { tienda_id: string }[]) {
+    conteo[fila.tienda_id] = (conteo[fila.tienda_id] ?? 0) + 1;
+  }
+  return conteo;
+}
+
+export type PlanSuscripcion = {
+  clave: ClavePrecio;
+  nombre: string;
+  precio: number;
+};
+
+export async function listarPlanesSuscripcion(): Promise<PlanSuscripcion[]> {
+  await requireSuperAdmin();
+  const service = createServiceClient();
+  const { data, error } = await service.from("precios_suscripcion").select("clave, nombre, precio");
+  if (error) throw new Error(error.message);
+  const orden = new Map(CLAVES_PRECIO.map((clave, indice) => [clave, indice]));
+  const planes = ((data ?? []) as { clave: string; nombre: string | null; precio: number | string }[]).flatMap((fila) => {
+    if (!esClavePrecio(fila.clave) || !esPlazo(fila.clave)) return [];
+    const nombre = fila.nombre?.trim() || etiquetaPlazo(fila.clave);
+    return [{ clave: fila.clave, nombre, precio: Number(fila.precio) || 0 }];
+  });
+  planes.sort((a, b) => (orden.get(a.clave) ?? 9) - (orden.get(b.clave) ?? 9));
+  return planes;
+}
+
+export async function guardarPlanSuscripcion(input: {
+  claveActual: string;
+  nombre: string;
+  duracion: string;
+  costo: string;
+}): Promise<void> {
+  const { userId } = await requireSuperAdmin();
+  if (!esClavePrecio(input.claveActual)) throw new NegocioError("Ese plan no existe.");
+  if (!esPlazo(input.duracion)) throw new NegocioError("Elige una duración.");
+  const nombre = input.nombre.trim();
+  if (!nombre || nombre.length > 40) throw new NegocioError("El nombre tiene que tener entre 1 y 40 caracteres.");
+  const precio = parseMonto(input.costo);
+  if (precio == null) throw new NegocioError("El costo no es válido.");
+  const service = createServiceClient();
+  if (input.duracion !== input.claveActual) {
+    const { data: ocupada, error: errorOcupada } = await service
+      .from("precios_suscripcion")
+      .select("clave")
+      .eq("clave", input.duracion)
+      .maybeSingle();
+    if (errorOcupada) throw new Error(errorOcupada.message);
+    if (ocupada) throw new NegocioError("Ya hay un plan con esa duración.");
+  }
+  const { data, error } = await service
+    .from("precios_suscripcion")
+    .update({ clave: input.duracion, nombre, precio })
+    .eq("clave", input.claveActual)
+    .select("clave")
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) throw new NegocioError("Ese plan no existe.");
+  await registrarAuditoria({
+    userId,
+    accion: "suscripcion.plan",
+    detalle: { clave: input.duracion, nombre, precio },
+  });
+}
+
+export async function eliminarPlanSuscripcion(clave: string): Promise<void> {
+  const { userId } = await requireSuperAdmin();
+  if (!esClavePrecio(clave)) throw new NegocioError("Ese plan no existe.");
+  const service = createServiceClient();
+  const { data, error } = await service.from("precios_suscripcion").delete().eq("clave", clave).select("clave").maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) throw new NegocioError("Ese plan no existe.");
+  await registrarAuditoria({
+    userId,
+    accion: "suscripcion.plan.eliminar",
+    detalle: { clave },
+  });
 }
 
 export async function eliminarTienda(tiendaId: string): Promise<void> {

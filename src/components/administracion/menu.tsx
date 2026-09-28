@@ -7,6 +7,7 @@ const DESTINOS = [
   { href: "/administracion", etiqueta: "Dashboard", icono: "panel" },
   { href: "/administracion/tiendas", etiqueta: "Tiendas", icono: "tienda" },
   { href: "/administracion/usuarios", etiqueta: "Usuarios", icono: "personas" },
+  { href: "/administracion/planes", etiqueta: "Planes", icono: "planes" },
 ] as const;
 
 export function MenuAdministracion() {
@@ -59,6 +60,14 @@ function Icono({ nombre }: { nombre: (typeof DESTINOS)[number]["icono"] }) {
         <path d="M4.8 18c.5-2.3 2.2-3.4 4.2-3.4s3.7 1.1 4.2 3.4" />
         <circle cx="16.2" cy="9" r="1.7" />
         <path d="M14.2 18c.3-1.5 1.4-2.3 2.8-2.3 1.1 0 2 .5 2.5 1.6" />
+      </svg>
+    );
+  }
+  if (nombre === "planes") {
+    return (
+      <svg {...props}>
+        <rect x="4" y="5" width="16" height="15" rx="2" />
+        <path d="M8 3.5v3M16 3.5v3M4 10h16" />
       </svg>
     );
   }

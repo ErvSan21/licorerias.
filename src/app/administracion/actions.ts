@@ -8,7 +8,9 @@ import {
   borrarUsuario,
   cambiarContrasenaUsuario,
   crearUsuarioOrganizacion,
+  eliminarPlanSuscripcion,
   eliminarTienda,
+  guardarPlanSuscripcion,
   guardarPrecios,
   inactivarTienda,
 } from "@/lib/administracion/servicio";
@@ -109,6 +111,31 @@ export async function probarWhatsappAccion(
   }
 }
 
+export async function guardarPlanAccion(input: {
+  claveActual: string;
+  nombre: string;
+  duracion: string;
+  costo: string;
+}): Promise<ResultadoAccion> {
+  try {
+    await guardarPlanSuscripcion(input);
+    refrescar();
+    return { ok: true, aviso: "Plan guardado." };
+  } catch (error) {
+    return fallar(error);
+  }
+}
+
+export async function eliminarPlanAccion(clave: string): Promise<ResultadoAccion> {
+  try {
+    await eliminarPlanSuscripcion(clave);
+    refrescar();
+    return { ok: true, aviso: "Plan eliminado." };
+  } catch (error) {
+    return fallar(error);
+  }
+}
+
 export async function inactivarTiendaAccion(tiendaId: string): Promise<ResultadoAccion> {
   try {
     await inactivarTienda(tiendaId);
@@ -168,6 +195,7 @@ function refrescar() {
   revalidatePath("/administracion");
   revalidatePath("/administracion/tiendas");
   revalidatePath("/administracion/usuarios");
+  revalidatePath("/administracion/planes");
 }
 
 function fallar(error: unknown): { ok: false; error: string } {

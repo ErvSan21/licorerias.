@@ -1,13 +1,14 @@
 import { MenuTienda } from "@/components/administracion/menu-tienda";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { conteoSucursales } from "@/lib/administracion/servicio";
 import { fechaAlta } from "@/lib/administracion/reglas";
 import { esPlazo, etiquetaPlazo, formatoFecha } from "@/lib/licencias/reglas";
 import { listarTiendas } from "@/lib/licencias/servicio";
 import { etiquetaEstado } from "@/lib/tenant";
 
 export default async function TiendasPage() {
-  const tiendas = await listarTiendas();
+  const [tiendas, sucursales] = await Promise.all([listarTiendas(), conteoSucursales()]);
 
   return (
     <main className="flex flex-col gap-4">
@@ -49,7 +50,11 @@ export default async function TiendasPage() {
                       <dt className="text-[var(--mu)]">Fin</dt>
                       <dd className="tabular-nums">{fin ? <time dateTime={fin}>{formatoFecha(fin)}</time> : null}</dd>
                     </div>
-                    <div className="col-span-2">
+                    <div>
+                      <dt className="text-[var(--mu)]">Sucursales</dt>
+                      <dd className="tabular-nums">{sucursales[tienda.id] ?? 0}</dd>
+                    </div>
+                    <div>
                       <dt className="text-[var(--mu)]">Plan</dt>
                       <dd>{plazo ? etiquetaPlazo(plazo) : "Sin plan"}</dd>
                     </div>

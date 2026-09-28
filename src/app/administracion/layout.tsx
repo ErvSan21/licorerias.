@@ -1,11 +1,10 @@
 import { redirect, unstable_rethrow } from "next/navigation";
 
-import { salir } from "@/app/login/actions";
 import { MenuAdministracion } from "@/components/administracion/menu";
-import { BotonPendiente } from "@/components/boton-pendiente";
+import { MenuPerfil } from "@/components/administracion/menu-perfil";
 import { BotonTema } from "@/components/ui/boton-tema";
 import { AccesoError, mensajeAcceso } from "@/lib/auth/errors";
-import { requireSuperAdmin } from "@/lib/auth/staff";
+import { requireSuperAdmin, usuarioVerificado } from "@/lib/auth/staff";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +30,8 @@ export default async function AdministracionLayout({ children }: { children: Rea
     throw error;
   }
 
+  const usuario = await usuarioVerificado();
+
   return (
     <div className="panel-marco">
       <header className="panel-barra">
@@ -41,9 +42,7 @@ export default async function AdministracionLayout({ children }: { children: Rea
           </div>
           <div className="panel-barra-acciones">
             <BotonTema />
-            <form action={salir} className="panel-salir">
-              <BotonPendiente idle="Salir" pending="Saliendo…" variant="contorno" />
-            </form>
+            <MenuPerfil correo={usuario?.email ?? ""} />
           </div>
         </div>
       </header>

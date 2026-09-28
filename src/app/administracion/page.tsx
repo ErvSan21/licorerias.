@@ -1,4 +1,3 @@
-import { FormularioPrecios } from "@/components/administracion/precios-form";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { leerTablero } from "@/lib/administracion/servicio";
@@ -106,7 +105,6 @@ export default async function DashboardPage() {
             <strong className="tabular-nums">{formatoBs(tablero.ingresos.demo)}</strong>
           </article>
         </div>
-        <FormularioPrecios precios={tablero.precios} />
       </section>
     </main>
   );

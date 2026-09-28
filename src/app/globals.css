@@ -32,6 +32,9 @@
   --ok: #5fbf8a;
   --er: #ef6b6b;
   --wa: #e8b44a;
+  --campo-bg: #243656;
+  --campo-tx: #eef3fc;
+  --campo-ln: #3d5278;
   --e1: 150ms;
   --e2: 250ms;
   --e3: 400ms;
@@ -58,6 +61,9 @@
     --ok: #307550;
     --er: #dc1515;
     --wa: #916712;
+    --campo-bg: #e6ebf2;
+    --campo-tx: #10203a;
+    --campo-ln: #cfd6e2;
     --bgi: radial-gradient(60% 40% at 100% -5%, color-mix(in srgb, var(--br2) 26%, transparent), transparent),
       radial-gradient(55% 40% at -10% 8%, color-mix(in srgb, var(--br) 20%, transparent), transparent),
       var(--bg);
@@ -75,6 +81,9 @@
   --ok: #307550;
   --er: #dc1515;
   --wa: #916712;
+  --campo-bg: #e6ebf2;
+  --campo-tx: #10203a;
+  --campo-ln: #cfd6e2;
   --bgi: radial-gradient(60% 40% at 100% -5%, color-mix(in srgb, var(--br2) 26%, transparent), transparent),
     radial-gradient(55% 40% at -10% 8%, color-mix(in srgb, var(--br) 20%, transparent), transparent),
     var(--bg);
@@ -91,6 +100,9 @@
   --ok: #5fbf8a;
   --er: #ef6b6b;
   --wa: #e8b44a;
+  --campo-bg: #243656;
+  --campo-tx: #eef3fc;
+  --campo-ln: #3d5278;
   --bgi: none;
 }
 
