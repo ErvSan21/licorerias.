@@ -1,22 +1,25 @@
 "use client";
 
-import { useDeferredValue } from "react";
+import { useDeferredValue, useState } from "react";
 
 import { Campo, claseCampo } from "@/components/super/campo";
 import { useTienda } from "@/components/tienda/contexto";
 import { Button } from "@/components/ui/button";
+import { ChipCategoria } from "@/components/ui/chip-categoria";
 import { Dialogo } from "@/components/ui/dialogo";
 import { ImagenConCarga } from "@/components/ui/imagen";
 import { formatoBs } from "@/lib/catalogo/reglas";
+import { TIPOS_BEBIDA, tipoDeBebida, type TipoBebida } from "@/lib/catalogo/tipo-bebida";
 import type { ProductoPublico } from "@/lib/tienda/servicio";
 
 export function Catalogo() {
   const { estado, acciones, meta } = useTienda();
+  const [tipo, setTipo] = useState<TipoBebida>("Todos");
   const consulta = useDeferredValue(estado.busqueda);
   const atenuada = consulta !== estado.busqueda;
   const texto = consulta.trim().toLocaleLowerCase("es");
   const productos = meta.vitrina.productos.filter((producto) => {
-    if (estado.categoriaId && producto.categoriaId !== estado.categoriaId) return false;
+    if (tipo !== "Todos" && tipoDeBebida(producto.nombre) !== tipo) return false;
     if (!texto) return true;
     return producto.nombre.toLocaleLowerCase("es").includes(texto);
   });
@@ -31,24 +34,17 @@ export function Catalogo() {
           name="q"
           autoComplete="off"
           enterKeyHint="search"
-          placeholder="Nombre del producto…"
+          placeholder="Buscar producto"
           value={estado.busqueda}
           onChange={(event) => acciones.setBusqueda(event.target.value)}
           className={claseCampo}
         />
       </Campo>
-      <div className="flex gap-2 overflow-x-auto" role="group" aria-label="Categorías">
-        <Filtro activo={estado.categoriaId == null} onClick={() => acciones.setCategoria(null)}>
-          Todas
-        </Filtro>
-        {meta.vitrina.categorias.map((categoria) => (
-          <Filtro
-            key={categoria.id}
-            activo={estado.categoriaId === categoria.id}
-            onClick={() => acciones.setCategoria(categoria.id)}
-          >
-            {categoria.nombre}
-          </Filtro>
+      <div className="flex gap-2 overflow-x-auto" role="group" aria-label="Tipos de bebida">
+        {TIPOS_BEBIDA.map((nombre) => (
+          <ChipCategoria key={nombre} activo={tipo === nombre} onClick={() => setTipo(nombre)}>
+            {nombre}
+          </ChipCategoria>
         ))}
       </div>
       {estado.avisos.length > 0 ? (
@@ -179,19 +175,6 @@ function Agregar({ producto }: { producto: ProductoPublico }) {
     <Button type="button" variant="secundario" className="mt-auto" onClick={() => acciones.agregar(producto.id)}>
       Agregar
     </Button>
-  );
-}
-
-function Filtro({ activo, onClick, children }: { activo: boolean; onClick: () => void; children: string }) {
-  return (
-    <button
-      type="button"
-      aria-pressed={activo}
-      onClick={onClick}
-      className="ui-boton inline-flex min-h-11 shrink-0 items-center rounded-full border border-zinc-300 px-3 text-sm font-medium aria-pressed:border-zinc-900 aria-pressed:font-semibold dark:border-zinc-700 dark:aria-pressed:border-zinc-100"
-    >
-      {children}
-    </button>
   );
 }
 
