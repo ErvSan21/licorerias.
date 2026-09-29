@@ -108,7 +108,7 @@ export function DashboardPanel({
                       {pedido.tipo === "delivery" ? "Delivery" : "Recojo"} · {formatoBs(pedido.total)}
                     </span>
                   </span>
-                  <Tag tono={tonoEstadoPedido(pedido.estado)}>{etiquetaEstadoPedido(pedido.estado)}</Tag>
+                  <Tag tono={tonoEstadoPedido(pedido.estado)}>{etiquetaEstadoPedido(pedido.estado, pedido.origen)}</Tag>
                 </li>
               ))}
             </ul>

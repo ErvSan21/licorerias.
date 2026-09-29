@@ -3,7 +3,7 @@ import "server-only";
 import { cache } from "react";
 
 import { NoEncontrado } from "@/lib/auth/errors";
-import { requireStaff, type Staff } from "@/lib/auth/staff";
+import { requireStaff, usuarioVerificado, type Staff } from "@/lib/auth/staff";
 import { licenciaVigente } from "@/lib/licencias/servicio";
 import { leerSeleccion } from "@/lib/sucursales/seleccion";
 import { listarSucursalesVisibles, type SucursalResumen } from "@/lib/sucursales/servicio";
@@ -32,7 +32,8 @@ type FilaTienda = {
   estado: string;
 };
 
-export async function resolveTenantBySlug(slug: string): Promise<TiendaResuelta | null> {
+/** Una sola consulta por request aunque la pidan el layout, la página y los servicios. */
+export const resolveTenantBySlug = cache(async (slug: string): Promise<TiendaResuelta | null> => {
   const normalizado = normalizarSlug(slug);
   if (!slugValido(normalizado) || slugReservado(normalizado)) return null;
 
@@ -54,7 +55,7 @@ export async function resolveTenantBySlug(slug: string): Promise<TiendaResuelta 
     nombre: fila.nombre,
     estado: fila.estado,
   };
-}
+});
 
 export const cargarPanel = cache(async (slugCrudo: string) => {
   const slug = normalizarSlug(slugCrudo);
@@ -76,12 +77,16 @@ export const cargarPanel = cache(async (slugCrudo: string) => {
 });
 
 export const contextoPanel = cache(async (slugCrudo: string) => {
+  // Las tiendas del usuario solo dependen de su sesión: se piden junto con la membresía.
+  const user = await usuarioVerificado();
+  const tiendasPedidas = user ? tiendasDelUsuario(user.id) : null;
+  tiendasPedidas?.catch(() => null);
   const base = await cargarPanel(slugCrudo);
-  const { sucursales } = await listarSucursalesVisibles(base.tienda.slug);
-  const [tiendas, seleccion] = await Promise.all([
-    tiendasDelUsuario(base.staff.userId),
-    leerSeleccion(base.staff, sucursales),
+  const [{ sucursales }, tiendas] = await Promise.all([
+    listarSucursalesVisibles(base.tienda.slug),
+    tiendasPedidas ?? tiendasDelUsuario(base.staff.userId),
   ]);
+  const seleccion = await leerSeleccion(base.staff, sucursales);
   return { ...base, sucursales, tiendas, seleccion };
 });
 

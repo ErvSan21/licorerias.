@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { BotonVolver } from "@/components/ui/boton-volver";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Tag } from "@/components/ui/tag";
 import { usuarioVerificado } from "@/lib/auth/staff";
@@ -45,15 +46,13 @@ export default async function MovimientosPage({
 
   return (
     <main className="flex flex-col gap-4">
-      <Link href={`/t/${normalizado}/productos`} className="inline-flex min-h-11 items-center text-sm font-medium text-[var(--br)]">
-        ← Volver a productos
-      </Link>
+      <BotonVolver href={`/t/${normalizado}/productos`} etiqueta="Productos" />
       <div className="flex items-start justify-between gap-3">
         <h2 className="text-pretty break-words text-lg font-semibold">Movimientos · {resultado.producto.nombre}</h2>
         <Tag tono={stock <= 0 ? "danger" : "neutro"}>Stock {stock}</Tag>
       </div>
 
-      <nav aria-label="Tipo de movimiento" className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none]">
+      <nav aria-label="Tipo de movimiento" className="chips-carrusel">
         {FILTROS.map((opcion) => {
           const activo = filtro === opcion.valor;
           return (

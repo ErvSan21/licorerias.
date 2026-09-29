@@ -284,7 +284,7 @@ function FormularioSimple({
   return (
     <form
       ref={formulario}
-      className="flex flex-col gap-4 rounded-xl border border-zinc-200 p-4 dark:border-zinc-800"
+      className="flex flex-col gap-4 rounded-xl border border-[var(--ln)] p-4"
       onInput={salida.marcarSucio}
       onSubmit={(event) => {
         event.preventDefault();

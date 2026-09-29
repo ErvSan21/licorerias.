@@ -65,7 +65,7 @@ function TarjetaPlan({ plan, ocupadas }: { plan: PlanFila; ocupadas: Plazo[] }) 
       </div>
       <button
         type="button"
-        className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-lg"
+        className="boton-icono"
         aria-label={`Acciones de ${plan.nombre}`}
         aria-haspopup="dialog"
         onClick={() => setLista(true)}
@@ -75,14 +75,14 @@ function TarjetaPlan({ plan, ocupadas }: { plan: PlanFila; ocupadas: Plazo[] }) 
       <Drawer abierto={lista} titulo={plan.nombre} alCerrar={() => setLista(false)}>
         <ul className="flex flex-col">
           <li>
-            <button type="button" className="flex min-h-11 w-full items-center rounded-lg px-3 text-left" onClick={() => { setLista(false); setAccion("editar"); }}>
+            <button type="button" className="menu-hoja-item" onClick={() => { setLista(false); setAccion("editar"); }}>
               Editar
             </button>
           </li>
           <li>
             <button
               type="button"
-              className="flex min-h-11 w-full items-center rounded-lg px-3 text-left text-red-700 dark:text-red-400"
+              className="menu-hoja-item menu-hoja-item-peligro"
               onClick={() => { setLista(false); setAccion("eliminar"); }}
             >
               Eliminar
@@ -203,7 +203,7 @@ function FormularioPlan({
         />
       </Campo>
       {error ? (
-        <p role="alert" className="text-sm text-red-700 dark:text-red-400">
+        <p role="alert" className="text-sm text-[var(--er)]">
           {error}
         </p>
       ) : null}
@@ -238,7 +238,7 @@ function ConfirmarEliminar({
       }}
     >
       {error ? (
-        <p role="alert" className="text-sm text-red-700 dark:text-red-400">
+        <p role="alert" className="text-sm text-[var(--er)]">
           {error}
         </p>
       ) : null}

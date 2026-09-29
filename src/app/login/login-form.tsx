@@ -41,7 +41,7 @@ export function LoginForm({ siguiente }: { siguiente: string | null }) {
         />
       </div>
       {estado.error ? (
-        <p role="alert" className="text-sm text-red-700 dark:text-red-400">
+        <p role="alert" className="text-sm text-[var(--er)]">
           {estado.error}
         </p>
       ) : null}

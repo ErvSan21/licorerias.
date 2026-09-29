@@ -133,7 +133,7 @@ export function Checkout({ telefonoInicial }: { telefonoInicial: string }) {
             />
             <div aria-live="polite">
               {estado.envioCargando ? <InlineLoader>Calculando envío…</InlineLoader> : null}
-              {estado.envioError ? <p className="text-sm text-red-800 dark:text-red-300">{estado.envioError}</p> : null}
+              {estado.envioError ? <p className="text-sm text-[var(--er)]">{estado.envioError}</p> : null}
               {estado.envio ? (
                 <p className="text-sm tabular-nums">
                   {estado.envio.distanciaKm} km · envío {formatoBs(estado.envio.costo)}
@@ -149,7 +149,7 @@ export function Checkout({ telefonoInicial }: { telefonoInicial: string }) {
           </>
         ) : null}
         <p className="text-base font-semibold tabular-nums">Total {formatoBs(total)}</p>
-        {envioAccion.error ? <p className="text-sm text-red-800 dark:text-red-300">{envioAccion.error}</p> : null}
+        {envioAccion.error ? <p className="text-sm text-[var(--er)]">{envioAccion.error}</p> : null}
         <Button
           type="submit"
           loading={envioAccion.loading}
@@ -182,7 +182,7 @@ function Lineas() {
             <span className="flex shrink-0 items-center gap-1">
               <button
                 type="button"
-                className="ui-boton min-h-11 min-w-11 rounded-lg border border-zinc-300 text-lg dark:border-zinc-700"
+                className="ui-boton min-h-11 min-w-11 rounded-lg border border-[var(--ln)] text-lg"
                 aria-label={`Quitar uno de ${producto.nombre}`}
                 onClick={() => acciones.cambiarCantidad(linea.productoId, linea.cantidad - 1)}
               >
@@ -191,7 +191,7 @@ function Lineas() {
               <span className="w-6 text-center text-sm tabular-nums">{linea.cantidad}</span>
               <button
                 type="button"
-                className="ui-boton min-h-11 min-w-11 rounded-lg border border-zinc-300 text-lg dark:border-zinc-700"
+                className="ui-boton min-h-11 min-w-11 rounded-lg border border-[var(--ln)] text-lg"
                 aria-label={`Agregar uno de ${producto.nombre}`}
                 onClick={() => acciones.cambiarCantidad(linea.productoId, linea.cantidad + 1)}
               >

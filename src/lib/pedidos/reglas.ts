@@ -3,8 +3,24 @@ import { capitalizar } from "@/lib/texto";
 
 export { NegocioError };
 
-export const ESTADOS_PEDIDO = ["pendiente", "aceptado", "listo", "enviado", "cancelado"] as const;
+export const ESTADOS_PEDIDO = [
+  "pendiente",
+  "aceptado",
+  "listo",
+  "enviado",
+  "preparando",
+  "recogido",
+  "entregado",
+  "cancelado",
+] as const;
 export type EstadoPedido = (typeof ESTADOS_PEDIDO)[number];
+
+/** "panel": venta cargada por el personal; "tienda": pedido de la tienda en línea. */
+export type OrigenPedido = "panel" | "tienda";
+
+export function esOrigenPedido(valor: unknown): valor is OrigenPedido {
+  return valor === "panel" || valor === "tienda";
+}
 
 export const METODOS_PAGO = ["efectivo", "qr"] as const;
 export type MetodoPago = (typeof METODOS_PAGO)[number];
@@ -29,17 +45,29 @@ export function referenciaPedido(id: string): string {
 
 export function tonoEstadoPedido(estado: EstadoPedido): "brand" | "warn" | "ok" | "danger" {
   if (estado === "pendiente") return "brand";
-  if (estado === "aceptado") return "warn";
+  if (estado === "aceptado" || estado === "preparando") return "warn";
+  if (estado === "recogido") return "brand";
   if (estado === "cancelado") return "danger";
   return "ok";
 }
 
-export function etiquetaEstadoPedido(estado: EstadoPedido): string {
-  if (estado === "pendiente") return "Nuevo";
+/** En las ventas del panel el primer estado se llama "Registrado"; en la tienda, "Nuevo". */
+export function etiquetaEstadoPedido(estado: EstadoPedido, origen: OrigenPedido = "tienda"): string {
+  if (estado === "pendiente") return origen === "panel" ? "Registrado" : "Nuevo";
   if (estado === "aceptado") return "Aceptado";
   if (estado === "listo") return "Listo";
   if (estado === "enviado") return "Enviado";
+  if (estado === "preparando") return "Preparando";
+  if (estado === "recogido") return "Recogido";
+  if (estado === "entregado") return "Entregado";
   return "Cancelado";
+}
+
+/** Pasos de una venta del panel, en orden. */
+export function pasosVenta(tipo: "delivery" | "recojo"): EstadoPedido[] {
+  return tipo === "delivery"
+    ? ["pendiente", "aceptado", "preparando", "recogido", "entregado"]
+    : ["pendiente", "aceptado", "entregado"];
 }
 
 export function etiquetaEntrega(tipo: "delivery" | "recojo"): string {
@@ -72,12 +100,27 @@ export function parseReferencia(valor: unknown): string {
 }
 
 export type AccionPedido = {
-  estado: "aceptado" | "listo" | "enviado";
+  estado: Exclude<EstadoPedido, "pendiente" | "cancelado">;
   etiqueta: string;
   cancelar: boolean;
 };
 
-export function accionPedido(estado: EstadoPedido, tipo: "delivery" | "recojo"): AccionPedido | null {
+/** Siguiente paso y si todavía se puede cancelar. Misma regla que cambiar_estado en la base. */
+export function accionPedido(
+  estado: EstadoPedido,
+  tipo: "delivery" | "recojo",
+  origen: OrigenPedido = "tienda",
+): AccionPedido | null {
+  if (origen === "panel") {
+    if (estado === "pendiente") return { estado: "aceptado", etiqueta: "Aceptar pedido", cancelar: true };
+    if (estado === "aceptado" && tipo === "recojo") {
+      return { estado: "entregado", etiqueta: "Marcar como entregado", cancelar: true };
+    }
+    if (estado === "aceptado") return { estado: "preparando", etiqueta: "Marcar como preparando", cancelar: true };
+    if (estado === "preparando") return { estado: "recogido", etiqueta: "Marcar como recogido", cancelar: true };
+    if (estado === "recogido") return { estado: "entregado", etiqueta: "Marcar como entregado", cancelar: false };
+    return null;
+  }
   if (estado === "pendiente") return { estado: "aceptado", etiqueta: "Aceptar pedido", cancelar: true };
   if (estado === "aceptado") return { estado: "listo", etiqueta: "Marcar como listo", cancelar: true };
   if (estado === "listo" && tipo === "delivery") {
@@ -123,8 +166,8 @@ export function indiceSeguimiento(estado: EstadoPedido, tipo: "delivery" | "reco
   if (estado === "cancelado") return -1;
   if (estado === "pendiente") return 0;
   if (estado === "aceptado") return 1;
-  if (estado === "listo") return 2;
-  if (estado === "enviado" && tipo === "delivery") return 3;
+  if (estado === "listo" || estado === "preparando") return 2;
+  if ((estado === "enviado" || estado === "recogido" || estado === "entregado") && tipo === "delivery") return 3;
   return 2;
 }
 
@@ -134,10 +177,20 @@ export function mensajeSeguimiento(estado: EstadoPedido, tipo: "delivery" | "rec
   return pasos[indiceSeguimiento(estado, tipo)] ?? "Recibido";
 }
 
-export function pedidoDesdeJson(cuerpo: Record<string, unknown>): {
+/** Nombre que se guarda cuando una venta de mostrador no lo tiene. */
+export const CLIENTE_SIN_NOMBRE = "Cliente";
+
+/**
+ * `mostrador`: venta del personal. En recojo, nombre y celular son opcionales.
+ * El pedido público siempre exige los dos.
+ */
+export function pedidoDesdeJson(
+  cuerpo: Record<string, unknown>,
+  { mostrador = false }: { mostrador?: boolean } = {},
+): {
   sucursalId: string;
   nombre: string;
-  telefono: string;
+  telefono: string | null;
   tipo: "delivery" | "recojo";
   lat: number | null;
   lng: number | null;
@@ -162,10 +215,12 @@ export function pedidoDesdeJson(cuerpo: Record<string, unknown>): {
   if (items.length === 0) throw new NegocioError("Agrega un producto.");
   const hora = cuerpo.horaRecojo == null || cuerpo.horaRecojo === "" ? null : String(cuerpo.horaRecojo);
   if (hora && Number.isNaN(new Date(hora).getTime())) throw new NegocioError("Elige una hora con más anticipación.");
+  const opcional = mostrador && tipo === "recojo";
+  const vacio = (valor: unknown) => String(valor ?? "").trim() === "";
   return {
     sucursalId: String(cuerpo.sucursalId ?? ""),
-    nombre: parseNombreCliente(cuerpo.nombre),
-    telefono: normalizarTelefono(cuerpo.telefono),
+    nombre: opcional && vacio(cuerpo.nombre) ? CLIENTE_SIN_NOMBRE : parseNombreCliente(cuerpo.nombre),
+    telefono: opcional && vacio(cuerpo.telefono) ? null : normalizarTelefono(cuerpo.telefono),
     tipo,
     lat: cuerpo.lat == null || cuerpo.lat === "" ? null : Number(cuerpo.lat),
     lng: cuerpo.lng == null || cuerpo.lng === "" ? null : Number(cuerpo.lng),

@@ -53,7 +53,7 @@ export type ResultadoEnvio =
 export async function listarEnvio(slug: string): Promise<{
   tarifas: TarifaLista[];
   zonas: ZonaLista[];
-  sucursales: { id: string; nombre: string; lat: number | null; lng: number | null }[];
+  sucursales: { id: string; nombre: string; lat: number | null; lng: number | null; aceptaDelivery: boolean }[];
 }> {
   const { tienda, staff } = await exigir(slug, null, ROLES_TIENDA);
   const permitidas = await sucursalesPermitidas(staff.miembroId, staff.rol, tienda.id);
@@ -69,14 +69,17 @@ export async function listarEnvio(slug: string): Promise<{
       .select("id, tienda_id, sucursal_id, nombre, lat_centro, lng_centro, radio_km, tipo, costo, activa")
       .eq("tienda_id", tienda.id)
       .order("nombre"),
-    service.from("sucursales").select("id, nombre, lat, lng").eq("tienda_id", tienda.id).order("nombre"),
+    service.from("sucursales").select("id, nombre, lat, lng, acepta_delivery").eq("tienda_id", tienda.id).order("nombre"),
   ]);
   if (tarifasRes.error) throw new Error(tarifasRes.error.message);
   if (zonasRes.error) throw new Error(zonasRes.error.message);
   if (sucursalesRes.error) throw new Error(sucursalesRes.error.message);
 
-  const sucursales = ((sucursalesRes.data ?? []) as { id: string; nombre: string; lat: number | null; lng: number | null }[])
-    .filter((fila) => permitidas.has(fila.id));
+  const sucursales = (
+    (sucursalesRes.data ?? []) as { id: string; nombre: string; lat: number | null; lng: number | null; acepta_delivery: boolean }[]
+  )
+    .filter((fila) => permitidas.has(fila.id))
+    .map((fila) => ({ id: fila.id, nombre: fila.nombre, lat: fila.lat, lng: fila.lng, aceptaDelivery: fila.acepta_delivery }));
   const nombres = new Map(sucursales.map((sucursal) => [sucursal.id, sucursal.nombre]));
 
   const tarifas = ((tarifasRes.data ?? []) as FilaTarifa[]).flatMap((fila) => {

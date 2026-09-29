@@ -2,14 +2,18 @@ import { MenuTienda } from "@/components/administracion/menu-tienda";
 import { NuevaTienda } from "@/components/administracion/nueva-tienda";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { conteoSucursales } from "@/lib/administracion/servicio";
+import { conteoSucursales, tiendasConSucursales } from "@/lib/administracion/servicio";
 import { fechaAlta } from "@/lib/administracion/reglas";
 import { esPlazo, etiquetaPlazo, formatoFecha } from "@/lib/licencias/reglas";
 import { listarTiendas } from "@/lib/licencias/servicio";
 import { etiquetaEstado } from "@/lib/tenant";
 
 export default async function TiendasPage() {
-  const [tiendas, sucursales] = await Promise.all([listarTiendas(), conteoSucursales()]);
+  const [tiendas, sucursales, conSucursales] = await Promise.all([
+    listarTiendas(),
+    conteoSucursales(),
+    tiendasConSucursales(),
+  ]);
 
   return (
     <main className="flex flex-col gap-4">
@@ -39,6 +43,7 @@ export default async function TiendasPage() {
                           inicio: tienda.licencia?.inicio ?? null,
                           vence: fin,
                           plazo,
+                          sucursalesHabilitadas: conSucursales.has(tienda.id),
                         }}
                       />
                     </div>

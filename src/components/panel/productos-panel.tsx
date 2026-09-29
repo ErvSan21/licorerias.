@@ -236,7 +236,7 @@ function TarjetaProducto({
           <div ref={contenedor} className="producto-acciones relative self-start">
             <button
               type="button"
-              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-lg"
+              className="boton-icono"
               aria-label={`Acciones de ${producto.nombre}`}
               aria-haspopup="menu"
               aria-expanded={menu}
@@ -249,7 +249,7 @@ function TarjetaProducto({
               <span aria-hidden>⋮</span>
             </button>
             {menu ? (
-              <ul role="menu" className={`producto-menu ${haciaArriba ? "producto-menu-arriba" : ""}`}>
+              <ul role="menu" className={`producto-menu ui-movimiento ${haciaArriba ? "producto-menu-arriba" : ""}`}>
                 {permisos.stock ? (
                   <li role="none">
                     <button type="button" role="menuitem" onClick={() => abrir("stock")}>

@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { notFound, redirect, unstable_rethrow } from "next/navigation";
 
 import { DesactivarSucursal, FormularioEditarSucursal } from "@/components/panel/formulario-sucursal";
+import { BotonVolver } from "@/components/ui/boton-volver";
 import { AccesoError, NoEncontrado } from "@/lib/auth/errors";
 import { contextoPanel } from "@/lib/auth/panel";
 import { usuarioVerificado } from "@/lib/auth/staff";
@@ -34,12 +34,7 @@ export default async function EditarSucursalPage({
 
   return (
     <main className="flex flex-col gap-4">
-      <Link
-        href={`/t/${contexto.tienda.slug}/sucursales`}
-        className="inline-flex min-h-11 touch-manipulation items-center text-sm font-medium underline-offset-4 hover:underline"
-      >
-        Volver a sucursales
-      </Link>
+      <BotonVolver href={`/t/${contexto.tienda.slug}/sucursales`} etiqueta="Sucursales" />
       <h2 className="break-words text-lg font-semibold">{sucursal.nombre}</h2>
       <FormularioEditarSucursal slug={contexto.tienda.slug} lectura={!contexto.vigente} sucursal={sucursal} />
       {contexto.vigente && sucursal.activa ? (

@@ -12,11 +12,14 @@ export function MapaPin({
   lng,
   onMove,
   radioKm = null,
+  miUbicacion = true,
 }: {
   lat: number | null;
   lng: number | null;
   onMove: (lat: number, lng: number) => void;
   radioKm?: number | null;
+  /** En el mostrador la ubicación del vendedor no es la del cliente. */
+  miUbicacion?: boolean;
 }) {
   const nodo = useRef<HTMLDivElement>(null);
   const inicio = useRef({ lat, lng, radioKm });
@@ -145,29 +148,31 @@ export function MapaPin({
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="relative h-64 w-full">
+      <div className="relative isolate z-0 h-64 w-full">
         <div
           ref={nodo}
           role="application"
           aria-label="Mapa"
-          className="h-64 w-full overflow-hidden rounded-lg border border-zinc-300 dark:border-zinc-700"
+          className="h-64 w-full overflow-hidden rounded-lg border border-[var(--ln)]"
         />
         {listo || fallo ? null : <Skeleton className="absolute inset-0 h-64 w-full" />}
       </div>
-      <Button type="button" variant="secundario" onClick={usarUbicacion}>
-        Usar mi ubicación
-      </Button>
+      {miUbicacion ? (
+        <Button type="button" variant="secundario" onClick={usarUbicacion}>
+          Usar mi ubicación
+        </Button>
+      ) : null}
       {aviso ? (
-        <p role="status" className="text-sm leading-6 text-zinc-700 dark:text-zinc-300">
+        <p role="status" className="text-sm leading-6 text-[var(--mu)]">
           {aviso}
         </p>
       ) : null}
       {fallo ? (
-        <p className="text-sm leading-6 text-zinc-600 dark:text-zinc-400">
+        <p className="text-sm leading-6 text-[var(--mu)]">
           El mapa no cargó. Escribe la latitud y la longitud.
         </p>
       ) : (
-        <p className="text-sm leading-6 text-zinc-600 dark:text-zinc-400">
+        <p className="text-sm leading-6 text-[var(--mu)]">
           Arrastra el pin o toca el mapa para colocarlo.
         </p>
       )}

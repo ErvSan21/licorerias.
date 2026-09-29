@@ -9,11 +9,16 @@ import { useEffect, useId, useRef, useState } from "react";
 export function CargarImagen({
   actual = null,
   onChange,
+  alQuitarActual,
   deshabilitado = false,
+  etiqueta = "Cargar imagen",
 }: {
   actual?: string | null;
   onChange: (archivo: File | null) => void;
+  /** Si viene, la imagen ya guardada también se puede quitar. */
+  alQuitarActual?: () => void;
   deshabilitado?: boolean;
+  etiqueta?: string;
 }) {
   const id = useId();
   const entrada = useRef<HTMLInputElement>(null);
@@ -60,8 +65,16 @@ export function CargarImagen({
               <label htmlFor={id} className="ui-boton ui-boton-secundario cargar-imagen-boton">
                 Cambiar
               </label>
-              {vista ? (
-                <button type="button" className="ui-boton ui-boton-fantasma cargar-imagen-boton" onClick={quitar}>
+              {vista || alQuitarActual ? (
+                <button
+                  type="button"
+                  className="ui-boton ui-boton-fantasma cargar-imagen-boton"
+                  disabled={deshabilitado}
+                  onClick={() => {
+                    if (vista) quitar();
+                    else alQuitarActual?.();
+                  }}
+                >
                   Quitar
                 </button>
               ) : null}
@@ -90,7 +103,7 @@ export function CargarImagen({
               <path d="M12 3v12" />
             </svg>
           </span>
-          <span className="font-semibold">Cargar imagen</span>
+          <span className="font-semibold">{etiqueta}</span>
           <span className="text-xs text-[var(--mu)]">Toca o arrastra una foto · JPG, PNG o WebP</span>
         </label>
       )}

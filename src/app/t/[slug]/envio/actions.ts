@@ -18,7 +18,7 @@ type Resultado = { ok: true; aviso: string } | { ok: false; error: string };
 export async function guardarTarifaAccion(slug: string, datos: FormData): Promise<Resultado> {
   try {
     await guardarTarifa(slug, tarifaDesdeFormulario(datos));
-    revalidatePath(`/t/${slug}/envio`);
+    revalidatePath(`/t/${slug}/configuracion/envio`);
     return { ok: true, aviso: datos.get("id") ? "Tarifa actualizada." : "Tarifa creada." };
   } catch (error) {
     return { ok: false, error: mensaje(error) };
@@ -28,7 +28,7 @@ export async function guardarTarifaAccion(slug: string, datos: FormData): Promis
 export async function eliminarTarifaAccion(slug: string, id: string, sucursalId: string): Promise<Resultado> {
   try {
     await eliminarTarifa(slug, id, sucursalId);
-    revalidatePath(`/t/${slug}/envio`);
+    revalidatePath(`/t/${slug}/configuracion/envio`);
     return { ok: true, aviso: "Tarifa eliminada." };
   } catch (error) {
     return { ok: false, error: mensaje(error) };
@@ -38,7 +38,7 @@ export async function eliminarTarifaAccion(slug: string, id: string, sucursalId:
 export async function guardarZonaAccion(slug: string, datos: FormData): Promise<Resultado> {
   try {
     await guardarZona(slug, zonaDesdeFormulario(datos));
-    revalidatePath(`/t/${slug}/envio`);
+    revalidatePath(`/t/${slug}/configuracion/envio`);
     return { ok: true, aviso: datos.get("id") ? "Zona actualizada." : "Zona creada." };
   } catch (error) {
     return { ok: false, error: mensaje(error) };
@@ -48,7 +48,7 @@ export async function guardarZonaAccion(slug: string, datos: FormData): Promise<
 export async function eliminarZonaAccion(slug: string, id: string, sucursalId: string): Promise<Resultado> {
   try {
     await eliminarZona(slug, id, sucursalId);
-    revalidatePath(`/t/${slug}/envio`);
+    revalidatePath(`/t/${slug}/configuracion/envio`);
     return { ok: true, aviso: "Zona eliminada." };
   } catch (error) {
     return { ok: false, error: mensaje(error) };

@@ -80,10 +80,10 @@ function LinkTienda({ tienda }: { tienda: TiendaDelUsuario }) {
   return (
     <Link
       href={`/t/${tienda.slug}/panel`}
-      className="flex min-h-12 items-center justify-between gap-3 rounded-lg border border-zinc-300 px-3 py-2 dark:border-zinc-700"
+      className="flex min-h-12 items-center justify-between gap-3 rounded-lg border border-[var(--ln)] px-3 py-2"
     >
       <span className="font-medium">{tienda.nombre}</span>
-      <span className="text-sm text-zinc-600 dark:text-zinc-400">
+      <span className="text-sm text-[var(--mu)]">
         {etiquetaRol(tienda.rol)} · {etiquetaEstado(tienda.estado)}
       </span>
     </Link>
@@ -105,7 +105,7 @@ async function leerUsuario() {
 function Marco({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 py-10">
-      <p className="text-sm text-zinc-600 dark:text-zinc-400">Licorerías</p>
+      <p className="text-sm text-[var(--mu)]">Licorerías</p>
       <h1 className="mb-6 mt-1 text-2xl font-semibold tracking-tight">{titulo}</h1>
       {children}
     </main>

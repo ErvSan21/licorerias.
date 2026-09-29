@@ -4,8 +4,9 @@ import { notFound, unstable_rethrow } from "next/navigation";
 import { MarcoPanel } from "@/components/panel/marco-panel";
 import { TemaTienda } from "@/components/ui/tema-tienda";
 import { AccesoError, NoEncontrado } from "@/lib/auth/errors";
-import { contextoPanel } from "@/lib/auth/panel";
+import { contextoPanel, resolveTenantBySlug } from "@/lib/auth/panel";
 import { usuarioVerificado } from "@/lib/auth/staff";
+import { leerMarcaPublica } from "@/lib/marca/servicio";
 import { normalizarSlug } from "@/lib/tenant";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +20,9 @@ export default async function PanelLayout({
 }) {
   const { slug } = await params;
   const normalizado = normalizarSlug(slug);
+  // Marca y tienda arrancan junto con la sesión; después se reutilizan sin otra consulta.
+  void leerMarcaPublica(normalizado).catch(() => null);
+  void resolveTenantBySlug(normalizado).catch(() => null);
   const ruta = (await headers()).get("x-ruta") ?? "";
   if (esVitrina(ruta, normalizado)) {
     return (

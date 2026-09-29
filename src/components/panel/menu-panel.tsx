@@ -2,26 +2,16 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
 
 import { useAvisoPedidos } from "@/components/panel/aviso-pedidos";
-import { Drawer } from "@/components/ui/drawer";
 
 type Seccion =
   | "inicio"
   | "ventas"
   | "vitrina"
-  | "sucursales"
-  | "personal"
   | "productos"
-  | "precios"
-  | "inventario"
-  | "ofertas"
-  | "colecciones"
-  | "envio"
   | "pedidos"
-  | "reportes"
-  | "marca";
+  | "configuracion";
 
 type Destino = {
   id: Exclude<Seccion, "vitrina">;
@@ -30,10 +20,9 @@ type Destino = {
   icono: IconoNombre;
 };
 
-type IconoNombre = "tienda" | "ventas" | "pedidos" | "precios" | "inventario" | "mas";
+type IconoNombre = "tienda" | "ventas" | "pedidos" | "inventario" | "configuracion";
 
-const PRINCIPALES: Destino["id"][] = ["inicio", "ventas", "productos", "pedidos"];
-
+// Marca, Envío, Sucursales y Personal viven dentro de Configuración.
 export function MenuDueno({ slug }: { slug: string }) {
   return (
     <MenuFlotante
@@ -41,99 +30,40 @@ export function MenuDueno({ slug }: { slug: string }) {
       destinos={[
         destino(slug, "inicio", "Dashboard", "tienda"),
         destino(slug, "ventas", "Ventas", "ventas"),
-        destino(slug, "pedidos", "Pedidos", "pedidos"),
-        destino(slug, "precios", "Precios por sucursal", "precios"),
-        destino(slug, "sucursales", "Sucursales", "tienda"),
-        destino(slug, "personal", "Personal", "tienda"),
         destino(slug, "productos", "Productos", "inventario"),
-        destino(slug, "colecciones", "Colecciones", "inventario"),
-        destino(slug, "envio", "Envío", "pedidos"),
-        destino(slug, "reportes", "Reportes", "precios"),
-        destino(slug, "marca", "Marca", "tienda"),
+        destino(slug, "pedidos", "Pedidos", "pedidos"),
+        destino(slug, "configuracion", "Configuración", "configuracion"),
       ]}
     />
   );
 }
 
-export function MenuOperacion({ slug, verReportes = false }: { slug: string; verReportes?: boolean }) {
+export function MenuOperacion({ slug }: { slug: string }) {
   const destinos: Destino[] = [
     destino(slug, "inicio", "Dashboard", "tienda"),
     destino(slug, "ventas", "Ventas", "ventas"),
-    destino(slug, "pedidos", "Pedidos", "pedidos"),
-    destino(slug, "precios", "Precios por sucursal", "precios"),
-    destino(slug, "sucursales", "Sucursales", "tienda"),
     destino(slug, "productos", "Productos", "inventario"),
-    destino(slug, "envio", "Envío", "pedidos"),
+    destino(slug, "pedidos", "Pedidos", "pedidos"),
+    destino(slug, "configuracion", "Configuración", "configuracion"),
   ];
-  if (verReportes) destinos.push(destino(slug, "reportes", "Reportes", "precios"));
   return <MenuFlotante slug={slug} destinos={destinos} />;
 }
 
 function destino(slug: string, id: Destino["id"], etiqueta: string, icono: IconoNombre): Destino {
-  const href =
-    id === "inicio"
-      ? `/t/${slug}/panel`
-      : id === "precios"
-        ? `/t/${slug}/productos/precios`
-        : `/t/${slug}/${id}`;
+  const href = id === "inicio" ? `/t/${slug}/panel` : `/t/${slug}/${id}`;
   return { id, href, etiqueta, icono };
-}
-
-function partir(destinos: Destino[]) {
-  if (destinos.length <= 5) return { barra: destinos, resto: [] as Destino[] };
-  const barra = PRINCIPALES.flatMap((id) => {
-    const item = destinos.find((destino) => destino.id === id);
-    return item ? [item] : [];
-  });
-  const enBarra = new Set(barra.map((item) => item.id));
-  return { barra, resto: destinos.filter((item) => !enBarra.has(item.id)) };
 }
 
 function MenuFlotante({ slug, destinos }: { slug: string; destinos: Destino[] }) {
   const actual = seccion(usePathname(), slug);
   const avisos = useAvisoPedidos();
-  const [masAbierto, setMasAbierto] = useState(false);
-  const { barra, resto } = partir(destinos);
-  const masActivo = resto.some((item) => item.id === actual);
 
   return (
-    <>
-      <nav className="menu-flotante" aria-label="Panel">
-        {barra.map((item) => (
-          <EnlaceNav key={item.id} item={item} activo={actual === item.id} punto={item.id === "pedidos" && avisos.size > 0} />
-        ))}
-        {resto.length > 0 ? (
-          <button
-            type="button"
-            className="menu-flotante-item"
-            aria-current={masActivo ? "page" : undefined}
-            aria-expanded={masAbierto}
-            aria-haspopup="dialog"
-            onClick={() => setMasAbierto(true)}
-          >
-            <Icono nombre="mas" />
-            <span className="menu-etiqueta">Más</span>
-          </button>
-        ) : null}
-      </nav>
-      <Drawer abierto={masAbierto} titulo="Más" alCerrar={() => setMasAbierto(false)}>
-        <ul className="menu-mas">
-          {resto.map((item) => (
-            <li key={item.id}>
-              <Link
-                href={item.href}
-                aria-current={actual === item.id ? "page" : undefined}
-                className="menu-mas-enlace"
-                onClick={() => setMasAbierto(false)}
-              >
-                <Icono nombre={item.icono} />
-                {item.etiqueta}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </Drawer>
-    </>
+    <nav className="menu-flotante" aria-label="Panel">
+      {destinos.map((item) => (
+        <EnlaceNav key={item.id} item={item} activo={actual === item.id} punto={item.id === "pedidos" && avisos.size > 0} />
+      ))}
+    </nav>
   );
 }
 
@@ -176,14 +106,6 @@ function Icono({ nombre }: { nombre: IconoNombre }) {
       </svg>
     );
   }
-  if (nombre === "precios") {
-    return (
-      <svg {...props}>
-        <path d="M12 3v18" />
-        <path d="M16 7.5c0-1.5-1.6-2.5-4-2.5s-4 1-4 2.5 1.6 2.5 4 2.5 4 1 4 2.5-1.6 2.5-4 2.5-4-1-4-2.5" />
-      </svg>
-    );
-  }
   if (nombre === "inventario") {
     return (
       <svg {...props}>
@@ -193,13 +115,11 @@ function Icono({ nombre }: { nombre: IconoNombre }) {
       </svg>
     );
   }
-  if (nombre === "mas") {
+  if (nombre === "configuracion") {
     return (
       <svg {...props}>
-        <rect x="4" y="4" width="6" height="6" rx="1.5" />
-        <rect x="14" y="4" width="6" height="6" rx="1.5" />
-        <rect x="4" y="14" width="6" height="6" rx="1.5" />
-        <rect x="14" y="14" width="6" height="6" rx="1.5" />
+        <circle cx="12" cy="12" r="3" />
+        <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" />
       </svg>
     );
   }
@@ -214,16 +134,12 @@ function seccion(pathname: string, slug: string): Seccion {
   if (pathname === `/t/${slug}/panel`) return "inicio";
   if (pathname.startsWith(`/t/${slug}/ventas`)) return "ventas";
   if (pathname === `/t/${slug}` || pathname.startsWith(`/t/${slug}/s/`)) return "vitrina";
-  if (pathname.startsWith(`/t/${slug}/personal`)) return "personal";
-  if (pathname.startsWith(`/t/${slug}/sucursales`)) return "sucursales";
-  if (pathname.startsWith(`/t/${slug}/reportes`)) return "reportes";
-  if (pathname.startsWith(`/t/${slug}/marca`)) return "marca";
+  if (pathname.startsWith(`/t/${slug}/personal`)) return "configuracion";
+  if (pathname.startsWith(`/t/${slug}/sucursales`)) return "configuracion";
+  if (pathname.startsWith(`/t/${slug}/configuracion`)) return "configuracion";
   if (pathname.startsWith(`/t/${slug}/pedidos`)) return "pedidos";
-  if (pathname.startsWith(`/t/${slug}/envio`)) return "envio";
-  if (pathname.startsWith(`/t/${slug}/colecciones`)) return "colecciones";
   if (pathname.startsWith(`/t/${slug}/ofertas`)) return "productos";
   if (pathname.startsWith(`/t/${slug}/inventario`)) return "productos";
-  if (pathname.startsWith(`/t/${slug}/productos/precios`)) return "precios";
   if (pathname.startsWith(`/t/${slug}/productos`)) return "productos";
   return "vitrina";
 }

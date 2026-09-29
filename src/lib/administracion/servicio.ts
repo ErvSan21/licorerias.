@@ -17,6 +17,8 @@ import {
 } from "@/lib/licencias/reglas";
 import { listarTiendas, suspenderLicencia, type TiendaLicencia } from "@/lib/licencias/servicio";
 import { reporteDesdeJson } from "@/lib/reportes/reglas";
+import { parsePerfil, perfilDesdeMetadata } from "@/lib/perfil/reglas";
+import { guardarPerfil } from "@/lib/perfil/servicio";
 import { horarioTodoElDia } from "@/lib/sucursales/reglas";
 import { esRolTienda, slugReservado } from "@/lib/tenant";
 
@@ -128,6 +130,68 @@ export async function conteoSucursales(): Promise<Record<string, number>> {
     conteo[fila.tienda_id] = (conteo[fila.tienda_id] ?? 0) + 1;
   }
   return conteo;
+}
+
+/** Tiendas que pueden tener varias sucursales (tiendas.sucursales_habilitadas). */
+export async function tiendasConSucursales(): Promise<Set<string>> {
+  await requireSuperAdmin();
+  const service = createServiceClient();
+  const { data, error } = await service.from("tiendas").select("id, sucursales_habilitadas");
+  if (error) throw new Error(error.message);
+  return new Set(
+    ((data ?? []) as { id: string; sucursales_habilitadas: boolean }[])
+      .filter((fila) => fila.sucursales_habilitadas)
+      .map((fila) => fila.id),
+  );
+}
+
+/** El super admin agrega una sucursal a una tienda (el dueño no puede). */
+export async function crearSucursalAdministracion(input: {
+  tiendaId: string;
+  nombre: string;
+  direccion: string;
+}): Promise<void> {
+  const { userId } = await requireSuperAdmin();
+  if (!esUuid(input.tiendaId)) throw new NegocioError("Elige una tienda.");
+  const nombre = capitalizar(input.nombre.trim());
+  if (nombre.length < 2 || nombre.length > 80) throw new NegocioError("Escribe el nombre de la sucursal.");
+  const direccion = capitalizar(input.direccion.trim());
+  if (direccion.length < 4 || direccion.length > 160) throw new NegocioError("Escribe la dirección de la sucursal.");
+  const tienda = await tiendaSimple(input.tiendaId);
+  const service = createServiceClient();
+
+  const { data: existentes, error: errorExistentes } = await service
+    .from("sucursales")
+    .select("slug, orden")
+    .eq("tienda_id", tienda.id);
+  if (errorExistentes) throw new Error(errorExistentes.message);
+  const filas = (existentes ?? []) as { slug: string; orden: number }[];
+  const usados = new Set(filas.map((fila) => fila.slug));
+  let slug = slugDeTienda(nombre);
+  for (let sufijo = 2; usados.has(slug); sufijo++) slug = slugDeTienda(nombre, sufijo);
+  const orden = Math.max(0, ...filas.map((fila) => fila.orden)) + 1;
+
+  const { error } = await service.from("sucursales").insert({
+    tienda_id: tienda.id,
+    slug,
+    nombre,
+    direccion,
+    horario: horarioTodoElDia(),
+    activa: true,
+    orden,
+  });
+  if (error) {
+    if (error.message.includes("no tiene sucursales habilitadas")) {
+      throw new NegocioError("Esta tienda no tiene sucursales habilitadas.");
+    }
+    lanzarCupo(error.message);
+  }
+  await registrarAuditoria({
+    userId,
+    tiendaId: tienda.id,
+    accion: "administracion.sucursal.crear",
+    detalle: { slug },
+  });
 }
 
 export type PlanSuscripcion = {
@@ -342,7 +406,8 @@ export async function listarUsuarios(): Promise<{
       {
         miembroId: fila.id,
         userId: fila.user_id,
-        correo: correos.get(fila.user_id) ?? null,
+        correo: correos.get(fila.user_id)?.correo ?? null,
+        nombre: correos.get(fila.user_id)?.nombre ?? null,
         rol: fila.rol,
         activo: fila.activo,
         tiendaId: fila.tienda_id,
@@ -357,11 +422,15 @@ export async function listarUsuarios(): Promise<{
 export async function crearUsuarioOrganizacion(input: {
   tiendaId: string;
   tipo: string;
+  nombre: string;
+  apellido: string;
   correo: string;
+  celular: string;
   contrasena: string;
 }): Promise<void> {
   const { userId } = await requireSuperAdmin();
   if (!esUuid(input.tiendaId)) throw new NegocioError("Elige una tienda.");
+  const perfil = parsePerfil(input);
   const correo = parseCorreo(input.correo);
   if (!correo) throw new NegocioError("Escribe un correo válido.");
   if (correo === CORREO_SOLO_PLATAFORMA) {
@@ -397,6 +466,7 @@ export async function crearUsuarioOrganizacion(input: {
     activo: true,
   });
   if (error) lanzarCupo(error.message);
+  await guardarPerfil(usuario.id, perfil);
   await registrarAuditoria({
     userId,
     tiendaId: tienda.id,
@@ -624,6 +694,7 @@ async function miembroDe(miembroId: string): Promise<UsuarioOrganizacion> {
     miembroId: fila.id,
     userId: fila.user_id,
     correo: null,
+    nombre: null,
     rol: fila.rol,
     activo: fila.activo,
     tiendaId: fila.tienda_id,
@@ -647,14 +718,16 @@ async function tiendaSimple(tiendaId: string): Promise<{ id: string }> {
   return fila;
 }
 
-async function correosDe(ids: string[]): Promise<Map<string, string | null>> {
+async function correosDe(ids: string[]): Promise<Map<string, { correo: string | null; nombre: string | null }>> {
   const service = createServiceClient();
   const unicos = [...new Set(ids)];
   const pares = await Promise.all(
     unicos.map(async (id) => {
       const { data, error } = await service.auth.admin.getUserById(id);
-      if (error) return [id, null] as const;
-      return [id, data.user?.email ?? null] as const;
+      if (error || !data.user) return [id, { correo: null, nombre: null }] as const;
+      const perfil = perfilDesdeMetadata(data.user.user_metadata);
+      const nombre = `${perfil.nombre} ${perfil.apellido}`.trim() || null;
+      return [id, { correo: data.user.email ?? null, nombre }] as const;
     }),
   );
   return new Map(pares);

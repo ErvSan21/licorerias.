@@ -191,12 +191,14 @@ export async function avisarPedido(pedidoId: string, estado: string): Promise<bo
     id: string;
     tienda_id: string;
     sucursal_id: string;
-    telefono: string;
+    telefono: string | null;
     tipo_entrega: string;
     total: number | string;
     hora_recojo: string | null;
     estado: string;
   };
+  // Venta de mostrador sin celular: no hay a quién avisar, y no es un fallo.
+  if (!fila.telefono) return true;
   const { data: tienda, error: errorTienda } = await service
     .from("tiendas")
     .select("nombre, slug")

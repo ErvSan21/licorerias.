@@ -1,5 +1,6 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
+
+import { BotonVolver } from "@/components/ui/boton-volver";
 
 import {
   FormularioAsignar,
@@ -38,14 +39,9 @@ export default async function TiendaSuperPage({
   return (
     <main className="flex flex-col gap-6">
       <div>
-        <Link
-          href="/super"
-          className="inline-flex min-h-11 items-center text-sm font-medium underline-offset-4 hover:underline"
-        >
-          Volver a tiendas
-        </Link>
+        <BotonVolver href="/super" etiqueta="Tiendas" />
         <h1 className="mt-2 break-words text-2xl font-semibold tracking-tight">{tienda.nombre}</h1>
-        <p className="mt-1 break-words text-sm text-zinc-600 dark:text-zinc-400">
+        <p className="mt-1 break-words text-sm text-[var(--mu)]">
           <span translate="no">{tienda.slug}</span> · {etiquetaEstado(tienda.estado)}
         </p>
       </div>
@@ -88,9 +84,9 @@ export default async function TiendaSuperPage({
             <FormularioPlan tiendaId={tienda.id} planId={tienda.licencia.plan.id} planes={opciones} />
             <FormularioExtender tiendaId={tienda.id} vence={tienda.licencia.vence ?? ""} />
             <FormularioPago tiendaId={tienda.id} />
-            <section className="flex flex-col gap-3 rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
+            <section className="flex flex-col gap-3 rounded-xl border border-[var(--ln)] p-4">
               <h3 className="text-base font-semibold">Estado de la licencia</h3>
-              <p className="text-sm leading-6 text-zinc-600 dark:text-zinc-400">
+              <p className="text-sm leading-6 text-[var(--mu)]">
                 Suspender corta la tienda pública y deja el panel en solo lectura. Reactivar exige
                 que la fecha, con los días de gracia, siga vigente.
               </p>
@@ -116,7 +112,7 @@ export default async function TiendaSuperPage({
             {miembros.map((miembro) => (
               <li key={miembro.id} className="flex min-h-11 flex-col justify-center text-sm">
                 <span>{miembro.correo ?? "Sin correo"}</span>
-                <span className="text-zinc-600 dark:text-zinc-400">
+                <span className="text-[var(--mu)]">
                   {esRolTienda(miembro.rol) ? etiquetaRol(miembro.rol) : miembro.rol}
                   {miembro.activo ? "" : " · Inactivo"}
                 </span>
@@ -141,7 +137,7 @@ export default async function TiendaSuperPage({
                 {pago.metodo === "qr" ? "QR" : "Transferencia"}
                 {" · "}
                 <time dateTime={pago.fecha}>{formatoFecha(pago.fecha)}</time>
-                <span className="block text-zinc-600 dark:text-zinc-400">
+                <span className="block text-[var(--mu)]">
                   Periodo {formatoFecha(pago.periodoDesde)} a {formatoFecha(pago.periodoHasta)}
                   {pago.referencia ? ` · Ref. ${pago.referencia}` : ""}
                 </span>
@@ -172,7 +168,7 @@ export default async function TiendaSuperPage({
 function Dato({ termino, valor }: { termino: string; valor: string }) {
   return (
     <div>
-      <dt className="text-zinc-600 dark:text-zinc-400">{termino}</dt>
+      <dt className="text-[var(--mu)]">{termino}</dt>
       <dd className="font-medium">{valor}</dd>
     </div>
   );

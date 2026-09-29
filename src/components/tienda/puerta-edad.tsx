@@ -31,7 +31,7 @@ export function PuertaEdad({ children }: { children: ReactNode }) {
     return (
       <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 py-10">
         <h1 className="text-pretty text-2xl font-semibold tracking-tight">Solo para mayores de 18</h1>
-        <p className="mt-3 text-sm leading-6 text-zinc-700 dark:text-zinc-300">No podemos mostrarte el catálogo.</p>
+        <p className="mt-3 text-sm leading-6 text-[var(--mu)]">No podemos mostrarte el catálogo.</p>
       </main>
     );
   }

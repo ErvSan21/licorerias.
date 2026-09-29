@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState, useTransition } from "react";
 
@@ -15,18 +16,15 @@ export type SucursalMenu = {
 };
 
 export function MenuPerfilTienda({
-  correo,
   slug,
   sucursales,
   seleccion,
 }: {
-  correo: string;
   slug: string;
   sucursales: SucursalMenu[];
   seleccion: string | null;
 }) {
   const [abierto, setAbierto] = useState(false);
-  const [perfil, setPerfil] = useState(false);
   const [sucursalAbierta, setSucursalAbierta] = useState(false);
   const raiz = useRef<HTMLDivElement>(null);
   const menuId = useId();
@@ -72,38 +70,31 @@ export function MenuPerfilTienda({
         <div
           id={menuId}
           role="menu"
-          className="absolute right-0 top-12 z-50 min-w-52 overflow-hidden rounded-xl border border-[var(--ln)] bg-[var(--sf)] py-1 shadow-lg"
+          className="producto-menu ui-movimiento"
         >
-          <button
-            type="button"
+          <Link
+            href={`/t/${slug}/perfil`}
             role="menuitem"
-            className="flex min-h-10 w-full items-center px-3 text-left text-sm"
-            onClick={() => {
-              setAbierto(false);
-              setPerfil(true);
-            }}
+            className="text-sm"
+            onClick={() => setAbierto(false)}
           >
-            Perfil
-          </button>
+            Mi perfil
+          </Link>
           <button
             type="button"
             role="menuitem"
-            className="flex min-h-10 w-full items-center px-3 text-left text-sm"
+            className="text-sm"
             onClick={abrirSucursal}
           >
             Cambiar de sucursal
           </button>
           <form action={salir}>
-            <button type="submit" role="menuitem" className="flex min-h-10 w-full items-center px-3 text-left text-sm">
+            <button type="submit" role="menuitem" className="text-sm">
               Cerrar sesión
             </button>
           </form>
         </div>
       ) : null}
-      <Drawer abierto={perfil} titulo="Perfil" alCerrar={() => setPerfil(false)}>
-        <p className="text-sm text-[var(--mu)]">Correo</p>
-        <p className="mt-1 break-all font-medium">{correo || "Sin correo"}</p>
-      </Drawer>
       <Drawer abierto={sucursalAbierta} titulo="Cambiar de sucursal" alCerrar={() => setSucursalAbierta(false)}>
         <HojaSucursal
           slug={slug}

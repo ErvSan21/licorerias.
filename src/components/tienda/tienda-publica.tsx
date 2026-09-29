@@ -39,10 +39,10 @@ function Vista({ telefonoInicial }: { telefonoInicial: string }) {
           <ImagenConCarga src={marca.logoUrl} alt="" width={48} height={48} className="size-12 shrink-0" />
         ) : null}
         <div className="flex min-w-0 flex-col gap-1">
-        <p className="truncate text-sm text-zinc-600 dark:text-zinc-400">{nombre}</p>
+        <p className="truncate text-sm text-[var(--mu)]">{nombre}</p>
         <h1 className="text-pretty text-2xl font-semibold tracking-tight">{sucursal.nombre}</h1>
-        {sucursal.direccion ? <p className="text-sm text-zinc-700 dark:text-zinc-300">{sucursal.direccion}</p> : null}
-        <p className={sucursal.abiertaAhora ? "text-sm text-emerald-800 dark:text-emerald-200" : "text-sm text-zinc-600 dark:text-zinc-400"}>
+        {sucursal.direccion ? <p className="text-sm text-[var(--mu)]">{sucursal.direccion}</p> : null}
+        <p className={sucursal.abiertaAhora ? "text-sm text-[var(--ok)]" : "text-sm text-[var(--mu)]"}>
           {sucursal.abiertaAhora ? "Abierta" : "Cerrada"}
         </p>
         <Link href={`/t/${tienda.slug}?elegir=1`} className="inline-flex min-h-11 items-center text-sm font-medium underline underline-offset-4 touch-manipulation">
@@ -51,10 +51,10 @@ function Vista({ telefonoInicial }: { telefonoInicial: string }) {
         </div>
       </header>
       {marca.mensajeBienvenida ? (
-        <p className="text-pretty text-sm leading-6 text-zinc-700 dark:text-zinc-300">{marca.mensajeBienvenida}</p>
+        <p className="text-pretty text-sm leading-6 text-[var(--mu)]">{marca.mensajeBienvenida}</p>
       ) : null}
       {!sucursal.abiertaAhora ? (
-        <p className="text-sm leading-6 text-zinc-700 dark:text-zinc-300">
+        <p className="text-sm leading-6 text-[var(--mu)]">
           La sucursal está cerrada. Puedes mirar el catálogo, pero no confirmar un pedido.
         </p>
       ) : null}
@@ -72,7 +72,7 @@ function Barra() {
     <div
       role="region"
       aria-label="Carrito"
-      className="fixed inset-x-0 bottom-0 z-30 border-t border-zinc-200 bg-white px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] dark:border-zinc-800 dark:bg-zinc-950"
+      className="fixed inset-x-0 bottom-0 z-30 border-t border-[var(--ln)] bg-[var(--sf)] px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
     >
       <div className="mx-auto flex w-full max-w-lg items-center justify-between gap-3">
         <p key={estado.pulso} className="carrito-salto ui-movimiento text-sm font-semibold tabular-nums">

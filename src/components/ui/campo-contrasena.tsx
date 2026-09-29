@@ -18,7 +18,7 @@ export function CampoContrasena({ className, nombreSecreto = "contraseña", ...p
       />
       <button
         type="button"
-        className="absolute top-1/2 right-1 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-md text-zinc-600 dark:text-zinc-300"
+        className="absolute top-1/2 right-1 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-md text-[var(--mu)]"
         aria-label={visible ? `Ocultar ${nombreSecreto}` : `Mostrar ${nombreSecreto}`}
         aria-pressed={visible}
         onClick={() => setVisible((actual) => !actual)}

@@ -1,5 +1,7 @@
 import "server-only";
 
+import { cache } from "react";
+
 import { registrarAuditoria } from "@/lib/auth/auditoria";
 import { NoEncontrado } from "@/lib/auth/errors";
 import { resolveTenantBySlug } from "@/lib/auth/panel";
@@ -31,12 +33,12 @@ type Fila = {
   mensaje_bienvenida: string | null;
 };
 
-export async function leerMarcaPublica(slug: string): Promise<MarcaPublica> {
+export const leerMarcaPublica = cache(async (slug: string): Promise<MarcaPublica> => {
   const service = createServiceClient();
   const { data, error } = await service.rpc("marca_publica", { p_slug: slug });
   if (error) throw new Error(error.message);
   return marcaDesdeJson(data);
-}
+});
 
 export async function leerMarcaDueno(slug: string): Promise<MarcaPublica> {
   const tienda = await resolveTenantBySlug(slug);

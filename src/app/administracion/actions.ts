@@ -7,6 +7,7 @@ import {
   bloquearUsuario,
   borrarUsuario,
   cambiarContrasenaUsuario,
+  crearSucursalAdministracion,
   crearTiendaAdministracion,
   crearUsuarioOrganizacion,
   eliminarPlanSuscripcion,
@@ -55,6 +56,20 @@ export async function crearTiendaAccion(input: {
     await crearTiendaAdministracion(input);
     refrescar();
     return { ok: true, aviso: "Tienda creada." };
+  } catch (error) {
+    return fallar(error);
+  }
+}
+
+export async function crearSucursalAdminAccion(input: {
+  tiendaId: string;
+  nombre: string;
+  direccion: string;
+}): Promise<ResultadoAccion> {
+  try {
+    await crearSucursalAdministracion(input);
+    refrescar();
+    return { ok: true, aviso: "Sucursal creada." };
   } catch (error) {
     return fallar(error);
   }
@@ -164,7 +179,10 @@ export async function inactivarTiendaAccion(tiendaId: string): Promise<Resultado
 export async function crearUsuarioAccion(input: {
   tiendaId: string;
   tipo: string;
+  nombre: string;
+  apellido: string;
   correo: string;
+  celular: string;
   contrasena: string;
 }): Promise<ResultadoAccion> {
   try {

@@ -38,7 +38,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="es" className={`${bricolage.variable} ${figtree.variable} h-full antialiased`}>
+    <html lang="es" suppressHydrationWarning className={`${bricolage.variable} ${figtree.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col">
         <script
           dangerouslySetInnerHTML={{

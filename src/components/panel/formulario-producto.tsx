@@ -244,7 +244,7 @@ function FormularioProducto({
       <fieldset className="flex flex-col gap-2" disabled={lectura}>
         <legend className="text-sm font-medium">Se ofrece en</legend>
         {sucursales.length === 0 ? (
-          <p className="text-sm leading-6 text-zinc-600 dark:text-zinc-400">Todavía no hay sucursales.</p>
+          <p className="text-sm leading-6 text-[var(--mu)]">Todavía no hay sucursales.</p>
         ) : (
           sucursales.map((sucursal) => (
             <label key={sucursal.id} className="flex min-h-11 items-center gap-3 text-sm">

@@ -49,13 +49,8 @@ export function InterruptorAbierta({
       }}
       className="inline-flex min-h-11 touch-manipulation items-center gap-3 text-sm font-medium disabled:opacity-50"
     >
-      <span
-        aria-hidden="true"
-        className={`relative h-7 w-12 rounded-full ${valor ? "bg-zinc-900 dark:bg-zinc-100" : "bg-zinc-300 dark:bg-zinc-700"}`}
-      >
-        <span
-          className={`absolute top-0.5 h-6 w-6 rounded-full bg-white transition-transform motion-reduce:transition-none dark:bg-zinc-950 ${valor ? "translate-x-5" : "translate-x-0.5"}`}
-        />
+      <span aria-hidden="true" className={`ajuste-pista ${valor ? "ajuste-pista-activa" : ""}`}>
+        <span className="ajuste-perilla" />
       </span>
       {valor ? "Abierta" : "Cerrada"}
     </button>

@@ -7,17 +7,21 @@ import { requireStaff } from "@/lib/auth/staff";
 import { calcularEnvio } from "@/lib/envio/servicio";
 import { esUuid } from "@/lib/licencias/reglas";
 import { exigirLicenciaParaEscribir } from "@/lib/licencias/servicio";
+import { nombresDeUsuarios } from "@/lib/perfil/servicio";
 import { createServiceClient } from "@/lib/supabase/service";
 import { TiendaCerrada } from "@/lib/tienda/servicio";
 import { ROLES_TIENDA, type RolTienda } from "@/lib/tenant";
 
 import { notificarEstado } from "./avisos";
 import {
+  esEstadoPedido,
+  esOrigenPedido,
   NegocioError,
   rangoDiaBolivia,
   seguimientoDesdeJson,
   type EstadoPedido,
   type MetodoPago,
+  type OrigenPedido,
   type SeguimientoPublico,
 } from "./reglas";
 
@@ -37,7 +41,7 @@ export type PedidoLista = {
   sucursalId: string;
   sucursal: string;
   cliente: string;
-  telefono: string;
+  telefono: string | null;
   tipo: "delivery" | "recojo";
   lat: number | null;
   lng: number | null;
@@ -51,9 +55,13 @@ export type PedidoLista = {
   horaRecojo: string | null;
   estado: EstadoPedido;
   metodoPago: MetodoPago | null;
+  origen: OrigenPedido;
+  vendidoPorId: string | null;
   creadoEn: string;
   items: ItemPedido[];
 };
+
+export type PasoHistorial = { estado: EstadoPedido; creadoEn: string; usuario: string | null };
 
 export async function listarPedidos(
   slug: string,
@@ -65,7 +73,7 @@ export async function listarPedidos(
   let consulta = service
     .from("pedidos")
     .select(
-      "id, tienda_id, sucursal_id, cliente_nombre, telefono, tipo_entrega, lat, lng, direccion, direccion_referencia, distancia_km, subtotal, costo_envio, descuento, total, hora_recojo, estado, metodo_pago, creado_en",
+      "id, tienda_id, sucursal_id, cliente_nombre, telefono, tipo_entrega, lat, lng, direccion, direccion_referencia, distancia_km, subtotal, costo_envio, descuento, total, hora_recojo, estado, metodo_pago, origen, vendido_por, creado_en",
     )
     .eq("tienda_id", tienda.id)
     .order("creado_en", { ascending: false })
@@ -113,7 +121,9 @@ export async function listarPedidos(
 
 export async function leerPedido(slug: string, pedidoId: string): Promise<{
   pedido: PedidoLista;
-  historial: { estado: EstadoPedido; creadoEn: string }[];
+  /** Nombre (o correo) de quien registró la venta en el panel. */
+  vendedor: string | null;
+  historial: PasoHistorial[];
 }> {
   if (!esUuid(pedidoId)) throw new NoEncontrado();
   const { tienda, staff } = await exigir(slug, null, ROLES_TIENDA);
@@ -122,7 +132,7 @@ export async function leerPedido(slug: string, pedidoId: string): Promise<{
   const { data: fila, error: errorPedido } = await service
     .from("pedidos")
     .select(
-      "id, tienda_id, sucursal_id, cliente_nombre, telefono, tipo_entrega, lat, lng, direccion, direccion_referencia, distancia_km, subtotal, costo_envio, descuento, total, hora_recojo, estado, metodo_pago, creado_en",
+      "id, tienda_id, sucursal_id, cliente_nombre, telefono, tipo_entrega, lat, lng, direccion, direccion_referencia, distancia_km, subtotal, costo_envio, descuento, total, hora_recojo, estado, metodo_pago, origen, vendido_por, creado_en",
     )
     .eq("id", pedidoId)
     .eq("tienda_id", tienda.id)
@@ -144,15 +154,21 @@ export async function leerPedido(slug: string, pedidoId: string): Promise<{
   );
   const { data, error } = await service
     .from("pedido_historial")
-    .select("estado, creado_en")
+    .select("estado, creado_en, user_id")
     .eq("pedido_id", pedidoId)
     .order("creado_en");
   if (error) throw new Error(error.message);
+  const pasos = (data ?? []) as { estado: string; creado_en: string; user_id: string | null }[];
+  const correos = await nombresDeUsuarios([
+    ...pasos.flatMap((paso) => (paso.user_id ? [paso.user_id] : [])),
+    ...(pedido.vendidoPorId ? [pedido.vendidoPorId] : []),
+  ]);
   return {
     pedido,
-    historial: ((data ?? []) as { estado: string; creado_en: string }[]).flatMap((fila) => {
-      if (!esEstado(fila.estado)) return [];
-      return [{ estado: fila.estado, creadoEn: fila.creado_en }];
+    vendedor: pedido.vendidoPorId ? (correos.get(pedido.vendidoPorId) ?? null) : null,
+    historial: pasos.flatMap((paso) => {
+      if (!esEstado(paso.estado)) return [];
+      return [{ estado: paso.estado, creadoEn: paso.creado_en, usuario: paso.user_id ? (correos.get(paso.user_id) ?? null) : null }];
     }),
   };
 }
@@ -177,7 +193,7 @@ export async function leerSeguimiento(slug: string, pedidoId: string): Promise<S
 export async function crearPedidoPublico(input: {
   sucursalId: string;
   nombre: string;
-  telefono: string;
+  telefono: string | null;
   tipo: "delivery" | "recojo";
   lat: number | null;
   lng: number | null;
@@ -245,18 +261,28 @@ export async function crearPedidoPersonal(
     .maybeSingle();
   if (error) throw new Error(error.message);
   if (!data) throw new NegocioError("La sucursal no pertenece a la tienda.");
-  await requireStaff({ tiendaId: tienda.id, sucursalId: input.sucursalId, roles: OPERACION });
+  const staff = await requireStaff({ tiendaId: tienda.id, sucursalId: input.sucursalId, roles: OPERACION });
   await exigirLicenciaParaEscribir(tienda.id);
   const id = await crearPedidoPublico(input);
-  const { error: errorPago } = await service.from("pedidos").update({ metodo_pago: metodoPago }).eq("id", id);
-  if (errorPago) {
-    console.error("metodo de pago", errorPago.message);
+  // Venta del panel: su propio flujo de estados, quién la registró y cómo pagó.
+  const { error: errorVenta } = await service
+    .from("pedidos")
+    .update({ metodo_pago: metodoPago, origen: "panel", vendido_por: staff.userId })
+    .eq("id", id);
+  if (errorVenta) {
+    console.error("datos de la venta", errorVenta.message);
     throw new NegocioError(
-      errorPago.message.includes("metodo_pago")
-        ? "El pedido se registró, pero falta aplicar la migración del método de pago."
-        : "El pedido se registró, pero no se guardó el método de pago.",
+      /metodo_pago|origen|vendido_por/.test(errorVenta.message)
+        ? "El pedido se registró, pero falta aplicar una migración de ventas en la base de datos."
+        : "El pedido se registró, pero no se guardaron los datos de la venta.",
     );
   }
+  await service
+    .from("pedido_historial")
+    .update({ user_id: staff.userId })
+    .eq("pedido_id", id)
+    .eq("estado", "pendiente")
+    .is("user_id", null);
   return id;
 }
 
@@ -349,6 +375,8 @@ function aLista(fila: FilaPedido, sucursal: string, items: ItemPedido[]): Pedido
     horaRecojo: fila.hora_recojo,
     estado: esEstado(fila.estado) ? fila.estado : "pendiente",
     metodoPago: fila.metodo_pago === "qr" || fila.metodo_pago === "efectivo" ? fila.metodo_pago : null,
+    origen: esOrigenPedido(fila.origen) ? fila.origen : "tienda",
+    vendidoPorId: fila.vendido_por ?? null,
     creadoEn: fila.creado_en,
     items,
   };
@@ -374,7 +402,7 @@ async function sucursalesPermitidas(miembroId: string, rol: RolTienda, tiendaId:
 }
 
 function esEstado(valor: string): valor is EstadoPedido {
-  return valor === "pendiente" || valor === "aceptado" || valor === "listo" || valor === "enviado" || valor === "cancelado";
+  return esEstadoPedido(valor);
 }
 
 function lanzar(mensaje: string): never {
@@ -417,7 +445,7 @@ type FilaPedido = {
   tienda_id: string;
   sucursal_id: string;
   cliente_nombre: string;
-  telefono: string;
+  telefono: string | null;
   tipo_entrega: string;
   lat: number | null;
   lng: number | null;
@@ -431,5 +459,7 @@ type FilaPedido = {
   hora_recojo: string | null;
   estado: string;
   metodo_pago: string | null;
+  origen: string | null;
+  vendido_por: string | null;
   creado_en: string;
 };

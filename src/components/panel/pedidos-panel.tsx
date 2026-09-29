@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { cambiarEstadoAccion } from "@/app/t/[slug]/pedidos/actions";
@@ -19,6 +20,7 @@ import {
   referenciaPedido,
   tonoEstadoPedido,
   type EstadoPedido,
+  type OrigenPedido,
 } from "@/lib/pedidos/reglas";
 import type { PedidoLista } from "@/lib/pedidos/servicio";
 
@@ -49,12 +51,18 @@ export function PedidosPanel({
           {pedidos.map((pedido) => (
             <li key={pedido.id} className="relative [content-visibility:auto]">
               {resaltados.has(pedido.id) ? <span aria-hidden="true" className="pedido-resalte pointer-events-none absolute inset-0 rounded-xl" /> : null}
-              <article className="pedido-tarjeta">
+              <article className="pedido-tarjeta pedido-tarjeta-enlace">
+                {/* Toda la tarjeta abre el detalle; botones y enlaces quedan por encima. */}
+                <Link
+                  href={`/t/${slug}/pedidos/${pedido.id}`}
+                  className="pedido-tarjeta-cubierta"
+                  aria-label={`Ver pedido #${referenciaPedido(pedido.id)} de ${pedido.cliente}`}
+                />
                 <div className="flex items-start justify-between gap-3">
                   <h3 className="min-w-0 text-pretty text-base font-semibold">
                     <span className="tabular-nums">#{referenciaPedido(pedido.id)}</span> · {pedido.cliente}
                   </h3>
-                  <Estado estado={pedido.estado} />
+                  <Estado estado={pedido.estado} origen={pedido.origen} />
                 </div>
                 <div className="flex items-center justify-between gap-3">
                   <span className="flex flex-wrap items-center gap-1.5">
@@ -79,7 +87,7 @@ export function PedidosPanel({
                           href={`https://www.google.com/maps?q=${pedido.lat},${pedido.lng}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="font-medium text-[var(--br)]"
+                          className="pedido-tarjeta-encima font-medium text-[var(--br)]"
                         >
                           Ver ubicación
                         </a>
@@ -88,12 +96,11 @@ export function PedidosPanel({
                   </p>
                 ) : null}
                 <p className="text-xs text-[var(--mu)]">
-                  {pedido.sucursal} · {formatoFechaPrecio(pedido.creadoEn)} ·{" "}
-                  <Link href={`/t/${slug}/pedidos/${pedido.id}`} className="font-medium text-[var(--br)]">
-                    Ver historial
-                  </Link>
+                  {pedido.sucursal} · {formatoFechaPrecio(pedido.creadoEn)}
                 </p>
-                <AccionesPedido slug={slug} pedido={pedido} lectura={lectura} />
+                <div className="pedido-tarjeta-encima">
+                  <AccionesPedido slug={slug} pedido={pedido} lectura={lectura} />
+                </div>
               </article>
             </li>
           ))}
@@ -112,10 +119,11 @@ export function AccionesPedido({
   pedido: PedidoLista;
   lectura: boolean;
 }) {
-  const accion = accionPedido(pedido.estado, pedido.tipo);
+  const accion = accionPedido(pedido.estado, pedido.tipo, pedido.origen);
   const [cancelar, setCancelar] = useState(false);
   const [falloWhatsapp, setFalloWhatsapp] = useState(false);
   const publicar = useToast();
+  const router = useRouter();
   const principal = useAsyncAction(async () => {
     if (!accion) return { aviso: "Listo.", whatsappOk: true };
     const resultado = await cambiarEstadoAccion(slug, pedido.id, accion.estado);
@@ -143,6 +151,7 @@ export function AccionesPedido({
             const aviso = hecho.valor.valor;
             setFalloWhatsapp(!aviso.whatsappOk);
             publicar(aviso.whatsappOk ? "exito" : "aviso", aviso.aviso);
+            router.refresh();
           });
         }}
       >
@@ -168,12 +177,13 @@ export function AccionesPedido({
             const aviso = hecho.valor.valor;
             setFalloWhatsapp(!aviso.whatsappOk);
             publicar(aviso.whatsappOk ? "exito" : "aviso", aviso.aviso);
+            router.refresh();
             setCancelar(false);
           });
         }}
       />
       {falloWhatsapp ? (
-        <p className="basis-full text-sm leading-6 text-zinc-800 dark:text-zinc-200">
+        <p className="basis-full text-sm leading-6 text-[var(--tx)]">
           No se pudo avisar por WhatsApp.{" "}
           <a
             href={`https://wa.me/${pedido.telefono}`}
@@ -193,6 +203,9 @@ const ESTADOS_FILTRO = [
   { valor: "", etiqueta: "Todos" },
   { valor: "pendiente", etiqueta: "Nuevos" },
   { valor: "aceptado", etiqueta: "Aceptados" },
+  { valor: "preparando", etiqueta: "Preparando" },
+  { valor: "recogido", etiqueta: "Recogidos" },
+  { valor: "entregado", etiqueta: "Entregados" },
   { valor: "listo", etiqueta: "Listos" },
   { valor: "enviado", etiqueta: "Enviados" },
   { valor: "cancelado", etiqueta: "Cancelados" },
@@ -221,7 +234,7 @@ function Filtros({
 
   return (
     <div className="flex flex-col gap-2">
-      <nav aria-label="Estado del pedido" className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none]">
+      <nav aria-label="Estado del pedido" className="chips-carrusel">
         {ESTADOS_FILTRO.map((opcion) => {
           const activo = (filtro.estado ?? "") === opcion.valor;
           return (
@@ -271,6 +284,6 @@ function Filtros({
   );
 }
 
-function Estado({ estado }: { estado: EstadoPedido }) {
-  return <Tag tono={tonoEstadoPedido(estado)}>{etiquetaEstadoPedido(estado)}</Tag>;
+function Estado({ estado, origen }: { estado: EstadoPedido; origen: OrigenPedido }) {
+  return <Tag tono={tonoEstadoPedido(estado)}>{etiquetaEstadoPedido(estado, origen)}</Tag>;
 }

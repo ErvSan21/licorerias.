@@ -1,11 +1,5 @@
-import { EstadoCarga, Skeleton } from "@/components/ui/skeleton";
+import { EsqueletoLista } from "@/components/panel/esqueletos";
 
 export default function CargandoSucursales() {
-  return (
-    <EstadoCarga etiqueta="Cargando sucursales…" className="flex flex-col gap-3">
-      <Skeleton className="h-7 w-36" />
-      <Skeleton className="h-28 w-full" />
-      <Skeleton className="h-28 w-full" />
-    </EstadoCarga>
-  );
+  return <EsqueletoLista etiqueta="Cargando sucursales…" volver filas={3} redonda />;
 }

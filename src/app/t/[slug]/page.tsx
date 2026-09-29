@@ -37,7 +37,7 @@ function SucursalesVacias({ nombre }: { nombre: string }) {
   return (
     <main className="mx-auto flex w-full max-w-md flex-col px-4 py-10">
       <h1 className="text-pretty text-2xl font-semibold tracking-tight">{nombre}</h1>
-      <p className="mt-3 text-sm leading-6 text-zinc-700 dark:text-zinc-300">
+      <p className="mt-3 text-sm leading-6 text-[var(--mu)]">
         Esta tienda todavía no tiene sucursales abiertas.
       </p>
     </main>

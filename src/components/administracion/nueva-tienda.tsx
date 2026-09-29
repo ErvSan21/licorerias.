@@ -10,20 +10,14 @@ import { Drawer } from "@/components/ui/drawer";
 import { useToast } from "@/components/ui/toast";
 import { useAsyncAction } from "@/components/ui/use-async-action";
 import { capitalizar } from "@/lib/texto";
+import { BotonAgregar } from "@/components/ui/boton-agregar";
 
 export function NuevaTienda() {
   const [abierto, setAbierto] = useState(false);
 
   return (
     <>
-      <button
-        type="button"
-        className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-2xl leading-none"
-        aria-label="Crear tienda"
-        onClick={() => setAbierto(true)}
-      >
-        <span aria-hidden>+</span>
-      </button>
+      <BotonAgregar etiqueta="Crear tienda" alTocar={() => setAbierto(true)} />
       <Drawer abierto={abierto} titulo="Nueva tienda" alCerrar={() => setAbierto(false)}>
         <FormularioTienda alCerrar={() => setAbierto(false)} />
       </Drawer>
@@ -108,7 +102,7 @@ function FormularioTienda({ alCerrar }: { alCerrar: () => void }) {
         </span>
       </button>
       {error ? (
-        <p role="alert" className="text-sm text-red-700 dark:text-red-400">
+        <p role="alert" className="text-sm text-[var(--er)]">
           {error}
         </p>
       ) : null}

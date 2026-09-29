@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import {
+  crearSucursalAdminAccion,
   eliminarTiendaAccion,
   guardarPlazoAccion,
   inactivarTiendaAccion,
@@ -16,6 +17,7 @@ import { Drawer } from "@/components/ui/drawer";
 import { useToast } from "@/components/ui/toast";
 import { useAsyncAction } from "@/components/ui/use-async-action";
 import { etiquetaPlazo, hoyBolivia, PLAZOS, type Plazo } from "@/lib/licencias/reglas";
+import { capitalizar } from "@/lib/texto";
 import type { VistaCredencial } from "@/lib/whatsapp/reglas";
 
 export type TiendaMenu = {
@@ -25,9 +27,11 @@ export type TiendaMenu = {
   inicio: string | null;
   vence: string | null;
   plazo: Plazo | null;
+  /** Si la tienda puede tener varias sucursales: habilita "Agregar sucursal". */
+  sucursalesHabilitadas: boolean;
 };
 
-type Accion = "inactivar" | "eliminar" | "whatsapp" | "planes";
+type Accion = "inactivar" | "eliminar" | "whatsapp" | "planes" | "sucursal";
 
 export function MenuTienda({ tienda }: { tienda: TiendaMenu }) {
   const router = useRouter();
@@ -64,7 +68,7 @@ export function MenuTienda({ tienda }: { tienda: TiendaMenu }) {
     <>
       <button
         type="button"
-        className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-lg"
+        className="boton-icono"
         aria-label={`Acciones de ${tienda.nombre}`}
         aria-haspopup="dialog"
         onClick={() => setLista(true)}
@@ -73,6 +77,7 @@ export function MenuTienda({ tienda }: { tienda: TiendaMenu }) {
       </button>
       <Drawer abierto={lista} titulo={tienda.nombre} alCerrar={() => setLista(false)}>
         <ul className="flex flex-col">
+          {tienda.sucursalesHabilitadas ? <Item onClick={() => abrir("sucursal")}>Agregar sucursal</Item> : null}
           <Item onClick={() => abrir("inactivar")}>Inactivar</Item>
           <Item peligro onClick={() => abrir("eliminar")}>
             Eliminar
@@ -80,6 +85,19 @@ export function MenuTienda({ tienda }: { tienda: TiendaMenu }) {
           <Item onClick={() => abrir("whatsapp")}>Configurar WhatsApp</Item>
           <Item onClick={() => abrir("planes")}>Planes</Item>
         </ul>
+      </Drawer>
+      <Drawer abierto={accion === "sucursal"} titulo="Agregar sucursal" descripcion={tienda.nombre} alCerrar={cerrar}>
+        {accion === "sucursal" ? (
+          <FormularioSucursal
+            tiendaId={tienda.id}
+            alCerrar={cerrar}
+            alListo={(aviso) => {
+              publicar("exito", aviso);
+              cerrar();
+              router.refresh();
+            }}
+          />
+        ) : null}
       </Drawer>
       <Drawer
         abierto={accion === "inactivar"}
@@ -114,7 +132,7 @@ export function MenuTienda({ tienda }: { tienda: TiendaMenu }) {
       </Drawer>
       <Drawer abierto={accion === "whatsapp"} titulo="Configurar WhatsApp" alCerrar={cerrar}>
         {errorWhatsapp ? (
-          <p role="alert" className="text-sm text-red-700 dark:text-red-400">
+          <p role="alert" className="text-sm text-[var(--er)]">
             {errorWhatsapp}
           </p>
         ) : null}
@@ -157,6 +175,72 @@ export function MenuTienda({ tienda }: { tienda: TiendaMenu }) {
         )}
       </Drawer>
     </>
+  );
+}
+
+function FormularioSucursal({
+  tiendaId,
+  alCerrar,
+  alListo,
+}: {
+  tiendaId: string;
+  alCerrar: () => void;
+  alListo: (aviso: string) => void;
+}) {
+  const [nombre, setNombre] = useState("");
+  const [direccion, setDireccion] = useState("");
+  const { run, loading, error } = useAsyncAction(async () => {
+    const resultado = await crearSucursalAdminAccion({ tiendaId, nombre, direccion });
+    if (!resultado.ok) throw new Error(resultado.error);
+    return resultado.aviso;
+  });
+
+  return (
+    <form
+      className="flex flex-col gap-3"
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (!event.currentTarget.reportValidity()) return;
+        void run().then((hecho) => {
+          if (hecho.omitida || !hecho.valor.ok) return;
+          alListo(hecho.valor.valor);
+        });
+      }}
+    >
+      <Campo id={`sucursal-nombre-${tiendaId}`} etiqueta="Nombre">
+        <input
+          id={`sucursal-nombre-${tiendaId}`}
+          required
+          minLength={2}
+          maxLength={80}
+          autoComplete="off"
+          value={nombre}
+          onChange={(event) => setNombre(capitalizar(event.target.value))}
+          className={claseCampo}
+        />
+      </Campo>
+      <Campo id={`sucursal-direccion-${tiendaId}`} etiqueta="Dirección">
+        <input
+          id={`sucursal-direccion-${tiendaId}`}
+          required
+          minLength={4}
+          maxLength={160}
+          autoComplete="off"
+          value={direccion}
+          onChange={(event) => setDireccion(capitalizar(event.target.value))}
+          className={claseCampo}
+        />
+      </Campo>
+      <p className="text-xs text-[var(--mu)]">
+        Abre todos los días, todo el día. El dueño ajusta horario, mapa y delivery desde su panel.
+      </p>
+      {error ? (
+        <p role="alert" className="text-sm text-[var(--er)]">
+          {error}
+        </p>
+      ) : null}
+      <PieHoja alCancelar={alCerrar} cargando={loading} etiquetaCargando="Creando…" />
+    </form>
   );
 }
 
@@ -228,7 +312,7 @@ function FormularioPlan({
         </Campo>
       )}
       {error ? (
-        <p role="alert" className="text-sm text-red-700 dark:text-red-400">
+        <p role="alert" className="text-sm text-[var(--er)]">
           {error}
         </p>
       ) : null}
@@ -266,7 +350,7 @@ function HojaSimple({
       }}
     >
       {error ? (
-        <p role="alert" className="text-sm text-red-700 dark:text-red-400">
+        <p role="alert" className="text-sm text-[var(--er)]">
           {error}
         </p>
       ) : null}
@@ -288,7 +372,7 @@ function Item({
     <li>
       <button
         type="button"
-        className={`flex min-h-11 w-full items-center rounded-lg px-3 text-left text-base ${peligro ? "text-red-700 dark:text-red-400" : ""}`}
+        className={`menu-hoja-item ${peligro ? "menu-hoja-item-peligro" : ""}`}
         onClick={onClick}
       >
         {children}

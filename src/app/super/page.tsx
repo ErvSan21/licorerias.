@@ -28,7 +28,7 @@ export default async function SuperPage({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Tiendas</h1>
-          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+          <p className="mt-1 text-sm text-[var(--mu)]">
             {cuantas === 1 ? "1 tienda vence en 7 días." : `${cuantas} tiendas vencen en 7 días.`}
           </p>
         </div>
@@ -36,14 +36,14 @@ export default async function SuperPage({
           <Link
             href="/super"
             aria-current={porVencer ? undefined : "page"}
-            className="inline-flex min-h-11 touch-manipulation items-center rounded-lg border border-zinc-300 px-3 text-sm font-medium underline-offset-4 aria-[current=page]:border-zinc-900 aria-[current=page]:font-semibold aria-[current=page]:underline dark:border-zinc-700 dark:aria-[current=page]:border-zinc-100"
+            className="inline-flex min-h-11 touch-manipulation items-center rounded-lg border border-[var(--ln)] px-3 text-sm font-medium underline-offset-4 aria-[current=page]:border-[var(--br)] aria-[current=page]:font-semibold aria-[current=page]:underline"
           >
             Todas
           </Link>
           <Link
             href="/super?vista=por-vencer"
             aria-current={porVencer ? "page" : undefined}
-            className="inline-flex min-h-11 touch-manipulation items-center rounded-lg border border-zinc-300 px-3 text-sm font-medium underline-offset-4 aria-[current=page]:border-zinc-900 aria-[current=page]:font-semibold aria-[current=page]:underline dark:border-zinc-700 dark:aria-[current=page]:border-zinc-100"
+            className="inline-flex min-h-11 touch-manipulation items-center rounded-lg border border-[var(--ln)] px-3 text-sm font-medium underline-offset-4 aria-[current=page]:border-[var(--br)] aria-[current=page]:font-semibold aria-[current=page]:underline"
           >
             Por vencer
           </Link>
@@ -64,7 +64,7 @@ export default async function SuperPage({
           <table className="w-full min-w-[44rem] border-collapse text-left text-sm">
             <caption className="sr-only">Tiendas, plan y vencimiento</caption>
             <thead>
-              <tr className="border-b border-zinc-200 text-zinc-600 dark:border-zinc-800 dark:text-zinc-400">
+              <tr className="border-b border-[var(--ln)] text-[var(--mu)]">
                 <th scope="col" className="px-2 py-3 font-medium">
                   Tienda
                 </th>
@@ -98,7 +98,7 @@ function Fila({ tienda, hoy }: { tienda: TiendaLicencia; hoy: string }) {
     vencePronto(tienda.licencia.vence, hoy);
 
   return (
-    <tr className="border-b border-zinc-200 dark:border-zinc-800">
+    <tr className="border-b border-[var(--ln)]">
       <th scope="row" className="px-2 py-3 font-medium">
         <Link
           href={`/super/tiendas/${tienda.id}`}
@@ -106,7 +106,7 @@ function Fila({ tienda, hoy }: { tienda: TiendaLicencia; hoy: string }) {
         >
           {tienda.nombre}
         </Link>
-        <span className="block text-xs font-normal text-zinc-600 dark:text-zinc-400">
+        <span className="block text-xs font-normal text-[var(--mu)]">
           {etiquetaEstado(tienda.estado)}
         </span>
       </th>
@@ -123,7 +123,7 @@ function Fila({ tienda, hoy }: { tienda: TiendaLicencia; hoy: string }) {
           <>
             <time dateTime={tienda.licencia.vence}>{formatoFecha(tienda.licencia.vence)}</time>
             {pronto ? (
-              <span className="mt-1 block text-xs font-medium text-amber-800 dark:text-amber-200">
+              <span className="mt-1 block text-xs font-medium text-[var(--wa)]">
                 Vence pronto
               </span>
             ) : null}

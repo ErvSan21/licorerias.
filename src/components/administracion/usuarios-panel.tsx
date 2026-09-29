@@ -18,6 +18,8 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { useToast } from "@/components/ui/toast";
 import { useAsyncAction } from "@/components/ui/use-async-action";
 import { etiquetaTipo, type UsuarioOrganizacion } from "@/lib/administracion/reglas";
+import { capitalizar } from "@/lib/texto";
+import { BotonAgregar } from "@/components/ui/boton-agregar";
 
 type TiendaOpcion = { id: string; nombre: string };
 type AccionUsuario = "bloquear" | "borrar" | "clave";
@@ -35,14 +37,7 @@ export function UsuariosPanel({
     <main className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-lg font-semibold">Usuarios</h2>
-        <button
-          type="button"
-          className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-2xl leading-none"
-          aria-label="Crear usuario"
-          onClick={() => setCrear(true)}
-        >
-          <span aria-hidden>+</span>
-        </button>
+        <BotonAgregar etiqueta="Crear usuario" alTocar={() => setCrear(true)} />
       </div>
       {usuarios.length === 0 ? (
         <EmptyState titulo="Todavía no hay usuarios" descripcion="Crea un admin o un usuario de ventas en una tienda." />
@@ -70,10 +65,13 @@ function FormularioAlta({ tiendas, alCerrar }: { tiendas: TiendaOpcion[]; alCerr
   const publicar = useToast();
   const [tiendaId, setTiendaId] = useState(tiendas[0]?.id ?? "");
   const [tipo, setTipo] = useState("ventas");
+  const [nombre, setNombre] = useState("");
+  const [apellido, setApellido] = useState("");
   const [correo, setCorreo] = useState("");
+  const [celular, setCelular] = useState("");
   const [contrasena, setContrasena] = useState("");
   const { run, loading, error } = useAsyncAction(async () => {
-    const resultado = await crearUsuarioAccion({ tiendaId, tipo, correo, contrasena });
+    const resultado = await crearUsuarioAccion({ tiendaId, tipo, nombre, apellido, correo, celular, contrasena });
     if (!resultado.ok) throw new Error(resultado.error);
     return resultado.aviso;
   });
@@ -95,7 +93,10 @@ function FormularioAlta({ tiendas, alCerrar }: { tiendas: TiendaOpcion[]; alCerr
         if (!event.currentTarget.reportValidity()) return;
         void run().then((hecho) => {
           if (hecho.omitida || !hecho.valor.ok) return;
+          setNombre("");
+          setApellido("");
           setCorreo("");
+          setCelular("");
           setContrasena("");
           publicar("exito", hecho.valor.valor);
           alCerrar();
@@ -124,6 +125,34 @@ function FormularioAlta({ tiendas, alCerrar }: { tiendas: TiendaOpcion[]; alCerr
           <option value="ventas">Ventas</option>
         </select>
       </Campo>
+      <div className="grid grid-cols-2 gap-3">
+        <Campo id="usuario-nombre" etiqueta="Nombre">
+          <input
+            id="usuario-nombre"
+            required
+            minLength={2}
+            maxLength={60}
+            autoComplete="off"
+            autoCapitalize="words"
+            value={nombre}
+            onChange={(event) => setNombre(capitalizar(event.target.value))}
+            className={claseCampo}
+          />
+        </Campo>
+        <Campo id="usuario-apellido" etiqueta="Apellido">
+          <input
+            id="usuario-apellido"
+            required
+            minLength={2}
+            maxLength={60}
+            autoComplete="off"
+            autoCapitalize="words"
+            value={apellido}
+            onChange={(event) => setApellido(capitalizar(event.target.value))}
+            className={claseCampo}
+          />
+        </Campo>
+      </div>
       <Campo id="usuario-correo" etiqueta="Correo">
         <input
           id="usuario-correo"
@@ -133,6 +162,18 @@ function FormularioAlta({ tiendas, alCerrar }: { tiendas: TiendaOpcion[]; alCerr
           spellCheck={false}
           value={correo}
           onChange={(event) => setCorreo(event.target.value)}
+          className={claseCampo}
+        />
+      </Campo>
+      <Campo id="usuario-celular" etiqueta="Celular (opcional)">
+        <input
+          id="usuario-celular"
+          type="tel"
+          inputMode="tel"
+          autoComplete="off"
+          placeholder="7XXXXXXX"
+          value={celular}
+          onChange={(event) => setCelular(event.target.value)}
           className={claseCampo}
         />
       </Campo>
@@ -149,7 +190,7 @@ function FormularioAlta({ tiendas, alCerrar }: { tiendas: TiendaOpcion[]; alCerr
         />
       </Campo>
       {error ? (
-        <p role="alert" className="text-sm text-red-700 dark:text-red-400">
+        <p role="alert" className="text-sm text-[var(--er)]">
           {error}
         </p>
       ) : null}
@@ -163,7 +204,7 @@ function TarjetaUsuario({ usuario }: { usuario: UsuarioOrganizacion }) {
   const publicar = useToast();
   const [lista, setLista] = useState(false);
   const [accion, setAccion] = useState<AccionUsuario | null>(null);
-  const nombre = usuario.correo ?? "Sin correo";
+  const nombre = usuario.nombre ?? usuario.correo ?? "Sin correo";
 
   function cerrar() {
     setLista(false);
@@ -179,13 +220,16 @@ function TarjetaUsuario({ usuario }: { usuario: UsuarioOrganizacion }) {
     <Card className="flex items-start justify-between gap-3 p-4">
       <div className="min-w-0">
         <p className="break-words font-semibold">{nombre}</p>
+        {usuario.nombre && usuario.correo ? (
+          <p className="break-all text-sm text-[var(--mu)]">{usuario.correo}</p>
+        ) : null}
         <p className="text-sm text-[var(--mu)]">
           {usuario.tiendaNombre} · {etiquetaTipo(usuario.rol)} · {usuario.activo ? "Activo" : "Bloqueado"}
         </p>
       </div>
       <button
         type="button"
-        className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-lg"
+        className="boton-icono"
         aria-label={`Acciones de ${nombre}`}
         aria-haspopup="dialog"
         onClick={() => setLista(true)}
@@ -195,21 +239,21 @@ function TarjetaUsuario({ usuario }: { usuario: UsuarioOrganizacion }) {
       <Drawer abierto={lista} titulo={nombre} alCerrar={() => setLista(false)}>
         <ul className="flex flex-col">
           <li>
-            <button type="button" className="flex min-h-11 w-full items-center rounded-lg px-3 text-left" onClick={() => abrir("bloquear")}>
+            <button type="button" className="menu-hoja-item" onClick={() => abrir("bloquear")}>
               {usuario.activo ? "Bloquear" : "Desbloquear"}
             </button>
           </li>
           <li>
             <button
               type="button"
-              className="flex min-h-11 w-full items-center rounded-lg px-3 text-left text-red-700 dark:text-red-400"
+              className="menu-hoja-item menu-hoja-item-peligro"
               onClick={() => abrir("borrar")}
             >
               Borrar
             </button>
           </li>
           <li>
-            <button type="button" className="flex min-h-11 w-full items-center rounded-lg px-3 text-left" onClick={() => abrir("clave")}>
+            <button type="button" className="menu-hoja-item" onClick={() => abrir("clave")}>
               Cambiar contraseña
             </button>
           </li>
@@ -307,7 +351,7 @@ function FormularioClave({
         />
       </Campo>
       {error ? (
-        <p role="alert" className="text-sm text-red-700 dark:text-red-400">
+        <p role="alert" className="text-sm text-[var(--er)]">
           {error}
         </p>
       ) : null}
@@ -345,7 +389,7 @@ function HojaSimple({
       }}
     >
       {error ? (
-        <p role="alert" className="text-sm text-red-700 dark:text-red-400">
+        <p role="alert" className="text-sm text-[var(--er)]">
           {error}
         </p>
       ) : null}

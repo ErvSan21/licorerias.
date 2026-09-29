@@ -3,7 +3,9 @@ import test from "node:test";
 
 import {
   accionPedido,
+  etiquetaEstadoPedido,
   indiceSeguimiento,
+  pasosVenta,
   intervaloSeguimientoMs,
   mensajeSeguimiento,
   normalizarTelefono,
@@ -12,6 +14,42 @@ import {
   rangoDiaBolivia,
   seguimientoDesdeJson,
 } from "./reglas.ts";
+
+test("las ventas del panel siguen su propio flujo según la entrega", () => {
+  const siguiente = (estado: Parameters<typeof accionPedido>[0], tipo: "delivery" | "recojo") =>
+    accionPedido(estado, tipo, "panel")?.estado ?? null;
+  assert.equal(siguiente("pendiente", "recojo"), "aceptado");
+  assert.equal(siguiente("aceptado", "recojo"), "entregado");
+  assert.equal(siguiente("entregado", "recojo"), null);
+  assert.equal(siguiente("aceptado", "delivery"), "preparando");
+  assert.equal(siguiente("preparando", "delivery"), "recogido");
+  assert.equal(siguiente("recogido", "delivery"), "entregado");
+  assert.equal(accionPedido("recogido", "delivery", "panel")?.cancelar, false);
+  assert.equal(accionPedido("preparando", "delivery", "panel")?.cancelar, true);
+  // La tienda en línea no cambia.
+  assert.equal(accionPedido("aceptado", "recojo")?.estado, "listo");
+  assert.deepEqual(pasosVenta("recojo"), ["pendiente", "aceptado", "entregado"]);
+  assert.equal(etiquetaEstadoPedido("pendiente", "panel"), "Registrado");
+  assert.equal(etiquetaEstadoPedido("pendiente"), "Nuevo");
+});
+
+test("en el mostrador, recojo acepta pedido sin nombre ni celular; delivery y la tienda no", () => {
+  const base = {
+    sucursalId: "0b8f0f2e-8a4a-4a53-9b0e-6f6f4a1f2c11",
+    tipo: "recojo",
+    nombre: "",
+    telefono: "",
+    items: [{ productoId: "5d1f7c3a-2b6e-4a8f-9c3d-1e2f3a4b5c6d", cantidad: 1 }],
+  };
+  const venta = pedidoDesdeJson(base, { mostrador: true });
+  assert.equal(venta.nombre, "Cliente");
+  assert.equal(venta.telefono, null);
+  assert.throws(() => pedidoDesdeJson(base), /nombre/i);
+  assert.throws(
+    () => pedidoDesdeJson({ ...base, tipo: "delivery", nombre: "Ana", direccion: "Av. Arce 100" }, { mostrador: true }),
+    /celular/,
+  );
+});
 
 test("el teléfono boliviano queda en 591 sin símbolos", () => {
   assert.equal(normalizarTelefono("71234567"), "59171234567");

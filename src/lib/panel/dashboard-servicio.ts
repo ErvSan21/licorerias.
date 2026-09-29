@@ -3,7 +3,7 @@ import "server-only";
 import type { ContextoPanel } from "@/lib/auth/panel";
 import { esStockBajo } from "@/lib/inventario/reglas";
 import { esPlazo, etiquetaPlazo, hoyBolivia, sumarDias } from "@/lib/licencias/reglas";
-import { esEstadoPedido, referenciaPedido } from "@/lib/pedidos/reglas";
+import { esEstadoPedido, esOrigenPedido, referenciaPedido } from "@/lib/pedidos/reglas";
 import { reporteDesdeJson, type Reporte } from "@/lib/reportes/reglas";
 import { createServiceClient } from "@/lib/supabase/service";
 
@@ -44,7 +44,7 @@ export async function leerDashboard(contexto: ContextoPanel): Promise<DatosDashb
     service.from("licencias").select("plazo, vence").eq("tienda_id", tiendaId).maybeSingle(),
     service
       .from("pedidos")
-      .select("id, cliente_nombre, tipo_entrega, total, estado")
+      .select("id, cliente_nombre, tipo_entrega, total, estado, origen")
       .eq("tienda_id", tiendaId)
       .in("sucursal_id", sucursales)
       .order("creado_en", { ascending: false })
@@ -70,7 +70,14 @@ export async function leerDashboard(contexto: ContextoPanel): Promise<DatosDashb
       : null;
 
   const ultimos = (
-    (ultimosRes.data ?? []) as { id: string; cliente_nombre: string; tipo_entrega: string; total: number; estado: string }[]
+    (ultimosRes.data ?? []) as {
+      id: string;
+      cliente_nombre: string;
+      tipo_entrega: string;
+      total: number;
+      estado: string;
+      origen: string | null;
+    }[]
   ).flatMap((fila) => {
     if (!esEstadoPedido(fila.estado)) return [];
     return [
@@ -80,6 +87,7 @@ export async function leerDashboard(contexto: ContextoPanel): Promise<DatosDashb
         tipo: fila.tipo_entrega === "recojo" ? ("recojo" as const) : ("delivery" as const),
         total: Number(fila.total),
         estado: fila.estado,
+        origen: esOrigenPedido(fila.origen) ? fila.origen : ("tienda" as const),
       },
     ];
   });

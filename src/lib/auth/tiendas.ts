@@ -1,5 +1,7 @@
 import "server-only";
 
+import { cache } from "react";
+
 import { createServiceClient } from "@/lib/supabase/service";
 import {
   esEstadoTienda,
@@ -25,30 +27,24 @@ type FilaTienda = {
 };
 
 /** Lista las tiendas del usuario ya verificado. No lee un tienda_id del navegador. */
-export async function tiendasDelUsuario(userId: string): Promise<TiendaDelUsuario[]> {
+export const tiendasDelUsuario = cache(async (userId: string): Promise<TiendaDelUsuario[]> => {
   const service = createServiceClient();
   const { data: miembros, error } = await service
     .from("miembros")
-    .select("rol, tienda_id")
+    .select("rol, tienda_id, tiendas!inner(id, slug, nombre, estado)")
     .eq("user_id", userId)
     .eq("activo", true);
 
   if (error) throw new Error(error.message);
 
-  const filas = (miembros ?? []) as FilaMiembro[];
-  const ids = filas.map((fila) => fila.tienda_id);
-  if (ids.length === 0) return [];
+  const filas = (miembros ?? []) as unknown as (FilaMiembro & { tiendas: FilaTienda | FilaTienda[] | null })[];
+  if (filas.length === 0) return [];
 
-  const { data: tiendas, error: errorTiendas } = await service
-    .from("tiendas")
-    .select("id, slug, nombre, estado")
-    .in("id", ids);
-
-  if (errorTiendas) throw new Error(errorTiendas.message);
-
-  const porId = new Map(
-    ((tiendas ?? []) as FilaTienda[]).map((tienda) => [tienda.id, tienda]),
-  );
+  const porId = new Map<string, FilaTienda>();
+  for (const fila of filas) {
+    const tienda = Array.isArray(fila.tiendas) ? fila.tiendas[0] : fila.tiendas;
+    if (tienda) porId.set(fila.tienda_id, tienda);
+  }
 
   const resultado: TiendaDelUsuario[] = [];
   for (const fila of filas) {
@@ -64,4 +60,4 @@ export async function tiendasDelUsuario(userId: string): Promise<TiendaDelUsuari
   }
 
   return resultado.toSorted((a, b) => a.nombre.localeCompare(b.nombre, "es"));
-}
+});

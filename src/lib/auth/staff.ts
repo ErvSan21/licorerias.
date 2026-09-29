@@ -57,17 +57,7 @@ export async function requireStaff(input: {
   if (!user) throw new AccesoError("no_autenticado");
 
   const service = createServiceClient();
-  const { data, error } = await service
-    .from("miembros")
-    .select("id, rol, activo, user_id, tienda_id")
-    .eq("user_id", user.id)
-    .eq("tienda_id", input.tiendaId)
-    .eq("activo", true)
-    .maybeSingle();
-
-  if (error) throw new Error(error.message);
-
-  const fila = data as FilaMiembro | null;
+  const fila = await miembroActivo(user.id, input.tiendaId);
   if (!fila || fila.user_id !== user.id || fila.tienda_id !== input.tiendaId || !fila.activo) {
     throw new AccesoError("prohibido");
   }
@@ -108,6 +98,19 @@ export async function requireStaff(input: {
     sucursalId: input.sucursalId,
   };
 }
+
+const miembroActivo = cache(async (userId: string, tiendaId: string): Promise<FilaMiembro | null> => {
+  const service = createServiceClient();
+  const { data, error } = await service
+    .from("miembros")
+    .select("id, rol, activo, user_id, tienda_id")
+    .eq("user_id", userId)
+    .eq("tienda_id", tiendaId)
+    .eq("activo", true)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data as FilaMiembro | null;
+});
 
 export const usuarioEsSuperAdmin = cache(async (userId: string) => {
   const service = createServiceClient();

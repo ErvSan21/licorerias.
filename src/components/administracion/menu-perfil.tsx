@@ -1,13 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 
 import { salir } from "@/app/login/actions";
-import { Drawer } from "@/components/ui/drawer";
-
-export function MenuPerfil({ correo }: { correo: string }) {
+export function MenuPerfil() {
   const [abierto, setAbierto] = useState(false);
-  const [perfil, setPerfil] = useState(false);
   const raiz = useRef<HTMLDivElement>(null);
   const menuId = useId();
 
@@ -47,30 +45,23 @@ export function MenuPerfil({ correo }: { correo: string }) {
         <div
           id={menuId}
           role="menu"
-          className="absolute right-0 top-12 z-50 min-w-44 overflow-hidden rounded-xl border border-[var(--ln)] bg-[var(--sf)] py-1 shadow-lg"
+          className="producto-menu ui-movimiento"
         >
-          <button
-            type="button"
+          <Link
+            href="/administracion/perfil"
             role="menuitem"
-            className="flex min-h-10 w-full items-center px-3 text-left text-sm"
-            onClick={() => {
-              setAbierto(false);
-              setPerfil(true);
-            }}
+            className="text-sm"
+            onClick={() => setAbierto(false)}
           >
-            Perfil
-          </button>
+            Mi perfil
+          </Link>
           <form action={salir}>
-            <button type="submit" role="menuitem" className="flex min-h-10 w-full items-center px-3 text-left text-sm">
+            <button type="submit" role="menuitem" className="text-sm">
               Cerrar sesión
             </button>
           </form>
         </div>
       ) : null}
-      <Drawer abierto={perfil} titulo="Perfil" alCerrar={() => setPerfil(false)}>
-        <p className="text-sm text-[var(--mu)]">Correo</p>
-        <p className="mt-1 break-all font-medium">{correo || "Sin correo"}</p>
-      </Drawer>
     </div>
   );
 }

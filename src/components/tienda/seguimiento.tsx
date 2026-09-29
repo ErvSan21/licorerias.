@@ -64,17 +64,17 @@ export function SeguimientoPedido({ slug, inicial }: { slug: string; inicial: Se
   return (
     <main className="mx-auto flex w-full max-w-lg flex-col gap-5 px-4 py-8">
       <header className="flex flex-col gap-1">
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+        <p className="text-sm text-[var(--mu)]">
           Pedido <span translate="no">#{pedido.id.slice(0, 4).toUpperCase()}</span>
         </p>
         <h1 className="text-pretty text-2xl font-semibold tracking-tight">{mensaje}</h1>
-        <p className="text-sm text-zinc-700 dark:text-zinc-300">{pedido.sucursal}</p>
+        <p className="text-sm text-[var(--mu)]">{pedido.sucursal}</p>
       </header>
       <p className="sr-only" role="status" aria-live="polite">
         {mensaje}
       </p>
       {pedido.estado === "cancelado" ? (
-        <p className="text-sm leading-6 text-zinc-700 dark:text-zinc-300">
+        <p className="text-sm leading-6 text-[var(--mu)]">
           Este pedido fue cancelado. Si ya pagaste o tienes dudas, escríbele a la sucursal.
         </p>
       ) : (
@@ -92,7 +92,7 @@ export function SeguimientoPedido({ slug, inicial }: { slug: string; inicial: Se
               <li key={`${indice}-${item.nombre}`} className="flex items-baseline justify-between gap-3 text-sm">
                 <span className="min-w-0">
                   <span className="line-clamp-2 break-words">{item.nombre}</span>
-                  <span className="text-zinc-600 tabular-nums dark:text-zinc-400"> × {item.cantidad}</span>
+                  <span className="text-[var(--mu)] tabular-nums"> × {item.cantidad}</span>
                 </span>
                 <span className="shrink-0 tabular-nums">{formatoBs(item.precioUnitario * item.cantidad)}</span>
               </li>
@@ -100,32 +100,32 @@ export function SeguimientoPedido({ slug, inicial }: { slug: string; inicial: Se
           </ul>
         )}
         {pedido.tipoEntrega === "delivery" ? (
-          <p className="text-sm tabular-nums text-zinc-700 dark:text-zinc-300">Envío {formatoBs(pedido.costoEnvio)}</p>
+          <p className="text-sm tabular-nums text-[var(--mu)]">Envío {formatoBs(pedido.costoEnvio)}</p>
         ) : null}
         {pedido.descuento > 0 ? (
-          <p className="text-sm tabular-nums text-zinc-700 dark:text-zinc-300">Descuento {formatoBs(pedido.descuento)}</p>
+          <p className="text-sm tabular-nums text-[var(--mu)]">Descuento {formatoBs(pedido.descuento)}</p>
         ) : null}
         <p className="text-base font-semibold tabular-nums">Total {formatoBs(pedido.total)}</p>
         {pedido.tipoEntrega === "recojo" ? (
-          <p className="text-sm leading-6 text-zinc-700 dark:text-zinc-300">
+          <p className="text-sm leading-6 text-[var(--mu)]">
             Recojo en {pedido.sucursal}
             {pedido.horaRecojo ? ` · ${formatoFechaPrecio(pedido.horaRecojo)}` : " · Lo antes posible"}
           </p>
         ) : (
-          <p className="text-sm leading-6 text-zinc-700 dark:text-zinc-300">
+          <p className="text-sm leading-6 text-[var(--mu)]">
             Delivery a {pedido.direccion || "la dirección indicada"}
             {pedido.referencia ? ` · ${pedido.referencia}` : ""}
           </p>
         )}
       </section>
       {aviso ? (
-        <p role="status" className="text-sm text-zinc-700 dark:text-zinc-300">
+        <p role="status" className="text-sm text-[var(--mu)]">
           {aviso}
         </p>
       ) : null}
       <Link
         href={`/t/${slug}`}
-        className="inline-flex min-h-11 touch-manipulation items-center text-sm font-medium underline underline-offset-4 hover:text-zinc-950 dark:hover:text-white"
+        className="inline-flex min-h-11 touch-manipulation items-center text-sm font-medium underline underline-offset-4 hover:text-[var(--tx)]"
       >
         Volver a la tienda
       </Link>

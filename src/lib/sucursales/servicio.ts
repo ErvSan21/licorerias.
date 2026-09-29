@@ -4,9 +4,12 @@ import { randomBytes } from "node:crypto";
 
 import { registrarAuditoria } from "@/lib/auth/auditoria";
 import { NoEncontrado } from "@/lib/auth/errors";
-import { requireStaff, type Staff } from "@/lib/auth/staff";
+import { resolveTenantBySlug } from "@/lib/auth/panel";
+import { requireStaff, usuarioEsSuperAdmin, type Staff } from "@/lib/auth/staff";
 import { exigirLicenciaParaEscribir } from "@/lib/licencias/servicio";
 import { esUuid } from "@/lib/licencias/reglas";
+import { parsePerfil, perfilDesdeMetadata } from "@/lib/perfil/reglas";
+import { guardarPerfil } from "@/lib/perfil/servicio";
 import { createServiceClient } from "@/lib/supabase/service";
 import { capitalizar } from "@/lib/texto";
 import { esRolTienda, normalizarSlug, ROLES_TIENDA, slugReservado, slugValido, type RolTienda } from "@/lib/tenant";
@@ -25,6 +28,7 @@ import {
   parseTelefono,
   type Horario,
 } from "./reglas";
+import { coordenadasDesdeTexto, esEnlaceCorto, esPuntoValido, type Punto } from "./ubicacion";
 
 export type SucursalResumen = {
   id: string;
@@ -63,6 +67,7 @@ export type PersonaResumen = {
   rol: RolTienda;
   activo: boolean;
   correo: string | null;
+  nombre: string | null;
   sucursalIds: string[];
 };
 
@@ -107,6 +112,10 @@ export async function leerSucursal(slug: string, sucursalId: string): Promise<{
 
 export async function crearSucursal(slug: string, input: AltaSucursal): Promise<string> {
   const staff = await exigirPersonal(slug, null, ["dueno"]);
+  // Regla de negocio: el dueño no agrega sucursales; lo hace el super admin desde Administración.
+  if (!(await usuarioEsSuperAdmin(staff.userId))) {
+    throw new NegocioError("Las sucursales nuevas las agrega el administrador de la plataforma.");
+  }
   await exigirLicenciaParaEscribir(staff.tiendaId);
   const datos = validarAlta(input);
   await slugLibre(staff.tiendaId, datos.slug, null);
@@ -185,6 +194,84 @@ export async function actualizarSucursal(
     tiendaId: staff.tiendaId,
     accion: "sucursal.editar",
     detalle: { sucursal_id: sucursalId, antes_activa: actual.activa, activa: input.activa },
+  });
+}
+
+/**
+ * Guarda la ubicación de la sucursal, desde un punto del mapa o un link de Google Maps.
+ * La usa el cálculo del envío. Dueño o gerente de esa sucursal.
+ */
+export async function guardarUbicacionSucursal(
+  slug: string,
+  sucursalId: string,
+  entrada: { punto: Punto } | { enlace: string },
+): Promise<Punto> {
+  const staff = await exigirPersonal(slug, sucursalId, ["dueno", "gerente"]);
+  await exigirLicenciaParaEscribir(staff.tiendaId);
+  await sucursalDeTienda(staff.tiendaId, sucursalId);
+  const punto = "punto" in entrada ? entrada.punto : await puntoDesdeEnlace(entrada.enlace);
+  if (!punto || !esPuntoValido(punto)) {
+    throw new NegocioError("No encontré la ubicación en ese link. Copia el link desde Google Maps o pon el pin en el mapa.");
+  }
+  const service = createServiceClient();
+  const { error } = await service
+    .from("sucursales")
+    .update({ lat: punto.lat, lng: punto.lng })
+    .eq("id", sucursalId)
+    .eq("tienda_id", staff.tiendaId);
+  if (error) throw new Error(error.message);
+  await registrarAuditoria({
+    userId: staff.userId,
+    tiendaId: staff.tiendaId,
+    accion: "sucursal.ubicacion",
+    detalle: { sucursal_id: sucursalId },
+  });
+  return punto;
+}
+
+/** Sigue las redirecciones de un link corto de Google Maps (solo hacia dominios de Google). */
+async function puntoDesdeEnlace(enlace: string): Promise<Punto | null> {
+  const directo = coordenadasDesdeTexto(enlace);
+  if (directo) return directo;
+  if (!esEnlaceCorto(enlace)) return null;
+  let actual = enlace.trim();
+  for (let salto = 0; salto < 5; salto++) {
+    let respuesta: Response;
+    try {
+      respuesta = await fetch(actual, { redirect: "manual", signal: AbortSignal.timeout(5000) });
+    } catch {
+      throw new NegocioError("No se pudo abrir el link. Revisa tu conexión o pon el pin en el mapa.");
+    }
+    const destino = respuesta.headers.get("location");
+    if (!destino) return null;
+    const siguiente = new URL(destino, actual);
+    if (!/(^|\.)google\.[a-z.]+$|(^|\.)goo\.gl$/.test(siguiente.hostname)) return null;
+    const punto = coordenadasDesdeTexto(siguiente.toString());
+    if (punto) return punto;
+    actual = siguiente.toString();
+  }
+  return null;
+}
+
+export async function cambiarDelivery(slug: string, sucursalId: string, activo: boolean): Promise<void> {
+  const staff = await exigirPersonal(slug, sucursalId, ["dueno", "gerente"]);
+  await exigirLicenciaParaEscribir(staff.tiendaId);
+  const sucursal = await sucursalDeTienda(staff.tiendaId, sucursalId);
+  if (activo && (sucursal.lat == null || sucursal.lng == null)) {
+    throw new NegocioError("Primero guarda la ubicación de la sucursal.");
+  }
+  const service = createServiceClient();
+  const { error } = await service
+    .from("sucursales")
+    .update({ acepta_delivery: activo })
+    .eq("id", sucursalId)
+    .eq("tienda_id", staff.tiendaId);
+  if (error) throw new Error(error.message);
+  await registrarAuditoria({
+    userId: staff.userId,
+    tiendaId: staff.tiendaId,
+    accion: "sucursal.delivery",
+    detalle: { sucursal_id: sucursalId, activo },
   });
 }
 
@@ -267,7 +354,8 @@ export async function listarPersonal(slug: string): Promise<{
         userId: fila.user_id,
         rol: fila.rol,
         activo: fila.activo,
-        correo: correos.get(fila.user_id) ?? null,
+        correo: correos.get(fila.user_id)?.correo ?? null,
+        nombre: correos.get(fila.user_id)?.nombre ?? null,
         sucursalIds: porMiembro.get(fila.id) ?? [],
       },
     ];
@@ -380,6 +468,135 @@ export async function actualizarPersonal(
   });
 }
 
+/** El dueño crea la cuenta con contraseña. Si el correo ya tenía cuenta, solo se suma a la tienda. */
+export async function crearPersonal(
+  slug: string,
+  input: {
+    nombre: string;
+    apellido: string;
+    correo: string;
+    celular: string;
+    contrasena: string;
+    rol: string;
+    sucursalIds: string[];
+  },
+): Promise<{ aviso: string }> {
+  const staff = await exigirPersonal(slug, null, ["dueno"]);
+  await exigirLicenciaParaEscribir(staff.tiendaId);
+  const perfil = parsePerfil(input);
+  const correo = parseCorreo(input.correo);
+  if (!correo) throw new NegocioError("Escribe un correo válido.");
+  const rol = parseRolPersonal(input.rol);
+  const sucursalIds = await sucursalesValidas(staff.tiendaId, parseIdsSucursal(input.sucursalIds), rol);
+  validarContrasena(input.contrasena);
+  const service = createServiceClient();
+  const { data: existenteId, error: errorBuscar } = await service.rpc("usuario_id_por_correo", { p_correo: correo });
+  if (errorBuscar) throw new Error(errorBuscar.message);
+  const existente = typeof existenteId === "string" && esUuid(existenteId) ? existenteId : null;
+  if (existente && (await usuarioEsSuperAdmin(existente))) {
+    throw new NegocioError("Ese correo es de administración de la plataforma.");
+  }
+  let userId: string;
+  if (existente) {
+    const { data: ya, error } = await service
+      .from("miembros")
+      .select("id")
+      .eq("tienda_id", staff.tiendaId)
+      .eq("user_id", existente)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (ya) throw new NegocioError("Esa persona ya está en el personal.");
+    userId = existente;
+  } else {
+    const creado = await service.auth.admin.createUser({ email: correo, password: input.contrasena, email_confirm: true });
+    if (creado.error || !creado.data.user?.id) {
+      console.error("crear personal", creado.error?.message ?? "sin usuario");
+      throw new NegocioError("No se pudo crear el usuario. Revisa el correo e inténtalo de nuevo.");
+    }
+    userId = creado.data.user.id;
+  }
+  const { data, error } = await service
+    .from("miembros")
+    .insert({ user_id: userId, tienda_id: staff.tiendaId, rol, activo: true })
+    .select("id")
+    .single();
+  if (error) {
+    if (!existente) await service.auth.admin.deleteUser(userId);
+    lanzarCupo(error.message);
+  }
+  await reemplazarAsignaciones((data as { id: string }).id, sucursalIds);
+  // Una cuenta que ya existía conserva su contraseña y sus datos.
+  if (!existente) await guardarPerfil(userId, perfil);
+  await registrarAuditoria({
+    userId: staff.userId,
+    tiendaId: staff.tiendaId,
+    accion: "personal.crear",
+    detalle: { rol, sucursales: sucursalIds.length },
+  });
+  return {
+    aviso: existente
+      ? "Ese correo ya tenía cuenta: quedó en el personal y entra con su contraseña de siempre."
+      : "Usuario creado. Ya puede entrar con su correo y contraseña.",
+  };
+}
+
+export async function suspenderPersonal(slug: string, miembroId: string, suspender: boolean): Promise<void> {
+  const { staff, miembro } = await miembroAjeno(slug, miembroId);
+  if (suspender && miembro.rol === "dueno") await exigirOtroDueno(staff.tiendaId, miembro.id);
+  const service = createServiceClient();
+  const { error } = await service
+    .from("miembros")
+    .update({ activo: !suspender })
+    .eq("id", miembro.id)
+    .eq("tienda_id", staff.tiendaId);
+  if (error) lanzarCupo(error.message);
+  await registrarAuditoria({
+    userId: staff.userId,
+    tiendaId: staff.tiendaId,
+    accion: suspender ? "personal.suspender" : "personal.reactivar",
+    detalle: { miembro_id: miembro.id },
+  });
+}
+
+/** Saca a la persona de la tienda. La cuenta se borra solo si no está en ninguna otra tienda. */
+export async function eliminarPersonal(slug: string, miembroId: string): Promise<void> {
+  const { staff, miembro } = await miembroAjeno(slug, miembroId);
+  if (miembro.rol === "dueno") await exigirOtroDueno(staff.tiendaId, miembro.id);
+  const service = createServiceClient();
+  const soloAqui = await soloEnEstaTienda(miembro.userId, staff.tiendaId);
+  await reemplazarAsignaciones(miembro.id, []);
+  const { error } = await service.from("miembros").delete().eq("id", miembro.id).eq("tienda_id", staff.tiendaId);
+  if (error) throw new Error(error.message);
+  if (soloAqui && !(await usuarioEsSuperAdmin(miembro.userId))) {
+    const borrado = await service.auth.admin.deleteUser(miembro.userId);
+    if (borrado.error) console.error("borrar cuenta de personal", borrado.error.message);
+  }
+  await registrarAuditoria({
+    userId: staff.userId,
+    tiendaId: staff.tiendaId,
+    accion: "personal.eliminar",
+    detalle: { miembro_id: miembro.id, rol: miembro.rol },
+  });
+}
+
+export async function cambiarContrasenaPersonal(slug: string, miembroId: string, contrasena: string): Promise<void> {
+  const { staff, miembro } = await miembroAjeno(slug, miembroId);
+  validarContrasena(contrasena);
+  // Una cuenta que también está en otra tienda no la controla este dueño.
+  if (!(await soloEnEstaTienda(miembro.userId, staff.tiendaId)) || (await usuarioEsSuperAdmin(miembro.userId))) {
+    throw new NegocioError("Esta cuenta también se usa en otra tienda. La persona cambia su contraseña desde el inicio de sesión.");
+  }
+  const service = createServiceClient();
+  const { error } = await service.auth.admin.updateUserById(miembro.userId, { password: contrasena });
+  if (error) throw new Error(error.message);
+  await registrarAuditoria({
+    userId: staff.userId,
+    tiendaId: staff.tiendaId,
+    accion: "personal.contrasena",
+    detalle: { miembro_id: miembro.id },
+  });
+}
+
 export function altaDesdeFormulario(datos: FormData): AltaSucursal {
   const coordenadas = parseCoordenadas(String(datos.get("lat") ?? ""), String(datos.get("lng") ?? ""));
   return {
@@ -404,11 +621,8 @@ async function exigirPersonal(
 ): Promise<Staff> {
   const normalizado = normalizarSlug(slug);
   if (!slugValido(normalizado) || slugReservado(normalizado)) throw new NoEncontrado();
-  const service = createServiceClient();
-  const { data, error } = await service.from("tiendas").select("id, slug").eq("slug", normalizado).maybeSingle();
-  if (error) throw new Error(error.message);
-  const tienda = data as { id: string; slug: string } | null;
-  if (!tienda || tienda.slug !== normalizado) throw new NoEncontrado();
+  const tienda = await resolveTenantBySlug(normalizado);
+  if (!tienda) throw new NoEncontrado();
   return requireStaff({ tiendaId: tienda.id, sucursalId, roles });
 }
 
@@ -493,6 +707,41 @@ async function reemplazarAsignaciones(miembroId: string, sucursalIds: string[]) 
   if (error) lanzarCupo(error.message);
 }
 
+async function miembroAjeno(slug: string, miembroId: string) {
+  const staff = await exigirPersonal(slug, null, ["dueno"]);
+  await exigirLicenciaParaEscribir(staff.tiendaId);
+  if (!esUuid(miembroId)) throw new NegocioError("Esa persona no existe.");
+  if (miembroId === staff.miembroId) throw new NegocioError("Tu propia cuenta se cambia desde tu perfil.");
+  const service = createServiceClient();
+  const { data, error } = await service
+    .from("miembros")
+    .select("id, user_id, rol")
+    .eq("id", miembroId)
+    .eq("tienda_id", staff.tiendaId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  const fila = data as { id: string; user_id: string; rol: string } | null;
+  if (!fila || !esRolTienda(fila.rol)) throw new NegocioError("Esa persona no está en esta tienda.");
+  return { staff, miembro: { id: fila.id, userId: fila.user_id, rol: fila.rol } };
+}
+
+async function soloEnEstaTienda(userId: string, tiendaId: string): Promise<boolean> {
+  const service = createServiceClient();
+  const { count, error } = await service
+    .from("miembros")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .neq("tienda_id", tiendaId);
+  if (error) throw new Error(error.message);
+  return !count;
+}
+
+function validarContrasena(contrasena: string) {
+  if (contrasena.length < 8 || contrasena.length > 72) {
+    throw new NegocioError("La contraseña tiene que tener entre 8 y 72 caracteres.");
+  }
+}
+
 async function exigirOtroDueno(tiendaId: string, miembroId: string) {
   const service = createServiceClient();
   const { count, error } = await service
@@ -526,14 +775,16 @@ async function asegurarUsuario(
   throw new NegocioError("No se pudo invitar a esa persona. Revisa el correo e inténtalo de nuevo.");
 }
 
-async function correosDe(ids: string[]): Promise<Map<string, string | null>> {
+async function correosDe(ids: string[]): Promise<Map<string, { correo: string | null; nombre: string | null }>> {
   const service = createServiceClient();
   const unicos = [...new Set(ids)];
   const pares = await Promise.all(
     unicos.map(async (id) => {
       const { data, error } = await service.auth.admin.getUserById(id);
-      if (error) return [id, null] as const;
-      return [id, data.user?.email ?? null] as const;
+      if (error || !data.user) return [id, { correo: null, nombre: null }] as const;
+      const perfil = perfilDesdeMetadata(data.user.user_metadata);
+      const nombre = `${perfil.nombre} ${perfil.apellido}`.trim() || null;
+      return [id, { correo: data.user.email ?? null, nombre }] as const;
     }),
   );
   return new Map(pares);

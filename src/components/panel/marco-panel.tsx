@@ -6,7 +6,6 @@ import { MenuDueno, MenuOperacion } from "@/components/panel/menu-panel";
 import { MenuPerfilTienda, type SucursalMenu } from "@/components/panel/menu-perfil";
 import { SelectorTiendas } from "@/components/panel/selector-contexto";
 import { BotonTema } from "@/components/ui/boton-tema";
-import { usuarioVerificado } from "@/lib/auth/staff";
 import type { ContextoPanel } from "@/lib/auth/panel";
 import { etiquetaRol } from "@/lib/tenant";
 
@@ -18,12 +17,11 @@ export async function MarcoPanel({
   children: React.ReactNode;
 }) {
   const { tienda, staff, vigente, sucursales, tiendas, seleccion } = contexto;
-  const usuario = await usuarioVerificado();
   const paraMenu = sucursalesDeMenu(sucursales, seleccion);
   const iniciales = tienda.nombre.trim().slice(0, 1).toUpperCase() || "L";
 
   return (
-    <AvisoPedidos sucursales={paraMenu.map((sucursal) => sucursal.id)}>
+    <AvisoPedidos slug={tienda.slug} sucursales={paraMenu.map((sucursal) => sucursal.id)}>
       <div className="panel-marco">
         <header className="panel-barra">
           <div className="panel-barra-fila">
@@ -40,7 +38,6 @@ export async function MarcoPanel({
             <div className="panel-barra-acciones">
               <BotonTema />
               <MenuPerfilTienda
-                correo={usuario?.email ?? ""}
                 slug={tienda.slug}
                 sucursales={paraMenu}
                 seleccion={seleccion}
@@ -70,7 +67,7 @@ export async function MarcoPanel({
         {staff.rol === "dueno" ? (
           <MenuDueno slug={tienda.slug} />
         ) : (
-          <MenuOperacion slug={tienda.slug} verReportes={staff.rol === "gerente"} />
+          <MenuOperacion slug={tienda.slug} />
         )}
       </div>
     </AvisoPedidos>

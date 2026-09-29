@@ -127,6 +127,8 @@ export function estiloMarca(color: string | null | undefined): CSSProperties | u
   return {
     ["--br" as string]: pareja.br,
     ["--br2" as string]: pareja.br2,
+    // --gr se calcula en :root; sin redefinirlo aquí los botones quedarían con el color por defecto.
+    ["--gr" as string]: `linear-gradient(135deg, ${pareja.br}, ${pareja.br2})`,
     ["--color-primario" as string]: pareja.br,
     ["--color-sobre-primario" as string]: BLANCO,
   };

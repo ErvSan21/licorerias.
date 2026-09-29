@@ -17,7 +17,13 @@ import { SelectorCantidad } from "@/components/ui/selector-cantidad";
 import { useAsyncAction } from "@/components/ui/use-async-action";
 import { capitalizar } from "@/lib/texto";
 import { formatoBs } from "@/lib/catalogo/reglas";
-import { etiquetaMetodoPago, METODOS_PAGO, type MetodoPago } from "@/lib/pedidos/reglas";
+import {
+  etiquetaEstadoPedido,
+  etiquetaMetodoPago,
+  METODOS_PAGO,
+  pasosVenta,
+  type MetodoPago,
+} from "@/lib/pedidos/reglas";
 
 export type ProductoVenta = {
   id: string;
@@ -37,6 +43,7 @@ export type SucursalVenta = {
 
 type Entrega = "recojo" | "delivery";
 type Envio = { distanciaKm: number; costo: number };
+type Registrado = { id: string; referencia: string; tipo: Entrega };
 
 export function ListaVentas({
   slug,
@@ -56,7 +63,7 @@ export function ListaVentas({
   const [busqueda, setBusqueda] = useState("");
   const [categoria, setCategoria] = useState<string | null>(null);
   const [abierto, setAbierto] = useState(false);
-  const [registrado, setRegistrado] = useState<{ id: string; referencia: string } | null>(null);
+  const [registrado, setRegistrado] = useState<Registrado | null>(null);
   const texto = busqueda.trim().toLocaleLowerCase("es");
   const visibles = productos.filter((producto) => {
     if (categoria && producto.categoria !== categoria) return false;
@@ -92,13 +99,13 @@ export function ListaVentas({
         className={claseCampo}
       />
       {categorias.length > 0 ? (
-        <div className="flex gap-2 overflow-x-auto" role="group" aria-label="Categorías">
+        <div className="chips-carrusel" role="group" aria-label="Categorías">
           <ChipCategoria activo={categoria === null} onClick={() => setCategoria(null)}>
             Todos
           </ChipCategoria>
           {categorias.map((nombre) => (
             <ChipCategoria key={nombre} activo={categoria === nombre} onClick={() => setCategoria(nombre)}>
-              {nombre}
+              {capitalizar(nombre)}
             </ChipCategoria>
           ))}
         </div>
@@ -111,7 +118,7 @@ export function ListaVentas({
             <li key={producto.id}>
               <Card className={`flex items-center justify-between gap-3 p-4 ${producto.stock <= 0 ? "venta-agotada" : ""}`}>
                 <div className="min-w-0">
-                  <p className="break-words font-semibold">{producto.nombre}</p>
+                  <p className="break-words font-semibold">{capitalizar(producto.nombre)}</p>
                   <p className="text-sm tabular-nums text-[var(--mu)]">
                     {formatoBs(producto.precio)} ·{" "}
                     <span className={producto.stock <= 0 ? "font-semibold text-[var(--er)]" : ""}>Stock {producto.stock}</span>
@@ -168,16 +175,16 @@ export function ListaVentas({
         {registrado ? (
           <div className="flex flex-col gap-4">
             <ol className="flex flex-col gap-0 pl-1.5" aria-label="Pasos del pedido">
-              {["Registrado", "Aceptado", "Listo", "Entregado"].map((paso, indice) => (
+              {pasosVenta(registrado.tipo).map((paso, indice) => (
                 <li key={paso} className="venta-paso" data-hecho={indice === 0 ? "" : undefined}>
                   <i aria-hidden="true" />
-                  <b>{paso}</b>
+                  <b>{etiquetaEstadoPedido(paso, "panel")}</b>
                 </li>
               ))}
             </ol>
             <p className="text-sm text-[var(--mu)]">
-              El pedido <b className="tabular-nums text-[var(--tx)]">#{registrado.referencia}</b> quedó como nuevo en
-              Pedidos. Desde ahí lo aceptas y lo marcas como listo.
+              El pedido <b className="tabular-nums text-[var(--tx)]">#{registrado.referencia}</b> quedó registrado en
+              Pedidos. Desde ahí avanzas cada paso.
             </p>
             <div className="flex gap-2">
               <Link
@@ -212,13 +219,13 @@ function FormularioPedido({
   subtotal: number;
   cambiar: (id: string, valor: number) => void;
   alCerrar: () => void;
-  alRegistrar: (pedido: { id: string; referencia: string }) => void;
+  alRegistrar: (pedido: Registrado) => void;
 }) {
-  const opciones = [
-    ...(sucursal.aceptaRecojo ? [{ valor: "recojo" as const, etiqueta: "Recojo en tienda" }] : []),
-    ...(sucursal.aceptaDelivery ? [{ valor: "delivery" as const, etiqueta: "Delivery" }] : []),
-  ];
-  const [entrega, setEntrega] = useState<Entrega>(opciones[0]?.valor ?? "recojo");
+  // Recojo es la opción por defecto (venta de mostrador).
+  const [entrega, setEntrega] = useState<Entrega>(
+    sucursal.aceptaRecojo || !sucursal.aceptaDelivery ? "recojo" : "delivery",
+  );
+  const habilitada = entrega === "delivery" ? sucursal.aceptaDelivery : sucursal.aceptaRecojo;
   const [pago, setPago] = useState<MetodoPago>("efectivo");
   const [nombre, setNombre] = useState("");
   const [telefono, setTelefono] = useState("");
@@ -231,7 +238,7 @@ function FormularioPedido({
   const [calculando, setCalculando] = useState(false);
 
   useEffect(() => {
-    if (entrega !== "delivery" || !punto) return;
+    if (entrega !== "delivery" || !sucursal.aceptaDelivery || !punto) return;
     const controlador = new AbortController();
     const timer = window.setTimeout(() => {
       setCalculando(true);
@@ -269,10 +276,10 @@ function FormularioPedido({
       window.clearTimeout(timer);
       controlador.abort();
     };
-  }, [entrega, punto, sucursal.id]);
+  }, [entrega, punto, sucursal.id, sucursal.aceptaDelivery]);
 
   const costoEnvio = entrega === "delivery" ? (envio?.costo ?? null) : 0;
-  const listo = lineas.length > 0 && (entrega === "recojo" || envio != null);
+  const listo = lineas.length > 0 && habilitada && (entrega === "recojo" || envio != null);
   const accion = useAsyncAction(async () => {
     const resultado = await crearVentaAccion(slug, {
       sucursalId: sucursal.id,
@@ -291,14 +298,6 @@ function FormularioPedido({
     return { id: resultado.id, referencia: resultado.referencia };
   });
 
-  if (opciones.length === 0) {
-    return (
-      <p className="text-sm leading-6">
-        Esta sucursal no acepta recojo ni delivery. Actívalos en Sucursales para registrar pedidos.
-      </p>
-    );
-  }
-
   return (
     <form
       className="flex flex-col gap-3"
@@ -307,7 +306,7 @@ function FormularioPedido({
         if (!event.currentTarget.reportValidity() || !listo) return;
         void accion.run().then((hecho) => {
           if (hecho.omitida || !hecho.valor.ok) return;
-          alRegistrar(hecho.valor.valor);
+          alRegistrar({ ...hecho.valor.valor, tipo: entrega });
         });
       }}
     >
@@ -315,7 +314,7 @@ function FormularioPedido({
         {lineas.map((linea) => (
           <li key={linea.id} className="flex items-center justify-between gap-3">
             <span className="min-w-0">
-              <span className="block break-words">{linea.nombre}</span>
+              <span className="block break-words">{capitalizar(linea.nombre)}</span>
               <span className="text-sm tabular-nums text-[var(--mu)]">{formatoBs(linea.precio * linea.cantidad)}</span>
             </span>
             <SelectorCantidad
@@ -331,23 +330,58 @@ function FormularioPedido({
         ))}
       </ul>
 
-      {opciones.length > 1 ? (
-        <SegmentedControl etiqueta="Entrega" valor={entrega} opciones={opciones} onChange={setEntrega} />
+      {/* Las opciones de entrega solo se muestran cuando la sucursal acepta las dos. */}
+      {sucursal.aceptaDelivery && sucursal.aceptaRecojo ? (
+        <SegmentedControl
+          etiqueta="Entrega"
+          valor={entrega}
+          opciones={[
+            { valor: "recojo", etiqueta: "Recojo en tienda" },
+            { valor: "delivery", etiqueta: "Delivery" },
+          ]}
+          onChange={setEntrega}
+        />
+      ) : null}
+
+      {!habilitada ? (
+        <p className="text-sm text-[var(--er)]">
+          {entrega === "delivery" ? (
+            <>
+              Esta sucursal no tiene el delivery activado.{" "}
+              <Link href={`/t/${slug}/configuracion/envio`} className="font-semibold underline">
+                Activarlo en Envío
+              </Link>
+            </>
+          ) : (
+            <>
+              Esta sucursal no tiene el recojo activado.{" "}
+              <Link href={`/t/${slug}/sucursales/${sucursal.id}`} className="font-semibold underline">
+                Activarlo en la sucursal
+              </Link>
+            </>
+          )}
+        </p>
       ) : null}
 
       {entrega === "delivery" ? (
         <>
-          <MapaCliente lat={punto?.lat ?? null} lng={punto?.lng ?? null} onMove={(lat, lng) => setPunto({ lat, lng })} />
-          <div aria-live="polite" className="text-sm">
-            {!punto ? <p className="text-[var(--mu)]">Toca el mapa para ubicar la entrega.</p> : null}
-            {calculando ? <InlineLoader>Calculando envío…</InlineLoader> : null}
-            {envioError ? <p className="text-[var(--er)]">{envioError}</p> : null}
-            {envio && !calculando ? (
-              <p className="tabular-nums text-[var(--mu)]">
-                Distancia {envio.distanciaKm} km · envío {formatoBs(envio.costo)}
-              </p>
-            ) : null}
-          </div>
+          <MapaCliente
+            lat={punto?.lat ?? null}
+            lng={punto?.lng ?? null}
+            miUbicacion={false}
+            onMove={(lat, lng) => setPunto({ lat, lng })}
+          />
+          {habilitada ? (
+            <div aria-live="polite" className="text-sm">
+              {calculando ? <InlineLoader>Calculando envío…</InlineLoader> : null}
+              {envioError ? <p className="text-[var(--er)]">{envioError}</p> : null}
+              {envio && !calculando ? (
+                <p className="tabular-nums text-[var(--mu)]">
+                  Distancia {envio.distanciaKm} km · envío {formatoBs(envio.costo)}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
           <Campo id="venta-direccion" etiqueta="Dirección y referencia">
             <input
               id="venta-direccion"
@@ -360,14 +394,14 @@ function FormularioPedido({
             />
           </Campo>
         </>
-      ) : (
-        <p className="text-sm text-[var(--mu)]">Recoge en la sucursal: envío Bs 0. Lo antes posible.</p>
-      )}
+      ) : habilitada ? (
+        <p className="text-sm text-[var(--mu)]">Recoge en la sucursal, lo antes posible.</p>
+      ) : null}
 
-      <Campo id="venta-nombre" etiqueta="Nombre">
+      <Campo id="venta-nombre" etiqueta={entrega === "delivery" ? "Nombre" : "Nombre (opcional)"}>
         <input
           id="venta-nombre"
-          required
+          required={entrega === "delivery"}
           minLength={2}
           maxLength={80}
           autoComplete="off"
@@ -376,12 +410,12 @@ function FormularioPedido({
           className={claseCampo}
         />
       </Campo>
-      <Campo id="venta-telefono" etiqueta="Celular">
+      <Campo id="venta-telefono" etiqueta={entrega === "delivery" ? "Celular" : "Celular (opcional)"}>
         <input
           id="venta-telefono"
           type="tel"
           inputMode="tel"
-          required
+          required={entrega === "delivery"}
           autoComplete="off"
           placeholder="7XXXXXXX"
           value={telefono}
@@ -396,19 +430,18 @@ function FormularioPedido({
         opciones={METODOS_PAGO.map((metodo) => ({ valor: metodo, etiqueta: etiquetaMetodoPago(metodo) }))}
         onChange={setPago}
       />
-      {pago === "qr" ? (
-        <p className="text-sm text-[var(--mu)]">Muestra el QR de cobro y confirma cuando veas el pago.</p>
-      ) : null}
 
       <dl className="flex flex-col gap-1 text-sm">
         <div className="flex justify-between">
           <dt className="text-[var(--mu)]">Subtotal</dt>
           <dd className="font-semibold tabular-nums">{formatoBs(subtotal)}</dd>
         </div>
-        <div className="flex justify-between">
-          <dt className="text-[var(--mu)]">Envío</dt>
-          <dd className="font-semibold tabular-nums">{costoEnvio == null ? "—" : formatoBs(costoEnvio)}</dd>
-        </div>
+        {entrega === "delivery" ? (
+          <div className="flex justify-between">
+            <dt className="text-[var(--mu)]">Envío</dt>
+            <dd className="font-semibold tabular-nums">{costoEnvio == null ? "—" : formatoBs(costoEnvio)}</dd>
+          </div>
+        ) : null}
         <div className="mt-1 flex items-center justify-between">
           <dt className="font-semibold">Total</dt>
           <dd className="font-display text-[17px] font-extrabold tabular-nums">
@@ -429,7 +462,7 @@ function FormularioPedido({
         loadingLabel="Enviando pedido…"
         disabled={!listo}
       >
-        {entrega === "delivery" && !envio ? "Ubica la entrega en el mapa" : "Confirmar pedido"}
+        {habilitada && entrega === "delivery" && !envio ? "Ubica la entrega en el mapa" : "Confirmar pedido"}
       </Button>
     </form>
   );

@@ -7,7 +7,15 @@ export { NegocioError };
 
 export const ventanaSaludoMs = 12 * 60 * 60 * 1000;
 
-export type EstadoAviso = "pendiente" | "aceptado" | "listo" | "enviado" | "cancelado";
+export type EstadoAviso =
+  | "pendiente"
+  | "aceptado"
+  | "listo"
+  | "enviado"
+  | "preparando"
+  | "recogido"
+  | "entregado"
+  | "cancelado";
 
 export type PedidoAviso = {
   id: string;
@@ -45,6 +53,15 @@ export function mensajeEstado(pedido: PedidoAviso): string {
   }
   if (pedido.estado === "enviado") {
     return `${cabeza}\n🚚 Tu pedido va en camino`;
+  }
+  if (pedido.estado === "preparando") {
+    return `${cabeza}\n👨‍🍳 Estamos preparando tu pedido`;
+  }
+  if (pedido.estado === "recogido") {
+    return `${cabeza}\n🛵 El repartidor recogió tu pedido y va en camino`;
+  }
+  if (pedido.estado === "entregado") {
+    return `${cabeza}\n🎉 Tu pedido fue entregado. ¡Gracias por tu compra!`;
   }
   return `${cabeza}\n❌ Tu pedido fue cancelado, escríbenos si tienes dudas`;
 }

@@ -75,9 +75,9 @@ function Selector({ escaparate, elegir }: { escaparate: Escaparate; elegir: bool
         <h1 className="min-w-0 truncate text-pretty text-2xl font-semibold tracking-tight">{nombre}</h1>
       </header>
       {escaparate.marca.mensajeBienvenida ? (
-        <p className="text-pretty text-sm leading-6 text-zinc-700 dark:text-zinc-300">{escaparate.marca.mensajeBienvenida}</p>
+        <p className="text-pretty text-sm leading-6 text-[var(--mu)]">{escaparate.marca.mensajeBienvenida}</p>
       ) : null}
-      <p className="text-sm text-zinc-700 dark:text-zinc-300">Elige la sucursal.</p>
+      <p className="text-sm text-[var(--mu)]">Elige la sucursal.</p>
       <Button
         type="button"
         variant="secundario"
@@ -105,7 +105,7 @@ function Selector({ escaparate, elegir }: { escaparate: Escaparate; elegir: bool
         Usar mi ubicación
       </Button>
       {aviso ? (
-        <p role="status" className="text-sm text-zinc-700 dark:text-zinc-300">
+        <p role="status" className="text-sm text-[var(--mu)]">
           {aviso}
         </p>
       ) : null}
@@ -115,11 +115,11 @@ function Selector({ escaparate, elegir }: { escaparate: Escaparate; elegir: bool
             <button
               type="button"
               onClick={() => ir(sucursal.slug)}
-              className="ui-boton flex min-h-12 w-full flex-col items-start rounded-xl border border-zinc-200 px-3 py-2 text-left dark:border-zinc-800"
+              className="ui-boton flex min-h-12 w-full flex-col items-start rounded-xl border border-[var(--ln)] px-3 py-2 text-left"
             >
               <span className="font-medium">{sucursal.nombre}</span>
-              {sucursal.direccion ? <span className="text-sm text-zinc-700 dark:text-zinc-300">{sucursal.direccion}</span> : null}
-              <span className={sucursal.abiertaAhora ? "text-sm text-emerald-800 dark:text-emerald-200" : "text-sm text-zinc-600 dark:text-zinc-400"}>
+              {sucursal.direccion ? <span className="text-sm text-[var(--mu)]">{sucursal.direccion}</span> : null}
+              <span className={sucursal.abiertaAhora ? "text-sm text-[var(--ok)]" : "text-sm text-[var(--mu)]"}>
                 {sucursal.abiertaAhora ? "Abierta" : "Cerrada"}
               </span>
             </button>

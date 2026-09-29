@@ -41,7 +41,7 @@ export function Campo({
       </label>
       {children}
       {ayuda ? (
-        <p id={`${id}-ayuda`} className="text-sm leading-6 text-zinc-600 dark:text-zinc-400">
+        <p id={`${id}-ayuda`} className="text-sm leading-6 text-[var(--mu)]">
           {ayuda}
         </p>
       ) : null}

@@ -1,4 +1,4 @@
-import type { EstadoPedido } from "@/lib/pedidos/reglas";
+import type { EstadoPedido, OrigenPedido } from "@/lib/pedidos/reglas";
 
 /** Ventas del día y de la semana. Null para el rol vendedor, que no ve reportes. */
 export type VentasDashboard = {
@@ -16,7 +16,14 @@ export type DatosDashboard = {
   nuevos: number;
   stockBajo: number;
   licencia: { plan: string; dias: number | null } | null;
-  ultimos: { id: string; cliente: string; tipo: "delivery" | "recojo"; total: number; estado: EstadoPedido }[];
+  ultimos: {
+    id: string;
+    cliente: string;
+    tipo: "delivery" | "recojo";
+    total: number;
+    estado: EstadoPedido;
+    origen: OrigenPedido;
+  }[];
 };
 
 const INICIAL_DIA = ["D", "L", "M", "X", "J", "V", "S"] as const;

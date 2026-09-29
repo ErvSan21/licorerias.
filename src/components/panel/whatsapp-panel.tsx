@@ -151,7 +151,7 @@ export function WhatsappPanel({
           Activo
         </label>
         {guardar.error ? (
-          <p role="alert" className="text-sm text-red-700 dark:text-red-400">
+          <p role="alert" className="text-sm text-[var(--er)]">
             {guardar.error}
           </p>
         ) : null}
@@ -178,12 +178,12 @@ export function WhatsappPanel({
           />
         </Campo>
         {pruebaOk ? (
-          <p role="status" className="text-sm text-zinc-700 dark:text-zinc-300">
+          <p role="status" className="text-sm text-[var(--mu)]">
             {pruebaOk}
           </p>
         ) : null}
         {probar.error ? (
-          <p role="alert" className="text-sm text-red-700 dark:text-red-400">
+          <p role="alert" className="text-sm text-[var(--er)]">
             {probar.error}
           </p>
         ) : null}

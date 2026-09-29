@@ -7,6 +7,8 @@ export type UsuarioOrganizacion = {
   miembroId: string;
   userId: string;
   correo: string | null;
+  /** "Nombre Apellido" del perfil; null si todavía no lo completó. */
+  nombre: string | null;
   rol: "dueno" | "gerente" | "vendedor";
   activo: boolean;
   tiendaId: string;

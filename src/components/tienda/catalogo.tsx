@@ -9,20 +9,24 @@ import { ChipCategoria } from "@/components/ui/chip-categoria";
 import { Dialogo } from "@/components/ui/dialogo";
 import { ImagenConCarga } from "@/components/ui/imagen";
 import { formatoBs } from "@/lib/catalogo/reglas";
-import { TIPOS_BEBIDA, tipoDeBebida, type TipoBebida } from "@/lib/catalogo/tipo-bebida";
+import { capitalizar } from "@/lib/texto";
 import type { ProductoPublico } from "@/lib/tienda/servicio";
 
 export function Catalogo() {
   const { estado, acciones, meta } = useTienda();
-  const [tipo, setTipo] = useState<TipoBebida>("Todos");
+  const [categoriaId, setCategoriaId] = useState<string | null>(null);
   const consulta = useDeferredValue(estado.busqueda);
   const atenuada = consulta !== estado.busqueda;
   const texto = consulta.trim().toLocaleLowerCase("es");
   const productos = meta.vitrina.productos.filter((producto) => {
-    if (tipo !== "Todos" && tipoDeBebida(producto.nombre) !== tipo) return false;
+    if (categoriaId && producto.categoriaId !== categoriaId) return false;
     if (!texto) return true;
     return producto.nombre.toLocaleLowerCase("es").includes(texto);
   });
+  // Solo las categorías que la tienda creó y que tienen productos en esta sucursal.
+  const categorias = meta.vitrina.categorias.filter((categoria) =>
+    meta.vitrina.productos.some((producto) => producto.categoriaId === categoria.id),
+  );
   const detalle = estado.detalleId ? meta.productos.get(estado.detalleId) : undefined;
 
   return (
@@ -40,15 +44,24 @@ export function Catalogo() {
           className={claseCampo}
         />
       </Campo>
-      <div className="flex gap-2 overflow-x-auto" role="group" aria-label="Tipos de bebida">
-        {TIPOS_BEBIDA.map((nombre) => (
-          <ChipCategoria key={nombre} activo={tipo === nombre} onClick={() => setTipo(nombre)}>
-            {nombre}
+      {categorias.length > 0 ? (
+        <div className="chips-carrusel" role="group" aria-label="Categorías">
+          <ChipCategoria activo={categoriaId === null} onClick={() => setCategoriaId(null)}>
+            Todos
           </ChipCategoria>
-        ))}
-      </div>
+          {categorias.map((categoria) => (
+            <ChipCategoria
+              key={categoria.id}
+              activo={categoriaId === categoria.id}
+              onClick={() => setCategoriaId(categoria.id)}
+            >
+              {capitalizar(categoria.nombre)}
+            </ChipCategoria>
+          ))}
+        </div>
+      ) : null}
       {estado.avisos.length > 0 ? (
-        <ul aria-live="polite" className="flex flex-col gap-1 text-sm text-zinc-800 dark:text-zinc-200">
+        <ul aria-live="polite" className="flex flex-col gap-1 text-sm text-[var(--tx)]">
           {estado.avisos.map((aviso) => (
             <li key={`${aviso.tipo}-${aviso.productoId}`}>{textoAviso(aviso.tipo, aviso.nombre)}</li>
           ))}
@@ -57,7 +70,7 @@ export function Catalogo() {
       <Colecciones />
       <div className={atenuada ? "tienda-atenuada opacity-45" : "tienda-atenuada"}>
         {productos.length === 0 ? (
-          <p className="text-sm text-zinc-700 dark:text-zinc-300">No hay productos con esa búsqueda.</p>
+          <p className="text-sm text-[var(--mu)]">No hay productos con esa búsqueda.</p>
         ) : (
           <ul className="grid grid-cols-2 gap-3">
             {productos.map((producto) => (
@@ -71,7 +84,7 @@ export function Catalogo() {
       {detalle ? (
         <Dialogo
           abierto
-          titulo={detalle.nombre}
+          titulo={capitalizar(detalle.nombre)}
           descripcion={detalle.descripcion || undefined}
           alCerrar={acciones.cerrarDetalle}
           alineacion="inferior"
@@ -94,7 +107,7 @@ function Colecciones() {
       {meta.vitrina.colecciones.map((coleccion) => (
         <section key={coleccion.id} aria-labelledby={`coleccion-${coleccion.id}`}>
           <h3 id={`coleccion-${coleccion.id}`} className="text-pretty text-base font-semibold">
-            {coleccion.nombre}
+            {capitalizar(coleccion.nombre)}
           </h3>
           <ul className="mt-2 flex gap-3 overflow-x-auto">
             {coleccion.productoIds.map((id) => {
@@ -108,7 +121,7 @@ function Colecciones() {
                     onClick={() => acciones.abrirDetalle(producto.id)}
                   >
                     <Foto producto={producto} />
-                    <span className="text-sm">{producto.nombre}</span>
+                    <span className="text-sm">{capitalizar(producto.nombre)}</span>
                   </button>
                 </li>
               );
@@ -123,10 +136,10 @@ function Colecciones() {
 function Tarjeta({ producto }: { producto: ProductoPublico }) {
   const { acciones } = useTienda();
   return (
-    <article className="flex h-full flex-col gap-2 rounded-xl border border-zinc-200 p-2 dark:border-zinc-800">
+    <article className="flex h-full flex-col gap-2 rounded-xl border border-[var(--ln)] p-2">
       <button type="button" className="ui-boton text-left" onClick={() => acciones.abrirDetalle(producto.id)}>
         <Foto producto={producto} />
-        <h3 className="mt-2 text-pretty text-sm font-semibold">{producto.nombre}</h3>
+        <h3 className="mt-2 text-pretty text-sm font-semibold">{capitalizar(producto.nombre)}</h3>
       </button>
       <Precio producto={producto} />
       <Agregar producto={producto} />
@@ -136,7 +149,7 @@ function Tarjeta({ producto }: { producto: ProductoPublico }) {
 
 function Foto({ producto }: { producto: ProductoPublico }) {
   if (!producto.imagenUrl) {
-    return <span className="block aspect-[4/3] w-full rounded-lg bg-zinc-100 dark:bg-zinc-900" />;
+    return <span className="block aspect-[4/3] w-full rounded-lg bg-[var(--sf2)]" />;
   }
   return (
     <ImagenConCarga
@@ -155,8 +168,8 @@ function Precio({ producto }: { producto: ProductoPublico }) {
     <p className="text-sm tabular-nums">
       {oferta ? (
         <>
-          <span className="mr-1 text-xs font-semibold text-amber-800 dark:text-amber-200">OFERTA</span>
-          <span className="mr-1 text-zinc-500 line-through">{formatoBs(producto.precioOriginal)}</span>
+          <span className="mr-1 text-xs font-semibold text-[var(--wa)]">OFERTA</span>
+          <span className="mr-1 text-[var(--mu)] line-through">{formatoBs(producto.precioOriginal)}</span>
         </>
       ) : null}
       <span className="font-semibold">{formatoBs(producto.precioFinal)}</span>
@@ -168,7 +181,7 @@ function Agregar({ producto }: { producto: ProductoPublico }) {
   const { acciones } = useTienda();
   if (producto.agotado) {
     return (
-      <p className="mt-auto text-sm font-medium text-zinc-600 dark:text-zinc-400">Agotado</p>
+      <p className="mt-auto text-sm font-medium text-[var(--mu)]">Agotado</p>
     );
   }
   return (

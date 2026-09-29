@@ -261,6 +261,9 @@ a,
 }
 
 .ui-chip {
+  /* En una fila con scroll: cada chip conserva su ancho y su texto en una línea. */
+  flex: none;
+  white-space: nowrap;
   min-height: 40px;
   border: 1px solid var(--ln);
   border-radius: 999px;
@@ -268,6 +271,27 @@ a,
   color: var(--tx);
   padding-inline: 0.875rem;
   font-weight: 600;
+}
+
+/* Fila de chips que se desliza de lado, hasta el borde de la pantalla. */
+.chips-carrusel {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  margin-inline: calc(-1 * var(--px));
+  padding: 2px var(--px) 4px;
+  scroll-padding-inline: var(--px);
+}
+
+.chips-carrusel::-webkit-scrollbar {
+  display: none;
+}
+
+.chips-carrusel > * {
+  scroll-snap-align: start;
 }
 
 .ui-chip-activo {
@@ -288,6 +312,8 @@ a,
 .ui-segmento > button {
   min-height: 40px;
   flex: 1;
+  white-space: nowrap;
+  font-size: 0.9375rem;
   border-radius: 12px;
   color: var(--tx);
   padding-inline: 0.75rem;
@@ -740,31 +766,6 @@ a,
   box-shadow: 0 0 0 2px var(--sf);
 }
 
-.menu-mas {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.menu-mas-enlace {
-  display: flex;
-  min-height: 44px;
-  align-items: center;
-  gap: 10px;
-  border-radius: 12px;
-  padding: 0 8px;
-  color: var(--tx);
-  font-weight: 500;
-}
-
-.menu-mas-enlace[aria-current="page"] {
-  background-image: var(--gr);
-  color: #fff;
-}
-
 .pedido-tarjeta {
   position: relative;
   display: flex;
@@ -774,6 +775,33 @@ a,
   border-radius: 16px;
   background: var(--sf);
   padding: 16px;
+}
+
+/* Tarjeta de pedido clickeable: un enlace cubre toda la tarjeta. */
+.pedido-tarjeta-enlace {
+  transition: border-color var(--e1) var(--ease);
+}
+
+.pedido-tarjeta-enlace:hover {
+  border-color: color-mix(in srgb, var(--br) 45%, var(--ln));
+}
+
+.pedido-tarjeta-cubierta {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.pedido-tarjeta-cubierta:focus-visible {
+  outline: 2px solid var(--ui-foco);
+  outline-offset: 2px;
+}
+
+/* Botones y enlaces propios de la tarjeta quedan por encima de la cubierta. */
+.pedido-tarjeta-encima {
+  position: relative;
+  z-index: 1;
 }
 
 .pedido-hora {
@@ -838,6 +866,10 @@ a,
   background: var(--sf);
   padding: 6px;
   box-shadow: 0 12px 32px rgb(8 14 28 / 0.35);
+}
+
+/* Movimiento solo con .ui-movimiento: así respeta "reducir movimiento" del sistema. */
+.producto-menu.ui-movimiento {
   animation: producto-menu-entrada var(--e1) var(--ease);
 }
 
@@ -1051,6 +1083,256 @@ a,
   background-image: var(--gr);
 }
 
+/* Marca: vista previa de la cabecera de la tienda en línea. */
+.marca-vista {
+  overflow: hidden;
+  border: 1px solid var(--ln);
+  border-radius: 20px;
+  background: var(--sf);
+}
+
+.marca-vista-banner {
+  height: 120px;
+  background: var(--sf2);
+}
+
+.marca-vista-banner-vacio {
+  display: block;
+  height: 100%;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--br) 38%, var(--sf2)), color-mix(in srgb, var(--br2) 30%, var(--sf2)));
+}
+
+.marca-vista-cuerpo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px 16px;
+}
+
+.marca-vista-logo {
+  display: grid;
+  overflow: hidden;
+  width: 64px;
+  height: 64px;
+  flex: none;
+  place-items: center;
+  margin-top: -28px;
+  border: 3px solid var(--sf);
+  border-radius: 18px;
+  background: var(--br);
+  color: var(--brt);
+  font-family: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  font-size: 26px;
+  font-weight: 800;
+}
+
+.marca-vista-cuerpo > .min-w-0 {
+  flex: 1 1 180px;
+  padding-top: 10px;
+}
+
+.marca-vista-boton {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  border-radius: 999px;
+  /* Con --br/--br2 de la vista previa (--gr se resuelve en la raíz y no seguiría el color elegido). */
+  background-image: linear-gradient(135deg, var(--br), var(--br2));
+  color: var(--brt);
+  padding-inline: 18px;
+  font-weight: 600;
+}
+
+.marca-vista-nota {
+  border-top: 1px dashed var(--ln);
+  padding: 8px 16px;
+  color: var(--mu);
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.marca-muestra {
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.12);
+  cursor: pointer;
+}
+
+.marca-muestra-activa {
+  box-shadow: 0 0 0 2px var(--sf), 0 0 0 4px var(--tx);
+}
+
+/* Configuración: cada ajuste es una fila que abre su pantalla. */
+.configuracion-fila {
+  display: flex;
+  min-height: 72px;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  transition: background-color var(--e1) var(--ease);
+}
+
+.configuracion-fila:hover {
+  background: var(--sf2);
+}
+
+li + li > .configuracion-fila {
+  border-top: 1px solid var(--ln);
+}
+
+.configuracion-icono {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  place-items: center;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--br) 14%, transparent);
+  color: var(--br);
+}
+
+/* Volver: flecha en un círculo + nombre de la pantalla anterior. */
+.boton-volver {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 10px;
+  align-self: flex-start;
+  color: var(--tx);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.boton-volver-circulo {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border: 1px solid var(--ln);
+  border-radius: 999px;
+  background: var(--sf);
+  color: var(--tx);
+  transition: background-color var(--e1) var(--ease), border-color var(--e1) var(--ease);
+}
+
+.boton-volver:hover .boton-volver-circulo {
+  border-color: var(--br);
+  background: var(--sf2);
+}
+
+/* Cerrar diálogos: solo una X. */
+.boton-cerrar {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: var(--sf2);
+  color: var(--tx);
+}
+
+.boton-cerrar:hover {
+  background: var(--ln);
+}
+
+.boton-cerrar:disabled {
+  opacity: 0.5;
+}
+
+/* Ajustes con interruptor (Sucursales). */
+.ajuste-interruptor {
+  display: flex;
+  width: 100%;
+  min-height: 64px;
+  align-items: center;
+  gap: 14px;
+  border: 0;
+  background: transparent;
+  padding: 12px 0;
+  color: var(--tx);
+  font: inherit;
+  cursor: pointer;
+}
+
+.ajuste-interruptor:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.ajuste-interruptor + .ajuste-interruptor {
+  border-top: 1px solid var(--ln);
+}
+
+.ajuste-pista {
+  position: relative;
+  width: 48px;
+  height: 28px;
+  flex: none;
+  border-radius: 999px;
+  background: var(--ln);
+  transition: background-color var(--e1) var(--ease);
+}
+
+.ajuste-pista-activa {
+  background: var(--br);
+}
+
+.ajuste-perilla {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.25);
+  transition: transform var(--e1) var(--ease);
+}
+
+.ajuste-pista-activa .ajuste-perilla {
+  transform: translateX(20px);
+}
+
+/* Botones de ícono en filas (editar / eliminar). */
+.envio-accion {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--mu);
+}
+
+.envio-accion:hover {
+  background: var(--sf2);
+  color: var(--tx);
+}
+
+.envio-accion-peligro:hover {
+  color: var(--er);
+}
+
+.perfil-avatar {
+  display: grid;
+  width: 64px;
+  height: 64px;
+  flex: none;
+  place-items: center;
+  border-radius: 999px;
+  background-image: var(--gr);
+  color: var(--brt);
+  font-family: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  font-size: 22px;
+  font-weight: 800;
+}
+
 .dashboard-kpis {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1183,10 +1465,6 @@ a,
     scroll-behavior: auto;
   }
 
-  .producto-menu {
-    animation: none;
-  }
-
   .ui-movimiento,
   .ui-movimiento::before,
   .ui-movimiento::after {
@@ -1235,4 +1513,204 @@ a,
     animation: none;
     transition: none;
   }
+}
+
+.boton-agregar {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background-image: var(--gr);
+  color: #fff;
+  box-shadow: 0 6px 16px -8px var(--br);
+}
+
+.boton-agregar:focus-visible {
+  outline: 2px solid var(--br);
+  outline-offset: 2px;
+}
+
+.persona-avatar {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--sf2);
+  color: var(--tx);
+  font-weight: 700;
+}
+
+/* Leaflet usa z-index 400–1000 en sus capas: el mapa no debe tapar la barra ni los menús. */
+.leaflet-container {
+  isolation: isolate;
+  z-index: 0;
+}
+
+.aviso-pedido-detalle {
+  border: 1px solid var(--ln);
+  border-radius: 14px;
+  background: var(--sf2);
+  padding: 12px 14px;
+}
+
+.aviso-pedido-chip {
+  position: fixed;
+  z-index: 50;
+  top: calc(12px + env(safe-area-inset-top));
+  left: 50%;
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--er);
+  box-shadow: 0 10px 24px -12px var(--er);
+  color: #fff;
+  font-weight: 700;
+  padding: 0 16px;
+  transform: translateX(-50%);
+}
+
+.aviso-pedido-punto {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #fff;
+}
+
+.aviso-pedido-punto.ui-movimiento {
+  animation: aviso-pedido-latido 1s ease-in-out infinite;
+}
+
+@keyframes aviso-pedido-latido {
+  50% {
+    opacity: 0.3;
+    transform: scale(0.7);
+  }
+}
+
+/* Botón de solo ícono (⋮, acciones de fila). */
+.boton-icono {
+  display: inline-grid;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--tx);
+  font-size: 1.125rem;
+  line-height: 1;
+  transition: background-color var(--e1) var(--ease);
+}
+
+.boton-icono:hover,
+.boton-icono[aria-expanded="true"] {
+  background: var(--sf2);
+}
+
+.boton-icono:focus-visible,
+.boton-agregar:focus-visible,
+.boton-cerrar:focus-visible {
+  outline: 2px solid var(--ui-foco);
+  outline-offset: 2px;
+}
+
+.boton-agregar {
+  transition: filter var(--e1) var(--ease), transform var(--e1) var(--ease);
+}
+
+.boton-agregar:hover {
+  filter: brightness(1.08);
+}
+
+.boton-agregar:active {
+  transform: scale(0.94);
+}
+
+/* Opciones dentro de una hoja (Drawer). */
+.menu-hoja-item {
+  display: flex;
+  width: 100%;
+  min-height: 44px;
+  align-items: center;
+  border-radius: 10px;
+  padding-inline: 12px;
+  color: var(--tx);
+  text-align: left;
+  transition: background-color var(--e1) var(--ease);
+}
+
+.menu-hoja-item:hover,
+.menu-hoja-item:focus-visible {
+  background: var(--sf2);
+}
+
+.menu-hoja-item-peligro {
+  color: var(--er);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .boton-icono,
+  .boton-agregar,
+  .menu-hoja-item {
+    transition: none;
+  }
+}
+
+/* ── Movimiento suave ─────────────────────────────────────────────
+   Los cambios de color siempre se animan; el "hundido" al tocar solo si
+   el sistema no pide reducir movimiento. */
+.ui-chip,
+.ui-segmento > button,
+.ui-segmento > a {
+  transition-property: background-color, border-color, color, filter, transform;
+  transition-duration: var(--e1);
+  transition-timing-function: var(--ease);
+}
+
+.ui-chip:hover:not(.ui-chip-activo) {
+  border-color: color-mix(in srgb, var(--br) 40%, var(--ln));
+}
+
+.configuracion-fila,
+.menu-hoja-item,
+.boton-icono,
+.producto-menu button,
+.producto-menu a {
+  transition-property: background-color, color, transform;
+  transition-duration: var(--e1);
+  transition-timing-function: var(--ease);
+}
+
+.pedido-tarjeta-enlace {
+  transition: border-color var(--e1) var(--ease), box-shadow var(--e1) var(--ease), transform var(--e1) var(--ease);
+}
+
+.pedido-tarjeta-enlace:hover {
+  box-shadow: 0 8px 22px -16px color-mix(in srgb, var(--br) 70%, transparent);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .configuracion-fila:active,
+  .menu-hoja-item:active,
+  .pedido-tarjeta-enlace:active {
+    transform: scale(0.985);
+  }
+
+  .boton-icono:active {
+    transform: scale(0.92);
+  }
+}
+
+/* El contenido entra con un fundido corto al reemplazar al esqueleto. */
+#contenido main {
+  animation: ui-aparecer var(--ui-duracion-media) var(--ui-ease);
 }

@@ -12,7 +12,7 @@ type Resultado = { ok: true; id: string; referencia: string } | { ok: false; err
 export async function crearVentaAccion(slug: string, cuerpo: Record<string, unknown>): Promise<Resultado> {
   try {
     const metodoPago = parseMetodoPago(cuerpo.metodoPago);
-    const id = await crearPedidoPersonal(slug, pedidoDesdeJson(cuerpo), metodoPago);
+    const id = await crearPedidoPersonal(slug, pedidoDesdeJson(cuerpo, { mostrador: true }), metodoPago);
     revalidatePath(`/t/${slug}/pedidos`);
     revalidatePath(`/t/${slug}/panel`);
     revalidatePath(`/t/${slug}/ventas`);

@@ -4,7 +4,7 @@ import { MenuAdministracion } from "@/components/administracion/menu";
 import { MenuPerfil } from "@/components/administracion/menu-perfil";
 import { BotonTema } from "@/components/ui/boton-tema";
 import { AccesoError, mensajeAcceso } from "@/lib/auth/errors";
-import { requireSuperAdmin, usuarioVerificado } from "@/lib/auth/staff";
+import { requireSuperAdmin } from "@/lib/auth/staff";
 
 export const dynamic = "force-dynamic";
 
@@ -30,8 +30,6 @@ export default async function AdministracionLayout({ children }: { children: Rea
     throw error;
   }
 
-  const usuario = await usuarioVerificado();
-
   return (
     <div className="panel-marco">
       <header className="panel-barra">
@@ -42,7 +40,7 @@ export default async function AdministracionLayout({ children }: { children: Rea
           </div>
           <div className="panel-barra-acciones">
             <BotonTema />
-            <MenuPerfil correo={usuario?.email ?? ""} />
+            <MenuPerfil />
           </div>
         </div>
       </header>
