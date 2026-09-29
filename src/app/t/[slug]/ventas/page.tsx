@@ -4,8 +4,8 @@ import { ListaVentas } from "@/components/panel/lista-ventas";
 import { EmptyState } from "@/components/ui/empty-state";
 import { contextoPanel } from "@/lib/auth/panel";
 import { usuarioVerificado } from "@/lib/auth/staff";
-import { formatoBs } from "@/lib/catalogo/reglas";
 import { listarCatalogo } from "@/lib/catalogo/servicio";
+import { listarInventario } from "@/lib/inventario/servicio";
 import { normalizarSlug } from "@/lib/tenant";
 
 export default async function VentasPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -15,7 +15,11 @@ export default async function VentasPage({ params }: { params: Promise<{ slug: s
     redirect(`/login?siguiente=${encodeURIComponent(`/t/${normalizado}/ventas`)}`);
   }
 
-  const [contexto, catalogo] = await Promise.all([contextoPanel(normalizado), listarCatalogo(normalizado)]);
+  const [contexto, catalogo, inventario] = await Promise.all([
+    contextoPanel(normalizado),
+    listarCatalogo(normalizado),
+    listarInventario(normalizado, null),
+  ]);
   const ordenadas = contexto.sucursales.toSorted(
     (a, b) => a.orden - b.orden || a.nombre.localeCompare(b.nombre, "es"),
   );
@@ -33,7 +37,9 @@ export default async function VentasPage({ params }: { params: Promise<{ slug: s
           {
             id: producto.id,
             nombre: producto.nombre,
-            precio: formatoBs(oferta.precioEfectivo ?? producto.precioCentral),
+            precio: oferta.precioEfectivo ?? producto.precioCentral,
+            stock:
+              inventario.filas.find((fila) => fila.productoId === producto.id && fila.sucursalId === sucursal.id)?.stock ?? 0,
           },
         ];
       })
@@ -46,7 +52,18 @@ export default async function VentasPage({ params }: { params: Promise<{ slug: s
         {tituloSucursal ? <p className="mt-1 text-sm text-[var(--mu)]">{tituloSucursal}</p> : null}
       </div>
       {sucursal ? (
-        <ListaVentas productos={productos} />
+        <ListaVentas
+          slug={contexto.tienda.slug}
+          sucursal={{
+            id: sucursal.id,
+            lat: sucursal.lat,
+            lng: sucursal.lng,
+            aceptaDelivery: sucursal.aceptaDelivery,
+            aceptaRecojo: sucursal.aceptaRecojo,
+          }}
+          productos={productos}
+          lectura={!contexto.vigente}
+        />
       ) : (
         <EmptyState titulo="Elige una sucursal" descripcion="Ábrela desde el perfil, arriba a la derecha." />
       )}

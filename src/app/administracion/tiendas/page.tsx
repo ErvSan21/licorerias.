@@ -1,4 +1,5 @@
 import { MenuTienda } from "@/components/administracion/menu-tienda";
+import { NuevaTienda } from "@/components/administracion/nueva-tienda";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { conteoSucursales } from "@/lib/administracion/servicio";
@@ -12,9 +13,12 @@ export default async function TiendasPage() {
 
   return (
     <main className="flex flex-col gap-4">
-      <h2 className="text-lg font-semibold">Tiendas</h2>
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-lg font-semibold">Tiendas</h2>
+        <NuevaTienda />
+      </div>
       {tiendas.length === 0 ? (
-        <EmptyState titulo="Todavía no hay tiendas" descripcion="Cuando se registre una licorería, aparece aquí." />
+        <EmptyState titulo="Todavía no hay tiendas" descripcion="Crea una con el botón +." />
       ) : (
         <ul className="flex flex-col gap-3">
           {tiendas.map((tienda) => {

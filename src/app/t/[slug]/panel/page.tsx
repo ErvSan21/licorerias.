@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
 
+import { DashboardPanel } from "@/components/panel/dashboard-panel";
 import { contextoPanel } from "@/lib/auth/panel";
 import { usuarioVerificado } from "@/lib/auth/staff";
+import { leerDashboard } from "@/lib/panel/dashboard-servicio";
 import { normalizarSlug } from "@/lib/tenant";
 
 export default async function PanelPage({
@@ -17,17 +19,7 @@ export default async function PanelPage({
 
   const contexto = await contextoPanel(normalizado);
   const elegida = contexto.sucursales.find((sucursal) => sucursal.id === contexto.seleccion);
+  const datos = await leerDashboard(contexto);
 
-  return (
-    <main className="flex flex-col gap-3">
-      <h2 className="text-lg font-semibold">Dashboard</h2>
-      <p className="text-sm leading-6 text-zinc-700 dark:text-zinc-300">
-        {elegida
-          ? `Estás viendo ${elegida.nombre}.`
-          : contexto.staff.rol === "dueno"
-            ? "Estás viendo todas las sucursales."
-            : "Todavía no tienes una sucursal asignada."}
-      </p>
-    </main>
-  );
+  return <DashboardPanel datos={datos} sucursal={elegida?.nombre ?? null} slug={contexto.tienda.slug} />;
 }

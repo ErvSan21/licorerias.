@@ -32,7 +32,7 @@ type Destino = {
 
 type IconoNombre = "tienda" | "ventas" | "pedidos" | "precios" | "inventario" | "mas";
 
-const PRINCIPALES: Destino["id"][] = ["inicio", "ventas", "pedidos", "precios"];
+const PRINCIPALES: Destino["id"][] = ["inicio", "ventas", "productos", "pedidos"];
 
 export function MenuDueno({ slug }: { slug: string }) {
   return (
@@ -42,12 +42,10 @@ export function MenuDueno({ slug }: { slug: string }) {
         destino(slug, "inicio", "Dashboard", "tienda"),
         destino(slug, "ventas", "Ventas", "ventas"),
         destino(slug, "pedidos", "Pedidos", "pedidos"),
-        destino(slug, "precios", "Precios", "precios"),
-        destino(slug, "inventario", "Inventario", "inventario"),
+        destino(slug, "precios", "Precios por sucursal", "precios"),
         destino(slug, "sucursales", "Sucursales", "tienda"),
         destino(slug, "personal", "Personal", "tienda"),
         destino(slug, "productos", "Productos", "inventario"),
-        destino(slug, "ofertas", "Ofertas", "precios"),
         destino(slug, "colecciones", "Colecciones", "inventario"),
         destino(slug, "envio", "Envío", "pedidos"),
         destino(slug, "reportes", "Reportes", "precios"),
@@ -62,11 +60,9 @@ export function MenuOperacion({ slug, verReportes = false }: { slug: string; ver
     destino(slug, "inicio", "Dashboard", "tienda"),
     destino(slug, "ventas", "Ventas", "ventas"),
     destino(slug, "pedidos", "Pedidos", "pedidos"),
-    destino(slug, "precios", "Precios", "precios"),
-    destino(slug, "inventario", "Inventario", "inventario"),
+    destino(slug, "precios", "Precios por sucursal", "precios"),
     destino(slug, "sucursales", "Sucursales", "tienda"),
     destino(slug, "productos", "Productos", "inventario"),
-    destino(slug, "ofertas", "Ofertas", "precios"),
     destino(slug, "envio", "Envío", "pedidos"),
   ];
   if (verReportes) destinos.push(destino(slug, "reportes", "Reportes", "precios"));
@@ -225,8 +221,8 @@ function seccion(pathname: string, slug: string): Seccion {
   if (pathname.startsWith(`/t/${slug}/pedidos`)) return "pedidos";
   if (pathname.startsWith(`/t/${slug}/envio`)) return "envio";
   if (pathname.startsWith(`/t/${slug}/colecciones`)) return "colecciones";
-  if (pathname.startsWith(`/t/${slug}/ofertas`)) return "ofertas";
-  if (pathname.startsWith(`/t/${slug}/inventario`)) return "inventario";
+  if (pathname.startsWith(`/t/${slug}/ofertas`)) return "productos";
+  if (pathname.startsWith(`/t/${slug}/inventario`)) return "productos";
   if (pathname.startsWith(`/t/${slug}/productos/precios`)) return "precios";
   if (pathname.startsWith(`/t/${slug}/productos`)) return "productos";
   return "vitrina";

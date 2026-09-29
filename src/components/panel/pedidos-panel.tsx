@@ -12,7 +12,14 @@ import { Tag } from "@/components/ui/tag";
 import { useToast } from "@/components/ui/toast";
 import { useAsyncAction } from "@/components/ui/use-async-action";
 import { formatoBs, formatoFechaPrecio } from "@/lib/catalogo/reglas";
-import { accionPedido, etiquetaEstadoPedido, type EstadoPedido } from "@/lib/pedidos/reglas";
+import {
+  accionPedido,
+  etiquetaEstadoPedido,
+  etiquetaMetodoPago,
+  referenciaPedido,
+  tonoEstadoPedido,
+  type EstadoPedido,
+} from "@/lib/pedidos/reglas";
 import type { PedidoLista } from "@/lib/pedidos/servicio";
 
 type Sucursal = { id: string; nombre: string };
@@ -36,40 +43,43 @@ export function PedidosPanel({
     <div className="flex flex-col gap-4">
       <Filtros slug={slug} sucursales={sucursales} filtro={filtro} />
       {pedidos.length === 0 ? (
-        <p className="text-sm text-zinc-700 dark:text-zinc-300">No hay pedidos con ese filtro.</p>
+        <p className="text-sm text-[var(--mu)]">No hay pedidos con ese filtro.</p>
       ) : (
         <ul className="flex flex-col gap-3">
           {pedidos.map((pedido) => (
             <li key={pedido.id} className="relative [content-visibility:auto]">
               {resaltados.has(pedido.id) ? <span aria-hidden="true" className="pedido-resalte pointer-events-none absolute inset-0 rounded-xl" /> : null}
               <article className="pedido-tarjeta">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="text-pretty text-base font-semibold">
-                    <span className="tabular-nums text-[var(--mu)]">#{referenciaPedido(pedido.id)}</span>{" "}
-                    {pedido.cliente}
+                <div className="flex items-start justify-between gap-3">
+                  <h3 className="min-w-0 text-pretty text-base font-semibold">
+                    <span className="tabular-nums">#{referenciaPedido(pedido.id)}</span> · {pedido.cliente}
                   </h3>
-                  <Tag>{pedido.tipo === "delivery" ? "DELIVERY" : "RECOJO"}</Tag>
                   <Estado estado={pedido.estado} />
                 </div>
-                <p className="text-base font-semibold tabular-nums">{formatoBs(pedido.total)}</p>
-                <p className="text-sm text-[var(--mu)]">
-                  {pedido.sucursal} · {formatoFechaPrecio(pedido.creadoEn)}
-                </p>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="flex flex-wrap items-center gap-1.5">
+                    <Tag>{pedido.tipo === "delivery" ? "DELIVERY" : "RECOJO"}</Tag>
+                    {pedido.metodoPago ? <Tag>{etiquetaMetodoPago(pedido.metodoPago).toUpperCase()}</Tag> : null}
+                  </span>
+                  <p className="font-display text-[17px] font-extrabold tabular-nums">{formatoBs(pedido.total)}</p>
+                </div>
                 {pedido.tipo === "recojo" && pedido.horaRecojo ? (
-                  <p className="pedido-hora">Recojo {formatoFechaPrecio(pedido.horaRecojo)}</p>
+                  <p className="pedido-hora">Hora de recojo: {formatoFechaPrecio(pedido.horaRecojo)}</p>
                 ) : null}
                 {pedido.tipo === "delivery" ? (
                   <p className="text-sm text-[var(--mu)]">
+                    {pedido.distanciaKm} km · envío <span className="tabular-nums">{formatoBs(pedido.costoEnvio)}</span> ·{" "}
                     {pedido.direccion}
-                    {pedido.referencia ? ` · ${pedido.referencia}` : ""} · {pedido.distanciaKm} km · envío{" "}
-                    <span className="tabular-nums text-[var(--tx)]">{formatoBs(pedido.costoEnvio)}</span>
+                    {pedido.referencia ? ` · ${pedido.referencia}` : ""}
                     {pedido.lat != null && pedido.lng != null ? (
                       <>
                         {" "}
                         ·{" "}
                         <a
                           href={`https://www.google.com/maps?q=${pedido.lat},${pedido.lng}`}
-                          className="underline underline-offset-4"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-medium text-[var(--br)]"
                         >
                           Ver ubicación
                         </a>
@@ -77,12 +87,12 @@ export function PedidosPanel({
                     ) : null}
                   </p>
                 ) : null}
-                <Link
-                  href={`/t/${slug}/pedidos/${pedido.id}`}
-                  className="inline-flex min-h-11 items-center text-sm font-medium underline underline-offset-4"
-                >
-                  Ver historial
-                </Link>
+                <p className="text-xs text-[var(--mu)]">
+                  {pedido.sucursal} · {formatoFechaPrecio(pedido.creadoEn)} ·{" "}
+                  <Link href={`/t/${slug}/pedidos/${pedido.id}`} className="font-medium text-[var(--br)]">
+                    Ver historial
+                  </Link>
+                </p>
                 <AccionesPedido slug={slug} pedido={pedido} lectura={lectura} />
               </article>
             </li>
@@ -122,6 +132,7 @@ export function AccionesPedido({
     <div className="flex flex-wrap gap-2">
       <Button
         type="button"
+        size="sm"
         loading={principal.loading}
         loadingLabel="Guardando…"
         success={principal.success}
@@ -138,7 +149,7 @@ export function AccionesPedido({
         {accion.etiqueta}
       </Button>
       {accion.cancelar ? (
-        <Button type="button" variant="peligro" onClick={() => setCancelar(true)}>
+        <Button type="button" size="sm" variant="peligro" onClick={() => setCancelar(true)}>
           Cancelar
         </Button>
       ) : null}
@@ -178,6 +189,15 @@ export function AccionesPedido({
   );
 }
 
+const ESTADOS_FILTRO = [
+  { valor: "", etiqueta: "Todos" },
+  { valor: "pendiente", etiqueta: "Nuevos" },
+  { valor: "aceptado", etiqueta: "Aceptados" },
+  { valor: "listo", etiqueta: "Listos" },
+  { valor: "enviado", etiqueta: "Enviados" },
+  { valor: "cancelado", etiqueta: "Cancelados" },
+] as const;
+
 function Filtros({
   slug,
   sucursales,
@@ -187,50 +207,70 @@ function Filtros({
   sucursales: Sucursal[];
   filtro: { estado: string | null; tipo: string | null; sucursalId: string | null; fecha: string | null };
 }) {
+  const extras = [filtro.tipo, filtro.sucursalId, filtro.fecha].filter(Boolean).length;
+
+  function enlace(estado: string) {
+    const params = new URLSearchParams();
+    if (estado) params.set("estado", estado);
+    if (filtro.tipo) params.set("tipo", filtro.tipo);
+    if (filtro.sucursalId) params.set("sucursal", filtro.sucursalId);
+    if (filtro.fecha) params.set("fecha", filtro.fecha);
+    const consulta = params.toString();
+    return consulta ? `/t/${slug}/pedidos?${consulta}` : `/t/${slug}/pedidos`;
+  }
+
   return (
-    <form action={`/t/${slug}/pedidos`} className="grid gap-3 sm:grid-cols-2">
-      <Campo id="filtro-estado" etiqueta="Estado">
-        <select id="filtro-estado" name="estado" defaultValue={filtro.estado ?? ""} className={claseCampo}>
-          <option value="">Todos</option>
-          <option value="pendiente">Nuevo</option>
-          <option value="aceptado">Aceptado</option>
-          <option value="listo">Listo</option>
-          <option value="enviado">Enviado</option>
-          <option value="cancelado">Cancelado</option>
-        </select>
-      </Campo>
-      <Campo id="filtro-tipo" etiqueta="Entrega">
-        <select id="filtro-tipo" name="tipo" defaultValue={filtro.tipo ?? ""} className={claseCampo}>
-          <option value="">Todas</option>
-          <option value="delivery">Delivery</option>
-          <option value="recojo">Recojo</option>
-        </select>
-      </Campo>
-      <Campo id="filtro-sucursal" etiqueta="Sucursal">
-        <select id="filtro-sucursal" name="sucursal" defaultValue={filtro.sucursalId ?? ""} className={claseCampo}>
-          <option value="">Todas</option>
-          {sucursales.map((sucursal) => (
-            <option key={sucursal.id} value={sucursal.id}>
-              {sucursal.nombre}
-            </option>
-          ))}
-        </select>
-      </Campo>
-      <Campo id="filtro-fecha" etiqueta="Fecha">
-        <input id="filtro-fecha" name="fecha" type="date" autoComplete="off" defaultValue={filtro.fecha ?? ""} className={claseCampo} />
-      </Campo>
-      <Button type="submit" variant="secundario">
-        Filtrar
-      </Button>
-    </form>
+    <div className="flex flex-col gap-2">
+      <nav aria-label="Estado del pedido" className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none]">
+        {ESTADOS_FILTRO.map((opcion) => {
+          const activo = (filtro.estado ?? "") === opcion.valor;
+          return (
+            <Link
+              key={opcion.valor || "todos"}
+              href={enlace(opcion.valor)}
+              aria-current={activo ? "page" : undefined}
+              className={`ui-chip inline-flex shrink-0 items-center text-sm ${activo ? "ui-chip-activo" : ""}`}
+            >
+              {opcion.etiqueta}
+            </Link>
+          );
+        })}
+      </nav>
+      <details className="group" open={extras > 0}>
+        <summary className="inline-flex min-h-11 cursor-pointer items-center text-sm font-medium text-[var(--mu)]">
+          Más filtros{extras > 0 ? ` (${extras})` : ""}
+        </summary>
+        <form action={`/t/${slug}/pedidos`} className="grid gap-3 pt-2 sm:grid-cols-2">
+          {filtro.estado ? <input type="hidden" name="estado" value={filtro.estado} /> : null}
+          <Campo id="filtro-tipo" etiqueta="Entrega">
+            <select id="filtro-tipo" name="tipo" defaultValue={filtro.tipo ?? ""} className={claseCampo}>
+              <option value="">Todas</option>
+              <option value="delivery">Delivery</option>
+              <option value="recojo">Recojo</option>
+            </select>
+          </Campo>
+          <Campo id="filtro-sucursal" etiqueta="Sucursal">
+            <select id="filtro-sucursal" name="sucursal" defaultValue={filtro.sucursalId ?? ""} className={claseCampo}>
+              <option value="">Todas</option>
+              {sucursales.map((sucursal) => (
+                <option key={sucursal.id} value={sucursal.id}>
+                  {sucursal.nombre}
+                </option>
+              ))}
+            </select>
+          </Campo>
+          <Campo id="filtro-fecha" etiqueta="Fecha">
+            <input id="filtro-fecha" name="fecha" type="date" autoComplete="off" defaultValue={filtro.fecha ?? ""} className={claseCampo} />
+          </Campo>
+          <Button type="submit" variant="secundario" className="self-end">
+            Filtrar
+          </Button>
+        </form>
+      </details>
+    </div>
   );
 }
 
 function Estado({ estado }: { estado: EstadoPedido }) {
-  const tono = estado === "pendiente" ? "warn" : estado === "cancelado" ? "danger" : estado === "enviado" ? "brand" : "ok";
-  return <Tag tono={tono}>{etiquetaEstadoPedido(estado)}</Tag>;
-}
-
-function referenciaPedido(id: string) {
-  return id.replace(/-/g, "").slice(0, 6).toUpperCase();
+  return <Tag tono={tonoEstadoPedido(estado)}>{etiquetaEstadoPedido(estado)}</Tag>;
 }

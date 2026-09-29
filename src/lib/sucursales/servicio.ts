@@ -596,6 +596,9 @@ function textoOpcional(valor: FormDataEntryValue | null, max: number): string {
 function lanzarCupo(mensaje: string): never {
   const cupo = mensaje.match(/Has alcanzado el máximo de .+ de tu plan/);
   if (cupo) throw new NegocioError(cupo[0]);
+  if (mensaje.includes("no tiene sucursales habilitadas")) {
+    throw new NegocioError("Esta tienda no tiene sucursales habilitadas.");
+  }
   if (mensaje.includes("no pertenece a la tienda")) {
     throw new NegocioError("La sucursal no pertenece a la tienda del personal.");
   }

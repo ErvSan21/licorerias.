@@ -16,9 +16,16 @@ import {
 } from "@/lib/licencias/reglas";
 import { listarTiendas, suspenderLicencia, type TiendaLicencia } from "@/lib/licencias/servicio";
 import { reporteDesdeJson } from "@/lib/reportes/reglas";
-import { esRolTienda } from "@/lib/tenant";
+import { horarioTodoElDia } from "@/lib/sucursales/reglas";
+import { esRolTienda, slugReservado } from "@/lib/tenant";
 
-import { CLAVES_PRECIO, type ClavePrecio, type PreciosSuscripcion, type UsuarioOrganizacion } from "./reglas";
+import {
+  CLAVES_PRECIO,
+  slugDeTienda,
+  type ClavePrecio,
+  type PreciosSuscripcion,
+  type UsuarioOrganizacion,
+} from "./reglas";
 
 const CORREO_SOLO_PLATAFORMA = "ervinsanchez4321602@gmail.com";
 const USUARIO_SOLO_PLATAFORMA = "7a7f8c94-b00b-4ee5-9604-1b0715bf4f4c";
@@ -193,6 +200,85 @@ export async function eliminarPlanSuscripcion(clave: string): Promise<void> {
     accion: "suscripcion.plan.eliminar",
     detalle: { clave },
   });
+}
+
+export async function crearTiendaAdministracion(input: {
+  nombre: string;
+  direccion: string;
+  sucursalesHabilitadas: boolean;
+}): Promise<{ id: string; slug: string }> {
+  const { userId } = await requireSuperAdmin();
+  const nombre = input.nombre.trim();
+  if (nombre.length < 2 || nombre.length > 80) throw new NegocioError("Escribe el nombre de la tienda.");
+  const direccion = input.direccion.trim();
+  if (direccion.length < 4 || direccion.length > 200) throw new NegocioError("Escribe la dirección de la tienda.");
+  const sucursalesHabilitadas = input.sucursalesHabilitadas === true;
+  const service = createServiceClient();
+
+  // Plan sin tope de sucursales: el límite lo pone sucursales_habilitadas.
+  const { data: planFila, error: errorPlan } = await service
+    .from("planes")
+    .select("id")
+    .eq("activo", true)
+    .order("max_sucursales", { ascending: false, nullsFirst: true })
+    .limit(1)
+    .maybeSingle();
+  if (errorPlan) throw new Error(errorPlan.message);
+  const plan = planFila as { id: string } | null;
+  if (!plan) throw new NegocioError("No hay un plan activo para la licencia.");
+
+  let tienda: { id: string; slug: string } | null = null;
+  for (let sufijo = 1; sufijo <= 20 && !tienda; sufijo++) {
+    const slug = slugDeTienda(nombre, sufijo);
+    if (slugReservado(slug)) continue;
+    const { data, error } = await service
+      .from("tiendas")
+      .insert({ nombre, slug, estado: "activa", sucursales_habilitadas: sucursalesHabilitadas })
+      .select("id, slug")
+      .single();
+    if (error?.code === "23505") continue;
+    if (error?.message.includes("sucursales_habilitadas")) {
+      throw new NegocioError("Falta aplicar la migración de sucursales en la base de datos.");
+    }
+    if (error || !data) throw new Error(error?.message ?? "No se pudo crear la tienda.");
+    tienda = data as { id: string; slug: string };
+  }
+  if (!tienda) throw new NegocioError("Ya hay muchas tiendas con ese nombre. Prueba con otro.");
+
+  try {
+    const { error: errorLicencia } = await service.from("licencias").insert({
+      tienda_id: tienda.id,
+      plan_id: plan.id,
+      estado: "prueba",
+      plazo: "demo",
+      inicio: hoyBolivia(),
+      vence: null,
+      dias_gracia: 0,
+    });
+    if (errorLicencia) throw new Error(errorLicencia.message);
+
+    const { error: errorSucursal } = await service.from("sucursales").insert({
+      tienda_id: tienda.id,
+      slug: "principal",
+      nombre: "Principal",
+      direccion,
+      horario: horarioTodoElDia(),
+      activa: true,
+      orden: 1,
+    });
+    if (errorSucursal) throw new Error(errorSucursal.message);
+  } catch (causa) {
+    await service.from("tiendas").delete().eq("id", tienda.id);
+    throw causa;
+  }
+
+  await registrarAuditoria({
+    userId,
+    tiendaId: tienda.id,
+    accion: "administracion.tienda.crear",
+    detalle: { slug: tienda.slug, sucursales_habilitadas: sucursalesHabilitadas },
+  });
+  return tienda;
 }
 
 export async function eliminarTienda(tiendaId: string): Promise<void> {

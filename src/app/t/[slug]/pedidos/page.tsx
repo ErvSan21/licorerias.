@@ -32,12 +32,17 @@ export default async function PedidosPage({
   const sucursalVista = contexto.seleccion;
   const pedidos = sucursalVista ? lista.pedidos.filter((pedido) => pedido.sucursalId === sucursalVista) : lista.pedidos;
   const lectura = !contexto.vigente;
+  const nombreSucursal = sucursalVista
+    ? contexto.sucursales.find((sucursal) => sucursal.id === sucursalVista)?.nombre
+    : null;
 
   return (
     <main className="flex flex-col gap-4">
-      <h2 className="text-pretty text-lg font-semibold">Pedidos</h2>
+      <h2 className="text-pretty text-lg font-semibold">
+        Pedidos{nombreSucursal ? ` · ${nombreSucursal}` : ""}
+      </h2>
       {lectura ? (
-        <p className="text-sm leading-6 text-zinc-700 dark:text-zinc-300">
+        <p className="text-sm leading-6 text-[var(--mu)]">
           La licencia no está vigente. Los pedidos están en solo lectura.
         </p>
       ) : null}

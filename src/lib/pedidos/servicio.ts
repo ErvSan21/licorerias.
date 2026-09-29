@@ -17,6 +17,7 @@ import {
   rangoDiaBolivia,
   seguimientoDesdeJson,
   type EstadoPedido,
+  type MetodoPago,
   type SeguimientoPublico,
 } from "./reglas";
 
@@ -49,6 +50,7 @@ export type PedidoLista = {
   total: number;
   horaRecojo: string | null;
   estado: EstadoPedido;
+  metodoPago: MetodoPago | null;
   creadoEn: string;
   items: ItemPedido[];
 };
@@ -63,7 +65,7 @@ export async function listarPedidos(
   let consulta = service
     .from("pedidos")
     .select(
-      "id, tienda_id, sucursal_id, cliente_nombre, telefono, tipo_entrega, lat, lng, direccion, direccion_referencia, distancia_km, subtotal, costo_envio, descuento, total, hora_recojo, estado, creado_en",
+      "id, tienda_id, sucursal_id, cliente_nombre, telefono, tipo_entrega, lat, lng, direccion, direccion_referencia, distancia_km, subtotal, costo_envio, descuento, total, hora_recojo, estado, metodo_pago, creado_en",
     )
     .eq("tienda_id", tienda.id)
     .order("creado_en", { ascending: false })
@@ -120,7 +122,7 @@ export async function leerPedido(slug: string, pedidoId: string): Promise<{
   const { data: fila, error: errorPedido } = await service
     .from("pedidos")
     .select(
-      "id, tienda_id, sucursal_id, cliente_nombre, telefono, tipo_entrega, lat, lng, direccion, direccion_referencia, distancia_km, subtotal, costo_envio, descuento, total, hora_recojo, estado, creado_en",
+      "id, tienda_id, sucursal_id, cliente_nombre, telefono, tipo_entrega, lat, lng, direccion, direccion_referencia, distancia_km, subtotal, costo_envio, descuento, total, hora_recojo, estado, metodo_pago, creado_en",
     )
     .eq("id", pedidoId)
     .eq("tienda_id", tienda.id)
@@ -225,6 +227,39 @@ export async function crearPedidoPublico(input: {
   return data;
 }
 
+/** Venta cargada por el personal desde el panel. Mismas reglas que el pedido público. */
+export async function crearPedidoPersonal(
+  slug: string,
+  input: Parameters<typeof crearPedidoPublico>[0],
+  metodoPago: MetodoPago,
+): Promise<string> {
+  if (!esUuid(input.sucursalId)) throw new NegocioError("La sucursal no pertenece a la tienda.");
+  const tienda = await resolveTenantBySlug(slug);
+  if (!tienda) throw new NoEncontrado();
+  const service = createServiceClient();
+  const { data, error } = await service
+    .from("sucursales")
+    .select("id")
+    .eq("id", input.sucursalId)
+    .eq("tienda_id", tienda.id)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) throw new NegocioError("La sucursal no pertenece a la tienda.");
+  await requireStaff({ tiendaId: tienda.id, sucursalId: input.sucursalId, roles: OPERACION });
+  await exigirLicenciaParaEscribir(tienda.id);
+  const id = await crearPedidoPublico(input);
+  const { error: errorPago } = await service.from("pedidos").update({ metodo_pago: metodoPago }).eq("id", id);
+  if (errorPago) {
+    console.error("metodo de pago", errorPago.message);
+    throw new NegocioError(
+      errorPago.message.includes("metodo_pago")
+        ? "El pedido se registró, pero falta aplicar la migración del método de pago."
+        : "El pedido se registró, pero no se guardó el método de pago.",
+    );
+  }
+  return id;
+}
+
 export async function cambiarEstadoPedido(slug: string, pedidoId: string, estado: string): Promise<boolean> {
   if (!esUuid(pedidoId) || !esEstado(estado) || estado === "pendiente") {
     throw new NegocioError("Ese cambio de estado no está permitido.");
@@ -313,6 +348,7 @@ function aLista(fila: FilaPedido, sucursal: string, items: ItemPedido[]): Pedido
     total: Number(fila.total),
     horaRecojo: fila.hora_recojo,
     estado: esEstado(fila.estado) ? fila.estado : "pendiente",
+    metodoPago: fila.metodo_pago === "qr" || fila.metodo_pago === "efectivo" ? fila.metodo_pago : null,
     creadoEn: fila.creado_en,
     items,
   };
@@ -394,5 +430,6 @@ type FilaPedido = {
   total: number | string;
   hora_recojo: string | null;
   estado: string;
+  metodo_pago: string | null;
   creado_en: string;
 };

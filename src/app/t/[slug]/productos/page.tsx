@@ -1,13 +1,10 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { FormularioCategoria } from "@/components/panel/formulario-producto";
-import { EmptyState } from "@/components/ui/empty-state";
-import { ImagenConCarga } from "@/components/ui/imagen";
+import { ProductosPanel, type ProductoTarjeta } from "@/components/panel/productos-panel";
 import { contextoPanel } from "@/lib/auth/panel";
 import { usuarioVerificado } from "@/lib/auth/staff";
 import { listarCatalogo } from "@/lib/catalogo/servicio";
-import { formatoBs } from "@/lib/catalogo/reglas";
+import { listarInventario } from "@/lib/inventario/servicio";
 import { normalizarSlug } from "@/lib/tenant";
 
 export default async function ProductosPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -16,80 +13,60 @@ export default async function ProductosPage({ params }: { params: Promise<{ slug
   if (!(await usuarioVerificado())) {
     redirect(`/login?siguiente=${encodeURIComponent(`/t/${normalizado}/productos`)}`);
   }
-  const [contexto, catalogo] = await Promise.all([contextoPanel(normalizado), listarCatalogo(normalizado)]);
-  const dueno = contexto.staff.rol === "dueno";
-  const productos = contexto.seleccion
-    ? catalogo.productos.filter((producto) =>
-        producto.ofertas.some(
-          (oferta) => oferta.sucursalId === contexto.seleccion && (dueno || oferta.disponible),
-        ),
-      )
-    : catalogo.productos;
+  const [contexto, catalogo, inventario] = await Promise.all([
+    contextoPanel(normalizado),
+    listarCatalogo(normalizado),
+    listarInventario(normalizado, null),
+  ]);
+  const rol = contexto.staff.rol;
+  const dueno = rol === "dueno";
+  const escribe = contexto.vigente;
+  const visibles = new Set(contexto.sucursales.map((sucursal) => sucursal.id));
+  const nombres = new Map(contexto.sucursales.map((sucursal) => [sucursal.id, sucursal.nombre]));
+  const seleccion = contexto.seleccion;
+
+  const productos: ProductoTarjeta[] = catalogo.productos.flatMap((producto) => {
+    const ofertas = producto.ofertas.filter((oferta) => visibles.has(oferta.sucursalId));
+    if (seleccion && !ofertas.some((oferta) => oferta.sucursalId === seleccion && (dueno || oferta.disponible))) {
+      return [];
+    }
+    const filas = inventario.filas.filter(
+      (fila) => fila.productoId === producto.id && (seleccion ? fila.sucursalId === seleccion : visibles.has(fila.sucursalId)),
+    );
+    const oferta = seleccion ? ofertas.find((item) => item.sucursalId === seleccion) : null;
+    return [
+      {
+        id: producto.id,
+        nombre: producto.nombre,
+        categoria: producto.categoria,
+        imagenUrl: producto.imagenUrl,
+        precio: oferta?.precioEfectivo ?? producto.precioCentral,
+        stock: filas.reduce((suma, fila) => suma + fila.stock, 0),
+        stockMinimo: filas.reduce((suma, fila) => suma + fila.stockMinimo, 0),
+        activo: producto.activo,
+        sucursales: ofertas.map((item) => ({
+          id: item.sucursalId,
+          nombre: nombres.get(item.sucursalId) ?? item.nombre,
+          stock: inventario.filas.find((fila) => fila.productoId === producto.id && fila.sucursalId === item.sucursalId)?.stock ?? 0,
+        })),
+      },
+    ];
+  });
+
+  const actual = seleccion ? { id: seleccion, nombre: nombres.get(seleccion) ?? "Sucursal" } : null;
 
   return (
-    <main className="flex flex-col gap-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="text-lg font-semibold">Productos</h2>
-        {dueno ? (
-          <Link
-            href={`/t/${contexto.tienda.slug}/productos/nuevo`}
-            className="inline-flex min-h-11 touch-manipulation items-center justify-center rounded-lg bg-zinc-900 px-4 text-sm font-medium text-white dark:bg-zinc-100 dark:text-zinc-950"
-          >
-            Nuevo producto
-          </Link>
-        ) : null}
-      </div>
-      {dueno ? <FormularioCategoria slug={contexto.tienda.slug} lectura={!contexto.vigente} /> : null}
-      {productos.length === 0 ? (
-        <EmptyState
-          titulo="Todavía no hay productos"
-          descripcion={dueno ? "Crea el primero y elige en qué sucursales se ofrece." : "No hay productos en esta sucursal."}
-        />
-      ) : (
-        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {productos.map((producto) => {
-            const precio = producto.ofertas.find((oferta) => oferta.precioEfectivo != null)?.precioEfectivo;
-            return (
-              <li
-                key={producto.id}
-                className="flex flex-col gap-3 rounded-xl border border-zinc-200 p-4 dark:border-zinc-800"
-                style={{ contentVisibility: "auto", containIntrinsicSize: "auto 280px" }}
-              >
-                {producto.imagenUrl ? (
-                  <ImagenConCarga src={producto.imagenUrl} alt={producto.nombre} className="aspect-[4/3]" />
-                ) : (
-                  <div className="flex aspect-[4/3] items-center justify-center rounded-lg bg-zinc-100 text-sm text-zinc-600 dark:bg-zinc-900 dark:text-zinc-400">
-                    Sin imagen
-                  </div>
-                )}
-                <div>
-                  {dueno ? (
-                    <Link
-                      href={`/t/${contexto.tienda.slug}/productos/${producto.id}`}
-                      className="inline-flex min-h-11 touch-manipulation items-center break-words font-semibold underline-offset-4 hover:underline"
-                    >
-                      {producto.nombre}
-                    </Link>
-                  ) : (
-                    <p className="break-words font-semibold">{producto.nombre}</p>
-                  )}
-                  {producto.categoria ? <p className="text-sm text-zinc-600 dark:text-zinc-400">{producto.categoria}</p> : null}
-                  <p className="text-sm tabular-nums">
-                    {precio == null ? formatoBs(producto.precioCentral) : formatoBs(precio)}
-                  </p>
-                  {producto.activo ? null : <p className="text-sm">Inactivo</p>}
-                </div>
-                <Link
-                  href={`/t/${contexto.tienda.slug}/productos/${producto.id}/historial`}
-                  className="inline-flex min-h-11 touch-manipulation items-center text-sm font-medium underline underline-offset-4"
-                >
-                  Historial de precios
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </main>
+    <ProductosPanel
+      slug={contexto.tienda.slug}
+      productos={productos.toSorted((a, b) => Number(b.activo) - Number(a.activo) || a.nombre.localeCompare(b.nombre, "es"))}
+      categorias={catalogo.categorias.filter((categoria) => categoria.activa).map((categoria) => ({ id: categoria.id, nombre: categoria.nombre }))}
+      sucursalesAlta={contexto.sucursales.filter((sucursal) => sucursal.activa).map((sucursal) => ({ id: sucursal.id, nombre: sucursal.nombre }))}
+      sucursalActual={actual}
+      permisos={{
+        crear: dueno && escribe,
+        stock: (dueno || rol === "gerente") && escribe,
+        suspender: dueno && escribe,
+      }}
+    />
   );
 }

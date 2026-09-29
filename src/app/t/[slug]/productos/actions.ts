@@ -8,6 +8,7 @@ import {
   ajustarPreciosPropios,
   altaDesdeFormulario,
   archivoImagen,
+  cambiarActivoProducto,
   configuracionDesdeFormulario,
   copiarPreciosPropios,
   crearCategoria,
@@ -19,6 +20,7 @@ import {
   volverPreciosCentrales,
 } from "@/lib/catalogo/servicio";
 import { parsePorcentaje, parsePrecio } from "@/lib/catalogo/reglas";
+import { reponerStock } from "@/lib/inventario/servicio";
 import { AccesoError, mensajeAcceso, NoEncontrado } from "@/lib/auth/errors";
 import { NegocioError } from "@/lib/licencias/reglas";
 
@@ -41,6 +43,67 @@ export async function guardarProductoAccion(slug: string, productoId: string, da
     await actualizarProducto(slug, productoId, altaDesdeFormulario(datos), imagen);
     revalidar(slug, productoId);
     return { ok: true, aviso: "Producto guardado." };
+  } catch (error) {
+    return { ok: false, error: mensaje(error) };
+  }
+}
+
+/** Alta rápida desde la hoja de Productos: se ofrece en las sucursales dadas y carga el stock inicial. */
+export async function crearProductoRapidoAccion(slug: string, datos: FormData): Promise<Resultado> {
+  try {
+    const stock = Number(datos.get("stock") ?? 0);
+    if (!Number.isInteger(stock) || stock < 0 || stock > 100000) {
+      throw new NegocioError("El stock tiene que ser un número entero desde 0.");
+    }
+    datos.set("activo", "on");
+    const alta = altaDesdeFormulario(datos);
+    const stockEn = datos.getAll("stockEn").map(String).filter((id) => alta.sucursalIds.includes(id));
+    const imagen = await archivoImagen(datos);
+    const id = await crearProducto(slug, alta, imagen);
+    if (stock > 0) {
+      for (const sucursalId of stockEn) {
+        await reponerStock(slug, { productoId: id, sucursalId, cantidad: stock, motivo: "Stock inicial" });
+      }
+    }
+    revalidar(slug, id);
+    revalidatePath(`/t/${slug}/inventario`);
+    revalidatePath(`/t/${slug}/ventas`);
+    return { ok: true, aviso: "Producto creado.", id };
+  } catch (error) {
+    return { ok: false, error: mensaje(error) };
+  }
+}
+
+export async function cambiarActivoProductoAccion(slug: string, productoId: string, activo: boolean): Promise<Resultado> {
+  try {
+    await cambiarActivoProducto(slug, productoId, activo);
+    revalidar(slug, productoId);
+    revalidatePath(`/t/${slug}/ventas`);
+    return { ok: true, aviso: activo ? "Producto reactivado." : "Producto suspendido. Ya no aparece en Ventas." };
+  } catch (error) {
+    return { ok: false, error: mensaje(error) };
+  }
+}
+
+export async function agregarStockAccion(
+  slug: string,
+  input: { productoId: string; sucursalId: string; cantidad: number },
+): Promise<Resultado> {
+  try {
+    const cantidad = Number(input.cantidad);
+    if (!Number.isInteger(cantidad) || cantidad <= 0 || cantidad > 100000) {
+      throw new NegocioError("La cantidad tiene que ser mayor que cero.");
+    }
+    await reponerStock(slug, {
+      productoId: input.productoId,
+      sucursalId: input.sucursalId,
+      cantidad,
+      motivo: "Agregado desde Productos",
+    });
+    revalidar(slug, input.productoId);
+    revalidatePath(`/t/${slug}/inventario`);
+    revalidatePath(`/t/${slug}/ventas`);
+    return { ok: true, aviso: `Se agregaron ${cantidad} unidades.` };
   } catch (error) {
     return { ok: false, error: mensaje(error) };
   }

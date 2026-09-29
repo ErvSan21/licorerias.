@@ -299,6 +299,27 @@ export async function actualizarProducto(
   });
 }
 
+/** Suspendido = inactivo: deja de verse en Ventas y en la tienda pública, sin perder stock ni historial. */
+export async function cambiarActivoProducto(slug: string, productoId: string, activo: boolean): Promise<void> {
+  const { tienda, staff } = await exigirCatalogo(slug, null, ["dueno"]);
+  await exigirLicenciaParaEscribir(tienda.id);
+  if (!esUuid(productoId)) throw new NoEncontrado();
+  await productoDeTienda(tienda.id, productoId);
+  const service = createServiceClient();
+  const { error } = await service
+    .from("productos")
+    .update({ activo })
+    .eq("id", productoId)
+    .eq("tienda_id", tienda.id);
+  if (error) lanzarPrecio(error.message);
+  await registrarAuditoria({
+    userId: staff.userId,
+    tiendaId: tienda.id,
+    accion: activo ? "producto.reactivar" : "producto.suspender",
+    detalle: { producto_id: productoId },
+  });
+}
+
 export async function eliminarProducto(slug: string, productoId: string): Promise<void> {
   const { tienda, staff } = await exigirCatalogo(slug, null, ["dueno"]);
   await exigirLicenciaParaEscribir(tienda.id);

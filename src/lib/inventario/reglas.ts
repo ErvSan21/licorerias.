@@ -62,7 +62,7 @@ export function esStockBajo(stock: number, minimo: number): boolean {
 }
 
 export function etiquetaMovimiento(tipo: string): string {
-  if (tipo === "entrada") return "Reposición";
+  if (tipo === "entrada") return "Stock agregado";
   if (tipo === "salida") return "Salida";
   if (tipo === "ajuste") return "Ajuste";
   if (tipo === "venta") return "Venta";

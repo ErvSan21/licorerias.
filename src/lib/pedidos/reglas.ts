@@ -5,6 +5,34 @@ export { NegocioError };
 export const ESTADOS_PEDIDO = ["pendiente", "aceptado", "listo", "enviado", "cancelado"] as const;
 export type EstadoPedido = (typeof ESTADOS_PEDIDO)[number];
 
+export const METODOS_PAGO = ["efectivo", "qr"] as const;
+export type MetodoPago = (typeof METODOS_PAGO)[number];
+
+export function parseMetodoPago(valor: unknown): MetodoPago {
+  if (valor === "efectivo" || valor === "qr") return valor;
+  throw new NegocioError("Elige cómo paga: QR o efectivo.");
+}
+
+export function etiquetaMetodoPago(metodo: MetodoPago): string {
+  return metodo === "qr" ? "QR" : "Efectivo";
+}
+
+export function esEstadoPedido(valor: string): valor is EstadoPedido {
+  return (ESTADOS_PEDIDO as readonly string[]).includes(valor);
+}
+
+/** Código corto que ve el personal: los 6 primeros caracteres del id. */
+export function referenciaPedido(id: string): string {
+  return id.replace(/-/g, "").slice(0, 6).toUpperCase();
+}
+
+export function tonoEstadoPedido(estado: EstadoPedido): "brand" | "warn" | "ok" | "danger" {
+  if (estado === "pendiente") return "brand";
+  if (estado === "aceptado") return "warn";
+  if (estado === "cancelado") return "danger";
+  return "ok";
+}
+
 export function etiquetaEstadoPedido(estado: EstadoPedido): string {
   if (estado === "pendiente") return "Nuevo";
   if (estado === "aceptado") return "Aceptado";

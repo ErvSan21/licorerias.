@@ -299,6 +299,25 @@ a,
   color: var(--brt);
 }
 
+/* Pestañas como enlaces (Productos · Stock · Ofertas). */
+.ui-segmento > a {
+  display: inline-flex;
+  min-height: 40px;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  color: var(--tx);
+  padding-inline: 0.75rem;
+  font-weight: 600;
+  touch-action: manipulation;
+}
+
+.ui-segmento > a.ui-segmento-activo {
+  background-image: var(--gr);
+  color: var(--brt);
+}
+
 .ui-cantidad {
   display: inline-flex;
   align-items: center;
@@ -791,6 +810,235 @@ a,
   letter-spacing: -0.02em;
 }
 
+.producto-tarjeta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--ln);
+  border-radius: 16px;
+  background: var(--sf);
+  padding: 12px;
+}
+
+/* Se atenúa el contenido, no el menú de acciones. */
+.producto-tarjeta-suspendido > :not(.producto-acciones) {
+  opacity: 0.6;
+}
+
+.producto-menu {
+  position: absolute;
+  z-index: 45;
+  top: calc(100% + 4px);
+  right: 0;
+  display: flex;
+  min-width: 220px;
+  flex-direction: column;
+  border: 1px solid var(--ln);
+  border-radius: 14px;
+  background: var(--sf);
+  padding: 6px;
+  box-shadow: 0 12px 32px rgb(8 14 28 / 0.35);
+  animation: producto-menu-entrada var(--e1) var(--ease);
+}
+
+.producto-menu-arriba {
+  top: auto;
+  bottom: calc(100% + 4px);
+}
+
+.producto-menu button,
+.producto-menu a {
+  display: flex;
+  width: 100%;
+  min-height: 44px;
+  align-items: center;
+  border-radius: 10px;
+  padding-inline: 12px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.producto-menu button:hover,
+.producto-menu a:hover,
+.producto-menu button:focus-visible,
+.producto-menu a:focus-visible {
+  background: var(--sf2);
+}
+
+@keyframes producto-menu-entrada {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+.producto-tarjeta-sin-imagen {
+  display: grid;
+  width: 64px;
+  height: 64px;
+  flex: none;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--sf2);
+  color: var(--mu);
+  font-family: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.stock-lista {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--ln);
+  border-radius: 16px;
+  background: var(--sf);
+}
+
+.stock-fila {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+}
+
+.stock-fila + .stock-fila {
+  border-top: 1px solid var(--ln);
+}
+
+/* Ventas: sin stock no se puede vender. */
+.venta-agotada {
+  background: var(--sf2);
+  filter: grayscale(1);
+  opacity: 0.75;
+}
+
+.venta-flotante {
+  position: fixed;
+  z-index: 35;
+  left: var(--px);
+  right: var(--px);
+  bottom: calc(88px + env(safe-area-inset-bottom));
+  display: flex;
+  max-width: 380px;
+  height: 50px;
+  margin-inline: auto;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 999px;
+  background-image: var(--gr);
+  color: var(--brt);
+  font: inherit;
+  font-weight: 600;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.4);
+  transition: transform var(--e1) var(--ease), filter var(--e1);
+}
+
+.venta-flotante:active {
+  transform: scale(0.97);
+}
+
+.venta-flotante:disabled {
+  opacity: 0.5;
+}
+
+.venta-flotante-contador {
+  display: grid;
+  min-width: 24px;
+  height: 24px;
+  place-items: center;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--br2);
+  padding: 0 6px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.venta-paso {
+  position: relative;
+  display: flex;
+  gap: 12px;
+  padding-bottom: 18px;
+  color: var(--mu);
+}
+
+.venta-paso::before {
+  content: "";
+  position: absolute;
+  top: 18px;
+  bottom: 0;
+  left: 8px;
+  width: 2px;
+  background: var(--ln);
+}
+
+.venta-paso:last-child::before {
+  display: none;
+}
+
+.venta-paso i {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  border: 2px solid var(--ln);
+  border-radius: 50%;
+  background: var(--bg);
+}
+
+.venta-paso[data-hecho] {
+  color: var(--tx);
+}
+
+.venta-paso[data-hecho] i {
+  border-color: transparent;
+  background-image: var(--gr);
+}
+
+.dashboard-kpis {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.dashboard-kpis > div {
+  min-width: 0;
+  border: 1px solid var(--ln);
+  border-radius: 16px;
+  background: var(--sf);
+  padding: 12px;
+}
+
+.dashboard-kpis strong {
+  display: block;
+  font-family: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  font-size: clamp(1.05rem, 5vw, 1.6rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+}
+
+.dashboard-kpis p {
+  color: var(--mu);
+  font-size: 0.75rem;
+}
+
+.dashboard-tarjeta {
+  border: 1px solid var(--ln);
+  border-radius: 16px;
+  background: var(--sf);
+  padding: 16px;
+}
+
+.dashboard-tarjeta h3 {
+  margin-bottom: 12px;
+  font-family: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  font-size: 17px;
+  font-weight: 600;
+}
+
 .panel-scroll-x {
   max-width: 100%;
   min-width: 0;
@@ -879,6 +1127,10 @@ a,
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
+  }
+
+  .producto-menu {
+    animation: none;
   }
 
   .ui-movimiento,

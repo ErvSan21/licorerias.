@@ -7,6 +7,7 @@ import {
   bloquearUsuario,
   borrarUsuario,
   cambiarContrasenaUsuario,
+  crearTiendaAdministracion,
   crearUsuarioOrganizacion,
   eliminarPlanSuscripcion,
   eliminarTienda,
@@ -40,6 +41,20 @@ export async function guardarPreciosAccion(input: {
     });
     refrescar();
     return { ok: true, aviso: "Precios guardados." };
+  } catch (error) {
+    return fallar(error);
+  }
+}
+
+export async function crearTiendaAccion(input: {
+  nombre: string;
+  direccion: string;
+  sucursalesHabilitadas: boolean;
+}): Promise<ResultadoAccion> {
+  try {
+    await crearTiendaAdministracion(input);
+    refrescar();
+    return { ok: true, aviso: "Tienda creada." };
   } catch (error) {
     return fallar(error);
   }

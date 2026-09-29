@@ -43,6 +43,20 @@ export function horarioPorDefecto(): Horario {
   };
 }
 
+/** Abierta todos los días, todo el día. */
+export function horarioTodoElDia(): Horario {
+  const franja = (): Franja => ({ abierto: true, desde: "00:00", hasta: "23:59" });
+  return {
+    lun: franja(),
+    mar: franja(),
+    mie: franja(),
+    jue: franja(),
+    vie: franja(),
+    sab: franja(),
+    dom: franja(),
+  };
+}
+
 export function parseHorario(valor: unknown): Horario {
   if (!valor || typeof valor !== "object" || Array.isArray(valor)) {
     throw new NegocioError("El horario no es válido.");
