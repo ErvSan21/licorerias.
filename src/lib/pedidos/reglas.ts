@@ -1,4 +1,5 @@
 import { esUuid, NegocioError } from "@/lib/licencias/reglas";
+import { capitalizar } from "@/lib/texto";
 
 export { NegocioError };
 
@@ -55,19 +56,19 @@ export function normalizarTelefono(valor: unknown): string {
 export function parseNombreCliente(valor: unknown): string {
   const nombre = String(valor ?? "").trim();
   if (nombre.length < 2 || nombre.length > 80) throw new NegocioError("Escribe el nombre.");
-  return nombre;
+  return capitalizar(nombre);
 }
 
 export function parseDireccion(valor: unknown): string {
   const texto = String(valor ?? "").trim();
   if (texto.length < 4 || texto.length > 200) throw new NegocioError("Escribe la dirección.");
-  return texto;
+  return capitalizar(texto);
 }
 
 export function parseReferencia(valor: unknown): string {
   const texto = String(valor ?? "").trim();
   if (texto.length > 200) throw new NegocioError("La referencia es demasiado larga.");
-  return texto;
+  return capitalizar(texto);
 }
 
 export type AccionPedido = {

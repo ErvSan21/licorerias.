@@ -327,6 +327,10 @@ export async function eliminarProducto(slug: string, productoId: string): Promis
   const actual = await productoDeTienda(tienda.id, productoId);
   const service = createServiceClient();
   const { error } = await service.from("productos").delete().eq("id", productoId).eq("tienda_id", tienda.id);
+  // Los pedidos guardan el producto: si ya se vendió, no se puede borrar.
+  if (error?.code === "23503") {
+    throw new NegocioError("Este producto ya tiene ventas y no se puede eliminar. Suspéndelo para ocultarlo.");
+  }
   if (error) lanzarPrecio(error.message);
   await borrarImagen(tienda.id, actual.imagen_url);
   await registrarAuditoria({

@@ -15,13 +15,14 @@ import { InlineLoader } from "@/components/ui/inline-loader";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { SelectorCantidad } from "@/components/ui/selector-cantidad";
 import { useAsyncAction } from "@/components/ui/use-async-action";
+import { capitalizar } from "@/lib/texto";
 import { formatoBs } from "@/lib/catalogo/reglas";
-import { TIPOS_BEBIDA, tipoDeBebida, type TipoBebida } from "@/lib/catalogo/tipo-bebida";
 import { etiquetaMetodoPago, METODOS_PAGO, type MetodoPago } from "@/lib/pedidos/reglas";
 
 export type ProductoVenta = {
   id: string;
   nombre: string;
+  categoria: string | null;
   precio: number;
   stock: number;
 };
@@ -41,21 +42,24 @@ export function ListaVentas({
   slug,
   sucursal,
   productos,
+  categorias,
   lectura,
 }: {
   slug: string;
   sucursal: SucursalVenta;
   productos: ProductoVenta[];
+  /** Categorías reales de la tienda que tienen productos aquí, en su orden. */
+  categorias: string[];
   lectura: boolean;
 }) {
   const [cantidades, setCantidades] = useState<Record<string, number>>({});
   const [busqueda, setBusqueda] = useState("");
-  const [tipo, setTipo] = useState<TipoBebida>("Todos");
+  const [categoria, setCategoria] = useState<string | null>(null);
   const [abierto, setAbierto] = useState(false);
   const [registrado, setRegistrado] = useState<{ id: string; referencia: string } | null>(null);
   const texto = busqueda.trim().toLocaleLowerCase("es");
   const visibles = productos.filter((producto) => {
-    if (tipo !== "Todos" && tipoDeBebida(producto.nombre) !== tipo) return false;
+    if (categoria && producto.categoria !== categoria) return false;
     if (!texto) return true;
     return producto.nombre.toLocaleLowerCase("es").includes(texto);
   });
@@ -87,15 +91,20 @@ export function ListaVentas({
         onChange={(event) => setBusqueda(event.target.value)}
         className={claseCampo}
       />
-      <div className="flex gap-2 overflow-x-auto" role="group" aria-label="Tipos de bebida">
-        {TIPOS_BEBIDA.map((nombre) => (
-          <ChipCategoria key={nombre} activo={tipo === nombre} onClick={() => setTipo(nombre)}>
-            {nombre}
+      {categorias.length > 0 ? (
+        <div className="flex gap-2 overflow-x-auto" role="group" aria-label="Categorías">
+          <ChipCategoria activo={categoria === null} onClick={() => setCategoria(null)}>
+            Todos
           </ChipCategoria>
-        ))}
-      </div>
+          {categorias.map((nombre) => (
+            <ChipCategoria key={nombre} activo={categoria === nombre} onClick={() => setCategoria(nombre)}>
+              {nombre}
+            </ChipCategoria>
+          ))}
+        </div>
+      ) : null}
       {visibles.length === 0 ? (
-        <EmptyState titulo="No hay productos" descripcion="Prueba otro tipo o otro nombre." />
+        <EmptyState titulo="No hay productos" descripcion="Prueba otra categoría u otro nombre." />
       ) : (
         <ul className="flex flex-col gap-3">
           {visibles.map((producto) => (
@@ -346,7 +355,7 @@ function FormularioPedido({
               minLength={4}
               autoComplete="off"
               value={direccion}
-              onChange={(event) => setDireccion(event.target.value)}
+              onChange={(event) => setDireccion(capitalizar(event.target.value))}
               className={claseCampo}
             />
           </Campo>
@@ -363,7 +372,7 @@ function FormularioPedido({
           maxLength={80}
           autoComplete="off"
           value={nombre}
-          onChange={(event) => setNombre(event.target.value)}
+          onChange={(event) => setNombre(capitalizar(event.target.value))}
           className={claseCampo}
         />
       </Campo>

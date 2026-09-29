@@ -39,8 +39,10 @@ export default async function ProductosPage({ params }: { params: Promise<{ slug
         id: producto.id,
         nombre: producto.nombre,
         categoria: producto.categoria,
+        categoriaId: producto.categoriaId,
         imagenUrl: producto.imagenUrl,
         precio: oferta?.precioEfectivo ?? producto.precioCentral,
+        precioCentral: producto.precioCentral,
         stock: filas.reduce((suma, fila) => suma + fila.stock, 0),
         stockMinimo: filas.reduce((suma, fila) => suma + fila.stockMinimo, 0),
         activo: producto.activo,
@@ -66,6 +68,7 @@ export default async function ProductosPage({ params }: { params: Promise<{ slug
         crear: dueno && escribe,
         stock: (dueno || rol === "gerente") && escribe,
         suspender: dueno && escribe,
+        eliminar: dueno && escribe,
       }}
     />
   );

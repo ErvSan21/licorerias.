@@ -1,4 +1,5 @@
 import { esUuid, NegocioError } from "@/lib/licencias/reglas";
+import { capitalizar } from "@/lib/texto";
 
 export { NegocioError };
 
@@ -78,13 +79,13 @@ export function parseNombreProducto(valor: unknown): string {
   if (nombre.length < 2 || nombre.length > 120) {
     throw new NegocioError("Escribe el nombre del producto.");
   }
-  return nombre;
+  return capitalizar(nombre);
 }
 
 export function parseDescripcion(valor: unknown): string {
   const texto = String(valor ?? "").trim();
   if (texto.length > 500) throw new NegocioError("La descripción es demasiado larga.");
-  return texto;
+  return capitalizar(texto);
 }
 
 export function parseNombreCategoria(valor: unknown): string {
@@ -92,7 +93,7 @@ export function parseNombreCategoria(valor: unknown): string {
   if (nombre.length < 2 || nombre.length > 80) {
     throw new NegocioError("Escribe el nombre de la categoría.");
   }
-  return nombre;
+  return capitalizar(nombre);
 }
 
 export function parseIdsProducto(valores: readonly FormDataEntryValue[]): string[] {

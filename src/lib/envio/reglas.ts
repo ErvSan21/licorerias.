@@ -1,4 +1,5 @@
 import { NegocioError } from "@/lib/licencias/reglas";
+import { capitalizar } from "@/lib/texto";
 
 export { NegocioError };
 
@@ -108,7 +109,7 @@ export function parseRadioKm(valor: unknown): number {
 export function parseNombreZona(valor: unknown): string {
   const nombre = String(valor ?? "").trim();
   if (nombre.length < 2 || nombre.length > 80) throw new NegocioError("Escribe el nombre de la zona.");
-  return nombre;
+  return capitalizar(nombre);
 }
 
 export function parseTipoZona(valor: unknown): "tarifa_fija" | "bloqueada" {

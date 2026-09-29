@@ -886,6 +886,60 @@ a,
   font-weight: 800;
 }
 
+.cargar-imagen-zona {
+  display: flex;
+  min-height: 132px;
+  cursor: pointer;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 1.5px dashed var(--campo-ln);
+  border-radius: 16px;
+  background: var(--campo-bg);
+  padding: 16px;
+  text-align: center;
+  transition: border-color var(--e1) var(--ease), background-color var(--e1) var(--ease);
+}
+
+.cargar-imagen-zona:hover,
+.cargar-imagen-zona-activa {
+  border-color: var(--br);
+  background: color-mix(in srgb, var(--br) 8%, var(--campo-bg));
+}
+
+.cargar-imagen-icono {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  margin-bottom: 4px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--br) 16%, transparent);
+  color: var(--br);
+}
+
+.cargar-imagen-vista {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--campo-ln);
+  border-radius: 16px;
+  background: var(--campo-bg);
+  padding: 10px;
+}
+
+.cargar-imagen-boton {
+  display: inline-flex;
+  min-height: 36px;
+  cursor: pointer;
+  align-items: center;
+  border-radius: 10px;
+  padding-inline: 12px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
 .stock-lista {
   display: flex;
   flex-direction: column;

@@ -5,6 +5,7 @@ import { cache } from "react";
 import { registrarAuditoria } from "@/lib/auth/auditoria";
 import { requireSuperAdmin } from "@/lib/auth/staff";
 import { createServiceClient } from "@/lib/supabase/service";
+import { capitalizar } from "@/lib/texto";
 import {
   esEstadoTienda,
   normalizarSlug,
@@ -620,7 +621,7 @@ export function tiendaParaApi(tienda: TiendaLicencia) {
 }
 
 function validarAlta(input: AltaTienda): AltaTienda {
-  const nombre = input.nombre.trim();
+  const nombre = capitalizar(input.nombre.trim());
   const slug = normalizarSlug(input.slug);
   const correo = parseCorreo(input.correoDueno);
   const diasPrueba = parseEntero(String(input.diasPrueba), 1, 90);

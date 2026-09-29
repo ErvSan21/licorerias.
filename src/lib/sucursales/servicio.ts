@@ -8,6 +8,7 @@ import { requireStaff, type Staff } from "@/lib/auth/staff";
 import { exigirLicenciaParaEscribir } from "@/lib/licencias/servicio";
 import { esUuid } from "@/lib/licencias/reglas";
 import { createServiceClient } from "@/lib/supabase/service";
+import { capitalizar } from "@/lib/texto";
 import { esRolTienda, normalizarSlug, ROLES_TIENDA, slugReservado, slugValido, type RolTienda } from "@/lib/tenant";
 
 import {
@@ -564,7 +565,7 @@ function sucursalDesdeFila(fila: FilaSucursal): SucursalResumen {
 }
 
 function validarAlta(input: AltaSucursal): AltaSucursal {
-  const nombre = input.nombre.trim();
+  const nombre = capitalizar(input.nombre.trim());
   if (nombre.length < 2) throw new NegocioError("Escribe el nombre de la sucursal.");
   return { ...input, nombre, slug: parseSlugSucursal(input.slug), horario: parseHorario(input.horario) };
 }
@@ -584,13 +585,13 @@ function horarioDeDatos(datos: FormData): unknown {
 function texto(valor: FormDataEntryValue | null, mensaje: string, max: number): string {
   const limpio = String(valor ?? "").trim();
   if (limpio.length < 2 || limpio.length > max) throw new NegocioError(mensaje);
-  return limpio;
+  return capitalizar(limpio);
 }
 
 function textoOpcional(valor: FormDataEntryValue | null, max: number): string {
   const limpio = String(valor ?? "").trim();
   if (limpio.length > max) throw new NegocioError("La dirección es demasiado larga.");
-  return limpio;
+  return capitalizar(limpio);
 }
 
 function lanzarCupo(mensaje: string): never {

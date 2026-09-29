@@ -3,6 +3,7 @@ import "server-only";
 import { registrarAuditoria } from "@/lib/auth/auditoria";
 import { requireSuperAdmin } from "@/lib/auth/staff";
 import { createServiceClient } from "@/lib/supabase/service";
+import { capitalizar } from "@/lib/texto";
 import {
   esPlazo,
   esUuid,
@@ -159,7 +160,7 @@ export async function guardarPlanSuscripcion(input: {
   const { userId } = await requireSuperAdmin();
   if (!esClavePrecio(input.claveActual)) throw new NegocioError("Ese plan no existe.");
   if (!esPlazo(input.duracion)) throw new NegocioError("Elige una duración.");
-  const nombre = input.nombre.trim();
+  const nombre = capitalizar(input.nombre.trim());
   if (!nombre || nombre.length > 40) throw new NegocioError("El nombre tiene que tener entre 1 y 40 caracteres.");
   const precio = parseMonto(input.costo);
   if (precio == null) throw new NegocioError("El costo no es válido.");
@@ -208,9 +209,9 @@ export async function crearTiendaAdministracion(input: {
   sucursalesHabilitadas: boolean;
 }): Promise<{ id: string; slug: string }> {
   const { userId } = await requireSuperAdmin();
-  const nombre = input.nombre.trim();
+  const nombre = capitalizar(input.nombre.trim());
   if (nombre.length < 2 || nombre.length > 80) throw new NegocioError("Escribe el nombre de la tienda.");
-  const direccion = input.direccion.trim();
+  const direccion = capitalizar(input.direccion.trim());
   if (direccion.length < 4 || direccion.length > 200) throw new NegocioError("Escribe la dirección de la tienda.");
   const sucursalesHabilitadas = input.sucursalesHabilitadas === true;
   const service = createServiceClient();

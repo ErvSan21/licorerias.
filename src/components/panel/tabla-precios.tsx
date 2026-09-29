@@ -352,7 +352,7 @@ function EditorNumero({
         value={precio}
         aria-invalid={error ? true : undefined}
         onChange={(event) => setPrecio(event.target.value)}
-        className="h-12 rounded-lg border border-zinc-300 bg-white px-3 tabular-nums dark:border-zinc-700 dark:bg-zinc-950"
+        className="h-12 rounded-lg border border-[var(--campo-ln)] bg-[var(--campo-bg)] px-3 tabular-nums text-[var(--campo-tx)]"
       />
       {error ? (
         <p role="alert" className="text-sm text-red-700 dark:text-red-400">
@@ -460,7 +460,7 @@ function EditorPropio({
             value={precio}
             disabled={lectura}
             onChange={(event) => setPrecio(event.target.value)}
-            className="h-12 rounded-lg border border-zinc-300 bg-white px-3 tabular-nums dark:border-zinc-700 dark:bg-zinc-950"
+            className="h-12 rounded-lg border border-[var(--campo-ln)] bg-[var(--campo-bg)] px-3 tabular-nums text-[var(--campo-tx)]"
           />
         </>
       ) : null}

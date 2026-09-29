@@ -9,6 +9,7 @@ import { Campo, claseCampo } from "@/components/super/campo";
 import { Drawer } from "@/components/ui/drawer";
 import { useToast } from "@/components/ui/toast";
 import { useAsyncAction } from "@/components/ui/use-async-action";
+import { capitalizar } from "@/lib/texto";
 
 export function NuevaTienda() {
   const [abierto, setAbierto] = useState(false);
@@ -67,7 +68,7 @@ function FormularioTienda({ alCerrar }: { alCerrar: () => void }) {
           maxLength={80}
           autoComplete="off"
           value={nombre}
-          onChange={(event) => setNombre(event.target.value)}
+          onChange={(event) => setNombre(capitalizar(event.target.value))}
           className={claseCampo}
         />
       </Campo>
@@ -79,7 +80,7 @@ function FormularioTienda({ alCerrar }: { alCerrar: () => void }) {
           maxLength={200}
           autoComplete="off"
           value={direccion}
-          onChange={(event) => setDireccion(event.target.value)}
+          onChange={(event) => setDireccion(capitalizar(event.target.value))}
           className={claseCampo}
         />
       </Campo>

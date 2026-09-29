@@ -1,4 +1,5 @@
 import { NegocioError } from "@/lib/licencias/reglas";
+import { capitalizar } from "@/lib/texto";
 
 export { NegocioError };
 
@@ -160,7 +161,7 @@ export function parseMotivo(valor: unknown): string {
   if (motivo.length < 2 || motivo.length > 200) {
     throw new NegocioError("Escribe el motivo del movimiento.");
   }
-  return motivo;
+  return capitalizar(motivo);
 }
 
 function entero(valor: string, linea: number, etiqueta: string): number {

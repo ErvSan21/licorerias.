@@ -1,6 +1,21 @@
 @import "tailwindcss";
 @import "./ui.css";
 
+/*
+ * dark: sigue el tema de la app, no solo el del sistema.
+ * Con data-theme="light" nunca aplica, aunque Windows esté en oscuro.
+ */
+@custom-variant dark {
+  &:where([data-theme="dark"], [data-theme="dark"] *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where(:root:not([data-theme="light"]), :root:not([data-theme="light"]) *) {
+      @slot;
+    }
+  }
+}
+
 @theme inline {
   --font-sans: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
@@ -61,9 +76,9 @@
     --ok: #307550;
     --er: #dc1515;
     --wa: #916712;
-    --campo-bg: #e6ebf2;
+    --campo-bg: #eef0f3;
     --campo-tx: #10203a;
-    --campo-ln: #cfd6e2;
+    --campo-ln: #d4d9e1;
     --bgi: radial-gradient(60% 40% at 100% -5%, color-mix(in srgb, var(--br2) 26%, transparent), transparent),
       radial-gradient(55% 40% at -10% 8%, color-mix(in srgb, var(--br) 20%, transparent), transparent),
       var(--bg);
@@ -81,9 +96,9 @@
   --ok: #307550;
   --er: #dc1515;
   --wa: #916712;
-  --campo-bg: #e6ebf2;
+  --campo-bg: #eef0f3;
   --campo-tx: #10203a;
-  --campo-ln: #cfd6e2;
+  --campo-ln: #d4d9e1;
   --bgi: radial-gradient(60% 40% at 100% -5%, color-mix(in srgb, var(--br2) 26%, transparent), transparent),
     radial-gradient(55% 40% at -10% 8%, color-mix(in srgb, var(--br) 20%, transparent), transparent),
     var(--bg);

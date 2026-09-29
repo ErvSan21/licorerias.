@@ -8,6 +8,8 @@ import {
   agregarStockAccion,
   cambiarActivoProductoAccion,
   crearProductoRapidoAccion,
+  editarProductoRapidoAccion,
+  eliminarProductoAccion,
 } from "@/app/t/[slug]/productos/actions";
 import { PieHoja } from "@/components/administracion/pie-hoja";
 import { PestanasProductos } from "@/components/panel/pestanas-productos";
@@ -15,19 +17,23 @@ import { Campo, claseCampo } from "@/components/super/campo";
 import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
 import { EmptyState } from "@/components/ui/empty-state";
+import { CargarImagen } from "@/components/ui/cargar-imagen";
 import { ImagenConCarga } from "@/components/ui/imagen";
 import { Tag } from "@/components/ui/tag";
 import { useToast } from "@/components/ui/toast";
 import { useAsyncAction } from "@/components/ui/use-async-action";
 import { formatoBs } from "@/lib/catalogo/reglas";
 import { comprimirImagen } from "@/lib/catalogo/imagen-cliente";
+import { capitalizar } from "@/lib/texto";
 
 export type ProductoTarjeta = {
   id: string;
   nombre: string;
   categoria: string | null;
+  categoriaId: string | null;
   imagenUrl: string | null;
   precio: number;
+  precioCentral: number;
   stock: number;
   stockMinimo: number;
   activo: boolean;
@@ -35,7 +41,8 @@ export type ProductoTarjeta = {
   sucursales: { id: string; nombre: string; stock: number }[];
 };
 
-type Permisos = { crear: boolean; stock: boolean; suspender: boolean };
+type Permisos = { crear: boolean; stock: boolean; suspender: boolean; eliminar: boolean };
+type Hoja = "stock" | "precio" | "suspender" | "eliminar";
 type Opcion = { id: string; nombre: string };
 
 export function ProductosPanel({
@@ -112,6 +119,7 @@ export function ProductosPanel({
                 producto={producto}
                 permisos={permisos}
                 sucursalActual={sucursalActual}
+                categorias={categorias}
               />
             </li>
           ))}
@@ -124,7 +132,7 @@ export function ProductosPanel({
         alCerrar={() => setCrear(false)}
       >
         {crear ? (
-          <FormularioAlta
+          <FormularioProductoHoja
             slug={slug}
             categorias={categorias}
             sucursales={sucursalesAlta}
@@ -142,11 +150,13 @@ function TarjetaProducto({
   producto,
   permisos,
   sucursalActual,
+  categorias,
 }: {
   slug: string;
   producto: ProductoTarjeta;
   permisos: Permisos;
   sucursalActual: Opcion | null;
+  categorias: Opcion[];
 }) {
   const router = useRouter();
   const publicar = useToast();
@@ -170,12 +180,12 @@ function TarjetaProducto({
       document.removeEventListener("keydown", tecla);
     };
   }, [menu]);
-  const [hoja, setHoja] = useState<"stock" | "suspender" | null>(null);
+  const [hoja, setHoja] = useState<Hoja | null>(null);
   const agotado = producto.stock <= 0;
   const bajo = !agotado && producto.stock <= producto.stockMinimo;
-  const hayAcciones = permisos.stock || permisos.suspender || permisos.crear;
+  const hayAcciones = permisos.stock || permisos.suspender || permisos.crear || permisos.eliminar;
 
-  function abrir(siguiente: "stock" | "suspender") {
+  function abrir(siguiente: Hoja) {
     setMenu(false);
     setHoja(siguiente);
   }
@@ -247,23 +257,11 @@ function TarjetaProducto({
                     </button>
                   </li>
                 ) : null}
-                {permisos.suspender ? (
-                  <li role="none">
-                    <button
-                      type="button"
-                      role="menuitem"
-                      className={producto.activo ? "text-[var(--er)]" : undefined}
-                      onClick={() => abrir("suspender")}
-                    >
-                      {producto.activo ? "Suspender" : "Reactivar"}
-                    </button>
-                  </li>
-                ) : null}
                 {permisos.crear ? (
                   <li role="none">
-                    <Link role="menuitem" href={`/t/${slug}/productos/${producto.id}`}>
+                    <button type="button" role="menuitem" onClick={() => abrir("precio")}>
                       Editar producto
-                    </Link>
+                    </button>
                   </li>
                 ) : null}
                 <li role="none">
@@ -274,6 +272,25 @@ function TarjetaProducto({
                     Ver movimientos
                   </Link>
                 </li>
+                {permisos.suspender ? (
+                  <li role="none">
+                    <button type="button" role="menuitem" onClick={() => abrir("suspender")}>
+                      {producto.activo ? "Suspender" : "Reactivar"}
+                    </button>
+                  </li>
+                ) : null}
+                {permisos.eliminar ? (
+                  <li role="none">
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="text-[var(--er)]"
+                      onClick={() => abrir("eliminar")}
+                    >
+                      Eliminar
+                    </button>
+                  </li>
+                ) : null}
               </ul>
             ) : null}
           </div>
@@ -317,7 +334,66 @@ function TarjetaProducto({
           />
         ) : null}
       </Drawer>
+
+      <Drawer abierto={hoja === "precio"} titulo="Editar producto" alCerrar={() => setHoja(null)}>
+        {hoja === "precio" ? (
+          <FormularioProductoHoja
+            slug={slug}
+            categorias={categorias}
+            producto={producto}
+            alCerrar={() => setHoja(null)}
+            alListo={listo}
+          />
+        ) : null}
+      </Drawer>
+
+      <Drawer
+        abierto={hoja === "eliminar"}
+        titulo="Eliminar producto"
+        descripcion={`Se borra ${producto.nombre} y su stock. No se puede deshacer. Si ya tiene ventas, suspéndelo en su lugar.`}
+        alCerrar={() => setHoja(null)}
+      >
+        {hoja === "eliminar" ? (
+          <ConfirmarEliminar slug={slug} producto={producto} alCerrar={() => setHoja(null)} alListo={listo} />
+        ) : null}
+      </Drawer>
     </>
+  );
+}
+
+function ConfirmarEliminar({
+  slug,
+  producto,
+  alCerrar,
+  alListo,
+}: {
+  slug: string;
+  producto: ProductoTarjeta;
+  alCerrar: () => void;
+  alListo: (aviso: string) => void;
+}) {
+  const { run, loading, error } = useAsyncAction(async () => {
+    const resultado = await eliminarProductoAccion(slug, producto.id);
+    if (!resultado.ok) throw new Error(resultado.error);
+    return resultado.aviso;
+  });
+  return (
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        void run().then((hecho) => {
+          if (hecho.omitida || !hecho.valor.ok) return;
+          alListo(hecho.valor.valor);
+        });
+      }}
+    >
+      {error ? (
+        <p role="alert" className="text-sm text-[var(--er)]">
+          {error}
+        </p>
+      ) : null}
+      <PieHoja peligro alCancelar={alCerrar} cargando={loading} etiquetaCargando="Eliminando…" />
+    </form>
   );
 }
 
@@ -464,40 +540,52 @@ function ConfirmarSuspension({
   );
 }
 
-function FormularioAlta({
+/** Crear o editar un producto: nombre, precio, categoría e imagen (y stock inicial al crear). */
+function FormularioProductoHoja({
   slug,
   categorias,
-  sucursales,
-  sucursalActual,
+  producto = null,
+  sucursales = [],
+  sucursalActual = null,
   alCerrar,
+  alListo,
 }: {
   slug: string;
   categorias: Opcion[];
-  sucursales: Opcion[];
-  sucursalActual: Opcion | null;
+  /** Si viene, se edita; si no, se crea. */
+  producto?: ProductoTarjeta | null;
+  sucursales?: Opcion[];
+  sucursalActual?: Opcion | null;
   alCerrar: () => void;
+  alListo?: (aviso: string) => void;
 }) {
   const router = useRouter();
   const publicar = useToast();
-  const [nombre, setNombre] = useState("");
-  const [precio, setPrecio] = useState("");
+  const edicion = producto != null;
+  const [nombre, setNombre] = useState(producto?.nombre ?? "");
+  const [precio, setPrecio] = useState(producto ? producto.precioCentral.toFixed(2) : "");
   const [stock, setStock] = useState("");
-  const [categoriaId, setCategoriaId] = useState(categorias[0]?.id ?? "nueva");
+  const [categoriaId, setCategoriaId] = useState(
+    producto ? (producto.categoriaId ?? "") : (categorias[0]?.id ?? "nueva"),
+  );
   const [nuevaCategoria, setNuevaCategoria] = useState("");
   const [archivo, setArchivo] = useState<File | null>(null);
-  const stockEn = sucursalActual
-    ? [sucursalActual.id]
-    : sucursales.map((sucursal) => sucursal.id);
+  const stockEn = sucursalActual ? [sucursalActual.id] : sucursales.map((sucursal) => sucursal.id);
   const { run, loading, error } = useAsyncAction(async () => {
     const datos = new FormData();
     datos.set("nombre", nombre);
     datos.set("precioCentral", precio);
-    datos.set("stock", stock || "0");
     if (categoriaId === "nueva") datos.set("nuevaCategoria", nuevaCategoria);
-    else datos.set("categoriaId", categoriaId);
+    else if (categoriaId) datos.set("categoriaId", categoriaId);
+    if (archivo) datos.set("imagen", await comprimirImagen(archivo));
+    if (edicion) {
+      const resultado = await editarProductoRapidoAccion(slug, producto.id, datos);
+      if (!resultado.ok) throw new Error(resultado.error);
+      return resultado.aviso;
+    }
+    datos.set("stock", stock || "0");
     for (const sucursal of sucursales) datos.append("sucursal", sucursal.id);
     for (const id of stockEn) datos.append("stockEn", id);
-    if (archivo) datos.set("imagen", await comprimirImagen(archivo));
     const resultado = await crearProductoRapidoAccion(slug, datos);
     if (!resultado.ok) throw new Error(resultado.error);
     return resultado.aviso;
@@ -511,28 +599,33 @@ function FormularioAlta({
         if (!event.currentTarget.reportValidity()) return;
         void run().then((hecho) => {
           if (hecho.omitida || !hecho.valor.ok) return;
+          if (alListo) {
+            alListo(hecho.valor.valor);
+            return;
+          }
           publicar("exito", hecho.valor.valor);
           alCerrar();
           router.refresh();
         });
       }}
     >
-      <Campo id="alta-nombre" etiqueta="Nombre">
+      <Campo id="producto-nombre" etiqueta="Nombre">
         <input
-          id="alta-nombre"
+          id="producto-nombre"
           required
           minLength={2}
           maxLength={120}
           autoComplete="off"
+          autoCapitalize="sentences"
           value={nombre}
-          onChange={(event) => setNombre(event.target.value)}
+          onChange={(event) => setNombre(capitalizar(event.target.value))}
           className={claseCampo}
         />
       </Campo>
-      <div className="grid grid-cols-2 gap-3">
-        <Campo id="alta-precio" etiqueta="Precio (Bs)">
+      <div className={`grid gap-3 ${edicion ? "grid-cols-1" : "grid-cols-2"}`}>
+        <Campo id="producto-precio" etiqueta="Precio (Bs)">
           <input
-            id="alta-precio"
+            id="producto-precio"
             type="number"
             inputMode="decimal"
             required
@@ -541,36 +634,42 @@ function FormularioAlta({
             autoComplete="off"
             value={precio}
             onChange={(event) => setPrecio(event.target.value)}
-            className={claseCampo}
+            className={`${claseCampo} tabular-nums`}
           />
         </Campo>
-        <Campo id="alta-stock" etiqueta="Stock inicial">
-          <input
-            id="alta-stock"
-            type="number"
-            inputMode="numeric"
-            min={0}
-            step={1}
-            placeholder="0"
-            autoComplete="off"
-            value={stock}
-            onChange={(event) => setStock(event.target.value)}
-            className={claseCampo}
-          />
-        </Campo>
+        {edicion ? null : (
+          <Campo id="producto-stock" etiqueta="Stock inicial">
+            <input
+              id="producto-stock"
+              type="number"
+              inputMode="numeric"
+              min={0}
+              step={1}
+              placeholder="0"
+              autoComplete="off"
+              value={stock}
+              onChange={(event) => setStock(event.target.value)}
+              className={`${claseCampo} tabular-nums`}
+            />
+          </Campo>
+        )}
       </div>
-      {!sucursalActual && sucursales.length > 1 ? (
+      {!edicion && !sucursalActual && sucursales.length > 1 ? (
+        <p className="-mt-1 text-xs text-[var(--mu)]">El stock inicial se carga en cada sucursal.</p>
+      ) : null}
+      {edicion && producto.precio !== producto.precioCentral ? (
         <p className="-mt-1 text-xs text-[var(--mu)]">
-          El stock inicial se carga en cada sucursal.
+          Esta sucursal usa un precio propio de {formatoBs(producto.precio)}. Se cambia en Precios por sucursal.
         </p>
       ) : null}
-      <Campo id="alta-categoria" etiqueta="Categoría">
+      <Campo id="producto-categoria" etiqueta="Categoría">
         <select
-          id="alta-categoria"
+          id="producto-categoria"
           value={categoriaId}
           onChange={(event) => setCategoriaId(event.target.value)}
           className={claseCampo}
         >
+          {edicion ? <option value="">Sin categoría</option> : null}
           {categorias.map((categoria) => (
             <option key={categoria.id} value={categoria.id}>
               {categoria.nombre}
@@ -580,38 +679,30 @@ function FormularioAlta({
         </select>
       </Campo>
       {categoriaId === "nueva" ? (
-        <Campo id="alta-nueva-categoria" etiqueta="Nombre de la categoría">
+        <Campo id="producto-nueva-categoria" etiqueta="Nombre de la categoría">
           <input
-            id="alta-nueva-categoria"
+            id="producto-nueva-categoria"
             required
             minLength={2}
             maxLength={60}
             autoComplete="off"
+            autoCapitalize="sentences"
             value={nuevaCategoria}
-            onChange={(event) => setNuevaCategoria(event.target.value)}
+            onChange={(event) => setNuevaCategoria(capitalizar(event.target.value))}
             className={claseCampo}
           />
         </Campo>
       ) : null}
-      <Campo id="alta-imagen" etiqueta="Imagen">
-        <input
-          id="alta-imagen"
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          onChange={(event) => setArchivo(event.target.files?.[0] ?? null)}
-          className={claseCampo}
-        />
-      </Campo>
+      <div className="flex flex-col gap-1.5">
+        <span className="text-sm font-medium">Imagen</span>
+        <CargarImagen actual={producto?.imagenUrl ?? null} onChange={setArchivo} deshabilitado={loading} />
+      </div>
       {error ? (
         <p role="alert" className="text-sm text-[var(--er)]">
           {error}
         </p>
       ) : null}
-      <PieHoja
-        alCancelar={alCerrar}
-        cargando={loading}
-        etiquetaCargando="Creando…"
-      />
+      <PieHoja alCancelar={alCerrar} cargando={loading} etiquetaCargando={edicion ? "Guardando…" : "Creando…"} />
     </form>
   );
 }

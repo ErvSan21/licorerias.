@@ -13,7 +13,7 @@ import { useAsyncAction } from "@/components/ui/use-async-action";
 import { DIAS, ETIQUETA_DIA, type Horario } from "@/lib/sucursales/reglas";
 
 const claseCampo =
-  "h-12 w-full rounded-lg border border-zinc-300 bg-white px-3 text-base text-zinc-900 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100";
+  "h-12 w-full rounded-lg border border-[var(--campo-ln)] bg-[var(--campo-bg)] px-3 text-base text-[var(--campo-tx)]";
 
 type SucursalFormulario = {
   id: string;

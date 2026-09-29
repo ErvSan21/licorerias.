@@ -17,6 +17,7 @@ import {
   guardarConfiguracionPrecios,
   guardarPrecioCentral,
   guardarPrecioSucursal,
+  leerProducto,
   volverPreciosCentrales,
 } from "@/lib/catalogo/servicio";
 import { parsePorcentaje, parsePrecio } from "@/lib/catalogo/reglas";
@@ -69,6 +70,32 @@ export async function crearProductoRapidoAccion(slug: string, datos: FormData): 
     revalidatePath(`/t/${slug}/inventario`);
     revalidatePath(`/t/${slug}/ventas`);
     return { ok: true, aviso: "Producto creado.", id };
+  } catch (error) {
+    return { ok: false, error: mensaje(error) };
+  }
+}
+
+/** Edición desde la hoja de Productos: nombre, categoría, precio e imagen. Lo demás se conserva. */
+export async function editarProductoRapidoAccion(slug: string, productoId: string, datos: FormData): Promise<Resultado> {
+  try {
+    const { producto } = await leerProducto(slug, productoId);
+    const actuales = producto.ofertas.filter((oferta) => oferta.disponible).map((oferta) => oferta.sucursalId);
+    const alta = altaDesdeFormulario(datos);
+    const imagen = await archivoImagen(datos);
+    await actualizarProducto(
+      slug,
+      productoId,
+      {
+        ...alta,
+        descripcion: producto.descripcion ?? "",
+        sucursalIds: actuales,
+        activo: producto.activo,
+      },
+      imagen,
+    );
+    revalidar(slug, productoId);
+    revalidatePath(`/t/${slug}/ventas`);
+    return { ok: true, aviso: "Producto guardado." };
   } catch (error) {
     return { ok: false, error: mensaje(error) };
   }

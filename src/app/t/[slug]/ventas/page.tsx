@@ -37,6 +37,7 @@ export default async function VentasPage({ params }: { params: Promise<{ slug: s
           {
             id: producto.id,
             nombre: producto.nombre,
+            categoria: producto.categoria,
             precio: oferta.precioEfectivo ?? producto.precioCentral,
             stock:
               inventario.filas.find((fila) => fila.productoId === producto.id && fila.sucursalId === sucursal.id)?.stock ?? 0,
@@ -62,6 +63,10 @@ export default async function VentasPage({ params }: { params: Promise<{ slug: s
             aceptaRecojo: sucursal.aceptaRecojo,
           }}
           productos={productos}
+          categorias={catalogo.categorias
+            .filter((categoria) => categoria.activa && productos.some((producto) => producto.categoria === categoria.nombre))
+            .toSorted((a, b) => a.orden - b.orden || a.nombre.localeCompare(b.nombre, "es"))
+            .map((categoria) => categoria.nombre)}
           lectura={!contexto.vigente}
         />
       ) : (

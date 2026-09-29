@@ -1,4 +1,5 @@
 import { fechaValida, NegocioError } from "@/lib/licencias/reglas";
+import { capitalizar } from "@/lib/texto";
 
 export { NegocioError };
 
@@ -124,11 +125,11 @@ export function parseNombreColeccion(valor: unknown): string {
   if (nombre.length < 2 || nombre.length > 80) {
     throw new NegocioError("Escribe el nombre de la colección.");
   }
-  return nombre;
+  return capitalizar(nombre);
 }
 
 export function parseDescripcionColeccion(valor: unknown): string {
   const texto = String(valor ?? "").trim();
   if (texto.length > 400) throw new NegocioError("La descripción es demasiado larga.");
-  return texto;
+  return capitalizar(texto);
 }
