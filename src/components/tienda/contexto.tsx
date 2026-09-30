@@ -47,6 +47,7 @@ export type DatosPedido = {
   lat: number | null;
   lng: number | null;
   horaRecojo: string | null;
+  metodoPago: "efectivo" | "qr";
 };
 
 type Meta = { vitrina: Vitrina; productos: Map<string, ProductoPublico> };
@@ -102,10 +103,12 @@ export function TiendaProvider({
 
   const total = lineas.reduce((suma, linea) => suma + (productos.get(linea.productoId)?.precioFinal ?? 0) * linea.cantidad, 0);
   const cantidad = lineas.reduce((suma, linea) => suma + linea.cantidad, 0);
+  const entregaDisponible =
+    entrega === "recojo" ? vitrina.sucursal.aceptaRecojo : entrega === "delivery" ? vitrina.sucursal.aceptaDelivery : false;
   const puedeConfirmar =
     vitrina.sucursal.abiertaAhora &&
     lineas.length > 0 &&
-    entrega != null &&
+    entregaDisponible &&
     (entrega === "recojo" || (envio != null && !envioError && !envioCargando));
 
   const acciones: Acciones = {
@@ -170,6 +173,7 @@ export function TiendaProvider({
           direccion: entrega === "delivery" ? datos.direccion : "",
           referencia: entrega === "delivery" ? datos.referencia : "",
           horaRecojo: entrega === "recojo" ? datos.horaRecojo : null,
+          metodoPago: datos.metodoPago,
           items: lineas.map((linea) => ({ productoId: linea.productoId, cantidad: linea.cantidad })),
         }),
       });
@@ -203,10 +207,11 @@ export function TiendaProvider({
   return <Contexto value={{ estado, acciones, meta: { vitrina, productos } }}>{children}</Contexto>;
 }
 
+/** Recojo en tienda primero; delivery solo si es lo único que acepta la sucursal. */
 function entregaUnica(vitrina: Vitrina): Entrega | null {
   const { aceptaDelivery, aceptaRecojo } = vitrina.sucursal;
-  if (aceptaDelivery && !aceptaRecojo) return "delivery";
-  if (aceptaRecojo && !aceptaDelivery) return "recojo";
+  if (aceptaRecojo) return "recojo";
+  if (aceptaDelivery) return "delivery";
   return null;
 }
 

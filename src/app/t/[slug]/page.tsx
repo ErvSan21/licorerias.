@@ -6,15 +6,8 @@ import { cargarEscaparate } from "@/lib/tienda/servicio";
 import { nombreVisible } from "@/lib/marca/reglas";
 import { normalizarSlug, slugReservado, slugValido } from "@/lib/tenant";
 
-export default async function TiendaPage({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ slug: string }>;
-  searchParams: Promise<{ elegir?: string }>;
-}) {
+export default async function TiendaPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const { elegir } = await searchParams;
   const normalizado = normalizarSlug(slug);
   if (!slugValido(normalizado) || slugReservado(normalizado)) notFound();
 
@@ -24,13 +17,13 @@ export default async function TiendaPage({
   } catch (error) {
     return falloPublico(error, normalizado);
   }
-  if (escaparate.sucursales.length === 1 && elegir !== "1") {
+  if (escaparate.sucursales.length === 1) {
     redirect(`/t/${normalizado}/s/${escaparate.sucursales[0].slug}`);
   }
   if (escaparate.sucursales.length === 0) {
     return <SucursalesVacias nombre={nombreVisible(escaparate.marca, escaparate.nombre)} />;
   }
-  return <EscaparatePanel escaparate={escaparate} elegir={elegir === "1"} />;
+  return <EscaparatePanel escaparate={escaparate} />;
 }
 
 function SucursalesVacias({ nombre }: { nombre: string }) {

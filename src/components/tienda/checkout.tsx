@@ -9,10 +9,15 @@ import { useTienda, type DatosPedido } from "@/components/tienda/contexto";
 import { Button } from "@/components/ui/button";
 import { Dialogo } from "@/components/ui/dialogo";
 import { InlineLoader } from "@/components/ui/inline-loader";
+import { SegmentedControl } from "@/components/ui/segmented-control";
+import { SelectorCantidad } from "@/components/ui/selector-cantidad";
 import { exitoMs } from "@/components/ui/tokens";
 import { useAsyncAction } from "@/components/ui/use-async-action";
-import { formatoBs, formatoFechaPrecio } from "@/lib/catalogo/reglas";
-import { opcionesRecojo } from "@/lib/tienda/reglas";
+import { ImagenConCarga } from "@/components/ui/imagen";
+import { formatoBs } from "@/lib/catalogo/reglas";
+import { capitalizar } from "@/lib/texto";
+
+type Pago = DatosPedido["metodoPago"];
 
 export function Checkout({ telefonoInicial }: { telefonoInicial: string }) {
   const router = useRouter();
@@ -23,23 +28,22 @@ export function Checkout({ telefonoInicial }: { telefonoInicial: string }) {
   const [telefono, setTelefono] = useState(telefonoInicial);
   const [direccion, setDireccion] = useState("");
   const [referencia, setReferencia] = useState("");
+  const [pago, setPago] = useState<Pago>("efectivo");
   const [punto, setPunto] = useState<{ lat: number; lng: number } | null>(
     sucursal.lat != null && sucursal.lng != null ? { lat: sucursal.lat, lng: sucursal.lng } : null,
   );
-  const [hora, setHora] = useState("");
-  const horas = opcionesRecojo(sucursal.horario, sucursal.minutosRecojo, new Date());
   const publicarEnvio = useEffectEvent(acciones.setEnvio);
   const envioAccion = useAsyncAction(async () => {
-    const respuesta = await acciones.confirmar({
+    return acciones.confirmar({
       nombre,
       telefono,
       direccion,
       referencia,
       lat: punto?.lat ?? null,
       lng: punto?.lng ?? null,
-      horaRecojo: hora || null,
+      horaRecojo: null,
+      metodoPago: pago,
     } satisfies DatosPedido);
-    return respuesta;
   });
 
   useEffect(() => {
@@ -86,70 +90,169 @@ export function Checkout({ telefonoInicial }: { telefonoInicial: string }) {
 
   if (!estado.checkout) return null;
 
-  const total = estado.total + (estado.entrega === "delivery" ? (estado.envio?.costo ?? 0) : 0);
+  const delivery = estado.entrega === "delivery";
+  const sinDelivery = delivery && !sucursal.aceptaDelivery;
+  const sinRecojo = estado.entrega === "recojo" && !sucursal.aceptaRecojo;
+  const qr = meta.vitrina.qrPagoUrl;
+  const costoEnvio = delivery ? (estado.envio?.costo ?? null) : 0;
+  const total = estado.total + (costoEnvio ?? 0);
+  const etiquetaBoton = !sucursal.abiertaAhora
+    ? "Sucursal cerrada"
+    : sinDelivery
+      ? "Esta sucursal no hace delivery"
+      : sinRecojo
+        ? "Esta sucursal no tiene recojo"
+        : delivery && estado.envioError
+        ? "Fuera de zona de entrega"
+        : "Confirmar pedido";
 
   return (
-    <Dialogo abierto titulo="Confirmar pedido" alCerrar={acciones.cerrarCheckout} alineacion="inferior" bloquearCierre={envioAccion.loading}>
-        <Lineas />
-        <form
+    <Dialogo
+      abierto
+      titulo="Tu pedido"
+      alCerrar={acciones.cerrarCheckout}
+      alineacion="inferior"
+      bloquearCierre={envioAccion.loading}
+    >
+      <Lineas />
+      <form
         className="mt-4 flex flex-col gap-3"
         onSubmit={(event) => {
           event.preventDefault();
+          if (!event.currentTarget.reportValidity()) return;
           void envioAccion.run().then((resultado) => {
-            if (resultado.omitida) return;
-            if (!resultado.valor.ok) return;
+            if (resultado.omitida || !resultado.valor.ok) return;
             const id = resultado.valor.valor;
-            window.setTimeout(() => {
-              router.push(`/t/${slug}/pedido/${id}`);
-            }, exitoMs);
+            window.setTimeout(() => router.push(`/t/${slug}/pedido/${id}`), exitoMs);
           });
         }}
       >
-        <Campo id="pedido-nombre" etiqueta="Nombre">
-          <input id="pedido-nombre" name="nombre" autoComplete="name" required value={nombre} onChange={(event) => setNombre(event.target.value)} className={claseCampo} />
-        </Campo>
-        <Campo id="pedido-telefono" etiqueta="Celular">
-          <input id="pedido-telefono" name="tel" type="tel" autoComplete="tel" inputMode="tel" required value={telefono} onChange={(event) => setTelefono(event.target.value)} className={claseCampo} />
-        </Campo>
         <Entrega />
-        {estado.entrega === "recojo" ? (
-          <Campo id="pedido-hora" etiqueta="Hora de recojo">
-            <select id="pedido-hora" name="hora-recojo" value={hora} onChange={(event) => setHora(event.target.value)} className={claseCampo}>
-              <option value="">Lo antes posible</option>
-              {horas.map((opcion) => (
-                <option key={opcion} value={opcion}>
-                  {formatoFechaPrecio(opcion)}
-                </option>
-              ))}
-            </select>
-          </Campo>
+
+        {estado.entrega === "recojo" && !sinRecojo ? (
+          <p className="text-sm text-[var(--mu)]">
+            Recoges en {sucursal.nombre}
+            {sucursal.direccion ? ` · ${sucursal.direccion}` : ""}.
+          </p>
         ) : null}
-        {estado.entrega === "delivery" ? (
+        {sinRecojo ? <p className="tienda-aviso">Esta sucursal no tiene recojo en tienda. Elige Delivery.</p> : null}
+        {sinDelivery ? <p className="tienda-aviso">Esta sucursal no hace delivery. Elige Recojo en tienda.</p> : null}
+
+        {delivery && !sinDelivery ? (
           <>
-            <MapaCliente
-              lat={punto?.lat ?? null}
-              lng={punto?.lng ?? null}
-              onMove={(lat, lng) => setPunto({ lat, lng })}
-            />
-            <div aria-live="polite">
+            <p className="text-sm text-[var(--mu)]">Mueve el pin a tu ubicación para calcular el envío.</p>
+            <MapaCliente lat={punto?.lat ?? null} lng={punto?.lng ?? null} onMove={(lat, lng) => setPunto({ lat, lng })} />
+            <div aria-live="polite" className="text-sm">
               {estado.envioCargando ? <InlineLoader>Calculando envío…</InlineLoader> : null}
-              {estado.envioError ? <p className="text-sm text-[var(--er)]">{estado.envioError}</p> : null}
-              {estado.envio ? (
-                <p className="text-sm tabular-nums">
-                  {estado.envio.distanciaKm} km · envío {formatoBs(estado.envio.costo)}
+              {estado.envioError ? <p className="text-[var(--er)]">{estado.envioError}</p> : null}
+              {estado.envio && !estado.envioCargando ? (
+                <p className="tabular-nums text-[var(--mu)]">
+                  Distancia {estado.envio.distanciaKm} km · envío {formatoBs(estado.envio.costo)}
                 </p>
               ) : null}
             </div>
             <Campo id="pedido-direccion" etiqueta="Dirección">
-              <input id="pedido-direccion" name="street-address" autoComplete="street-address" required value={direccion} onChange={(event) => setDireccion(event.target.value)} className={claseCampo} />
+              <input
+                id="pedido-direccion"
+                name="street-address"
+                autoComplete="street-address"
+                required
+                minLength={4}
+                value={direccion}
+                onChange={(event) => setDireccion(event.target.value)}
+                className={claseCampo}
+              />
             </Campo>
-            <Campo id="pedido-referencia" etiqueta="Referencia">
-              <input id="pedido-referencia" name="referencia" autoComplete="off" value={referencia} onChange={(event) => setReferencia(event.target.value)} className={claseCampo} />
+            <Campo id="pedido-referencia" etiqueta="Referencia (opcional)">
+              <input
+                id="pedido-referencia"
+                name="referencia"
+                autoComplete="off"
+                placeholder="Color de la casa, piso, timbre…"
+                value={referencia}
+                onChange={(event) => setReferencia(event.target.value)}
+                className={claseCampo}
+              />
             </Campo>
           </>
         ) : null}
-        <p className="text-base font-semibold tabular-nums">Total {formatoBs(total)}</p>
-        {envioAccion.error ? <p className="text-sm text-[var(--er)]">{envioAccion.error}</p> : null}
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Campo id="pedido-nombre" etiqueta="Nombre">
+            <input
+              id="pedido-nombre"
+              name="nombre"
+              autoComplete="name"
+              autoCapitalize="words"
+              required
+              minLength={2}
+              value={nombre}
+              onChange={(event) => setNombre(capitalizar(event.target.value))}
+              className={claseCampo}
+            />
+          </Campo>
+          <Campo id="pedido-telefono" etiqueta="Celular">
+            <input
+              id="pedido-telefono"
+              name="tel"
+              type="tel"
+              autoComplete="tel"
+              inputMode="tel"
+              placeholder="7XXXXXXX"
+              required
+              value={telefono}
+              onChange={(event) => setTelefono(event.target.value)}
+              className={claseCampo}
+            />
+          </Campo>
+        </div>
+
+        {qr ? (
+          <SegmentedControl
+            etiqueta="Método de pago"
+            valor={pago}
+            opciones={[
+              { valor: "efectivo", etiqueta: "Efectivo" },
+              { valor: "qr", etiqueta: "QR" },
+            ]}
+            onChange={setPago}
+          />
+        ) : null}
+        {pago === "qr" && qr ? (
+          <div className="tienda-qr">
+            <ImagenConCarga src={qr} alt="QR para pagar el pedido" width={320} height={320} className="tienda-qr-imagen" />
+            <p className="text-sm text-[var(--mu)]">
+              Escanea el QR y paga {formatoBs(total)}. La tienda verifica tu pago y te avisa.
+            </p>
+          </div>
+        ) : (
+          <p className="text-sm text-[var(--mu)]">
+            Pagas en efectivo al {delivery ? "recibir" : "recoger"} tu pedido.
+          </p>
+        )}
+
+        <dl className="tienda-resumen">
+          <div>
+            <dt>Subtotal</dt>
+            <dd className="tabular-nums">{formatoBs(estado.total)}</dd>
+          </div>
+          {delivery ? (
+            <div>
+              <dt>Envío</dt>
+              <dd className="tabular-nums">{costoEnvio == null ? "—" : formatoBs(costoEnvio)}</dd>
+            </div>
+          ) : null}
+          <div className="tienda-resumen-total">
+            <dt>Total</dt>
+            <dd className="tabular-nums">{formatoBs(total)}</dd>
+          </div>
+        </dl>
+
+        {envioAccion.error ? (
+          <p role="alert" className="text-sm text-[var(--er)]">
+            {envioAccion.error}
+          </p>
+        ) : null}
         <Button
           type="submit"
           loading={envioAccion.loading}
@@ -158,7 +261,7 @@ export function Checkout({ telefonoInicial }: { telefonoInicial: string }) {
           error={envioAccion.error ?? false}
           disabled={!estado.puedeConfirmar}
         >
-          Confirmar pedido
+          {etiquetaBoton}
         </Button>
       </form>
     </Dialogo>
@@ -167,37 +270,29 @@ export function Checkout({ telefonoInicial }: { telefonoInicial: string }) {
 
 function Lineas() {
   const { estado, acciones, meta } = useTienda();
-  if (estado.lineas.length === 0) return null;
+  if (estado.lineas.length === 0) {
+    return <p className="text-sm text-[var(--mu)]">Tu pedido está vacío. Agrega productos con el botón +.</p>;
+  }
   return (
-    <ul aria-label="Productos del pedido" className="flex flex-col gap-2">
+    <ul aria-label="Productos del pedido" className="flex flex-col gap-3">
       {estado.lineas.map((linea) => {
         const producto = meta.productos.get(linea.productoId);
         if (!producto) return null;
         return (
           <li key={linea.productoId} className="flex items-center justify-between gap-3">
             <span className="min-w-0">
-              <span className="block text-sm line-clamp-2">{producto.nombre}</span>
-              <span className="text-sm tabular-nums">{formatoBs(producto.precioFinal)}</span>
+              <span className="block break-words">{capitalizar(producto.nombre)}</span>
+              <span className="text-sm tabular-nums text-[var(--mu)]">{formatoBs(producto.precioFinal * linea.cantidad)}</span>
             </span>
-            <span className="flex shrink-0 items-center gap-1">
-              <button
-                type="button"
-                className="ui-boton min-h-11 min-w-11 rounded-lg border border-[var(--ln)] text-lg"
-                aria-label={`Quitar uno de ${producto.nombre}`}
-                onClick={() => acciones.cambiarCantidad(linea.productoId, linea.cantidad - 1)}
-              >
-                −
-              </button>
-              <span className="w-6 text-center text-sm tabular-nums">{linea.cantidad}</span>
-              <button
-                type="button"
-                className="ui-boton min-h-11 min-w-11 rounded-lg border border-[var(--ln)] text-lg"
-                aria-label={`Agregar uno de ${producto.nombre}`}
-                onClick={() => acciones.cambiarCantidad(linea.productoId, linea.cantidad + 1)}
-              >
-                +
-              </button>
-            </span>
+            <SelectorCantidad
+              valor={linea.cantidad}
+              min={0}
+              etiqueta={`Cantidad de ${capitalizar(producto.nombre)}`}
+              onChange={(valor) => {
+                acciones.cambiarCantidad(linea.productoId, valor);
+                if (valor === 0 && estado.lineas.length === 1) acciones.cerrarCheckout();
+              }}
+            />
           </li>
         );
       })}
@@ -205,23 +300,18 @@ function Lineas() {
   );
 }
 
+/** Recojo en tienda primero, delivery después. */
 function Entrega() {
-  const { estado, acciones, meta } = useTienda();
-  const { aceptaDelivery, aceptaRecojo } = meta.vitrina.sucursal;
-  if (aceptaDelivery === aceptaRecojo) {
-    return (
-      <fieldset className="flex flex-col gap-2">
-        <legend className="text-sm font-medium">Entrega</legend>
-        <label className="flex min-h-11 items-center gap-2 text-sm">
-          <input type="radio" name="entrega" checked={estado.entrega === "delivery"} onChange={() => acciones.setEntrega("delivery")} />
-          Delivery
-        </label>
-        <label className="flex min-h-11 items-center gap-2 text-sm">
-          <input type="radio" name="entrega" checked={estado.entrega === "recojo"} onChange={() => acciones.setEntrega("recojo")} />
-          Recojo en tienda
-        </label>
-      </fieldset>
-    );
-  }
-  return <p className="text-sm">{estado.entrega === "delivery" ? "Delivery" : "Recojo en tienda"}</p>;
+  const { estado, acciones } = useTienda();
+  return (
+    <SegmentedControl
+      etiqueta="Entrega"
+      valor={estado.entrega ?? "recojo"}
+      opciones={[
+        { valor: "recojo", etiqueta: "Recojo en tienda" },
+        { valor: "delivery", etiqueta: "Delivery" },
+      ]}
+      onChange={acciones.setEntrega}
+    />
+  );
 }

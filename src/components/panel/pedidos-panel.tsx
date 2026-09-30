@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { cambiarEstadoAccion } from "@/app/t/[slug]/pedidos/actions";
+import { cambiarEstadoAccion, confirmarPagoAccion } from "@/app/t/[slug]/pedidos/actions";
 import { useAvisoPedidos } from "@/components/panel/aviso-pedidos";
 import { Campo, claseCampo } from "@/components/super/campo";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import { formatoBs, formatoFechaPrecio } from "@/lib/catalogo/reglas";
 import {
   accionPedido,
   etiquetaEstadoPedido,
+  estadoPago,
   etiquetaMetodoPago,
   referenciaPedido,
   tonoEstadoPedido,
@@ -68,6 +69,7 @@ export function PedidosPanel({
                   <span className="flex flex-wrap items-center gap-1.5">
                     <Tag>{pedido.tipo === "delivery" ? "DELIVERY" : "RECOJO"}</Tag>
                     {pedido.metodoPago ? <Tag>{etiquetaMetodoPago(pedido.metodoPago).toUpperCase()}</Tag> : null}
+                    <EtiquetaPago pedido={pedido} />
                   </span>
                   <p className="font-display text-[17px] font-extrabold tabular-nums">{formatoBs(pedido.total)}</p>
                 </div>
@@ -135,9 +137,11 @@ export function AccionesPedido({
     if (!resultado.ok) throw new Error(resultado.error);
     return { aviso: resultado.aviso, whatsappOk: resultado.whatsappOk };
   });
-  if (lectura || !accion) return null;
+  const pagoPendiente = estadoPago(pedido)?.tono === "warn";
+  if (lectura || (!accion && !pagoPendiente)) return null;
   return (
     <div className="flex flex-wrap gap-2">
+      {accion ? (
       <Button
         type="button"
         size="sm"
@@ -157,7 +161,9 @@ export function AccionesPedido({
       >
         {accion.etiqueta}
       </Button>
-      {accion.cancelar ? (
+      ) : null}
+      {pagoPendiente ? <BotonPago slug={slug} pedido={pedido} /> : null}
+      {accion?.cancelar ? (
         <Button type="button" size="sm" variant="peligro" onClick={() => setCancelar(true)}>
           Cancelar
         </Button>
@@ -286,4 +292,41 @@ function Filtros({
 
 function Estado({ estado, origen }: { estado: EstadoPedido; origen: OrigenPedido }) {
   return <Tag tono={tonoEstadoPedido(estado)}>{etiquetaEstadoPedido(estado, origen)}</Tag>;
+}
+
+/** "Pendiente de pago" (efectivo) o "Verificar pago" (QR) hasta que el personal lo confirme. */
+export function EtiquetaPago({ pedido }: { pedido: PedidoLista }) {
+  const pago = estadoPago(pedido);
+  if (!pago) return null;
+  return <Tag tono={pago.tono}>{pago.etiqueta.toUpperCase()}</Tag>;
+}
+
+function BotonPago({ slug, pedido }: { slug: string; pedido: PedidoLista }) {
+  const publicar = useToast();
+  const router = useRouter();
+  const pago = useAsyncAction(async () => {
+    const resultado = await confirmarPagoAccion(slug, pedido.id);
+    if (!resultado.ok) throw new Error(resultado.error);
+    return resultado.aviso;
+  });
+  return (
+    <Button
+      type="button"
+      size="sm"
+      variant="secundario"
+      loading={pago.loading}
+      loadingLabel="Guardando…"
+      success={pago.success}
+      error={pago.error ?? false}
+      onClick={() => {
+        void pago.run().then((hecho) => {
+          if (hecho.omitida || !hecho.valor.ok) return;
+          publicar("exito", hecho.valor.valor);
+          router.refresh();
+        });
+      }}
+    >
+      {pedido.metodoPago === "qr" ? "Pago QR verificado" : "Pago recibido"}
+    </Button>
+  );
 }

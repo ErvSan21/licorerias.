@@ -39,6 +39,22 @@ export function esEstadoPedido(valor: string): valor is EstadoPedido {
 }
 
 /** Código corto que ve el personal: los 6 primeros caracteres del id. */
+/**
+ * Estado del cobro de un pedido de la tienda en línea.
+ * Efectivo: se cobra al entregar. QR: el personal tiene que verificar la transferencia.
+ */
+export function estadoPago(pedido: {
+  origen: OrigenPedido;
+  metodoPago: MetodoPago | null;
+  pagoConfirmado: boolean;
+  estado: EstadoPedido;
+}): { etiqueta: string; tono: "ok" | "warn" } | null {
+  if (pedido.origen === "panel" || pedido.estado === "cancelado") return null;
+  if (pedido.pagoConfirmado) return { etiqueta: "Pagado", tono: "ok" };
+  if (pedido.metodoPago === "qr") return { etiqueta: "Verificar pago", tono: "warn" };
+  return { etiqueta: "Pendiente de pago", tono: "warn" };
+}
+
 export function referenciaPedido(id: string): string {
   return id.replace(/-/g, "").slice(0, 6).toUpperCase();
 }

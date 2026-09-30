@@ -55,6 +55,8 @@ export type PedidoLista = {
   horaRecojo: string | null;
   estado: EstadoPedido;
   metodoPago: MetodoPago | null;
+  /** Efectivo recibido o QR verificado por el personal. */
+  pagoConfirmado: boolean;
   origen: OrigenPedido;
   vendidoPorId: string | null;
   creadoEn: string;
@@ -99,7 +101,7 @@ export async function listarPedidos(
     (fila) => fila.tienda_id === tienda.id && permitidas.has(fila.sucursal_id),
   );
   const ids = filas.map((fila) => fila.id);
-  const items = ids.length === 0 ? [] : await leerItems(ids, tienda.id);
+  const [items, pagados] = ids.length === 0 ? [[], new Set<string>()] : await Promise.all([leerItems(ids, tienda.id), leerPagados(ids)]);
   const porPedido = new Map<string, ItemPedido[]>();
   for (const item of items) {
     const lista = porPedido.get(item.pedidoId) ?? [];
@@ -107,7 +109,9 @@ export async function listarPedidos(
     porPedido.set(item.pedidoId, lista);
   }
 
-  let pedidos = filas.map((fila) => aLista(fila, nombres.get(fila.sucursal_id) ?? "Sucursal", porPedido.get(fila.id) ?? []));
+  let pedidos = filas.map((fila) =>
+    aLista(fila, nombres.get(fila.sucursal_id) ?? "Sucursal", porPedido.get(fila.id) ?? [], pagados.has(fila.id)),
+  );
   if (filtro.tipo === "recojo") {
     pedidos = pedidos.toSorted((a, b) => {
       if (a.horaRecojo && b.horaRecojo) return a.horaRecojo.localeCompare(b.horaRecojo);
@@ -146,11 +150,12 @@ export async function leerPedido(slug: string, pedidoId: string): Promise<{
     .eq("id", cruda.sucursal_id)
     .maybeSingle();
   if (errorSucursal) throw new Error(errorSucursal.message);
-  const items = await leerItems([cruda.id], tienda.id);
+  const [items, pagados] = await Promise.all([leerItems([cruda.id], tienda.id), leerPagados([cruda.id])]);
   const pedido = aLista(
     cruda,
     (sucursal as { nombre: string } | null)?.nombre ?? "Sucursal",
     items.map((item) => item.item),
+    pagados.has(cruda.id),
   );
   const { data, error } = await service
     .from("pedido_historial")
@@ -201,6 +206,7 @@ export async function crearPedidoPublico(input: {
   referencia: string;
   horaRecojo: string | null;
   items: { productoId: string; cantidad: number }[];
+  metodoPago?: MetodoPago | null;
 }): Promise<string> {
   if (!esUuid(input.sucursalId)) throw new NegocioError("La sucursal no pertenece a la tienda.");
   let distancia = 0;
@@ -239,6 +245,11 @@ export async function crearPedidoPublico(input: {
   });
   if (error) lanzar(error.message);
   if (typeof data !== "string") throw new Error("No se creó el pedido.");
+  if (input.metodoPago) {
+    // El pedido ya existe: si no se guarda el pago, igual llega y se cobra al entregar.
+    const { error: errorPago } = await service.from("pedidos").update({ metodo_pago: input.metodoPago }).eq("id", data);
+    if (errorPago) console.error("método de pago del pedido", errorPago.message);
+  }
   await notificarEstado(data, "pendiente");
   return data;
 }
@@ -277,6 +288,11 @@ export async function crearPedidoPersonal(
         : "El pedido se registró, pero no se guardaron los datos de la venta.",
     );
   }
+  const { error: errorPago } = await service
+    .from("pedidos")
+    .update({ pago_confirmado_en: new Date().toISOString(), pago_confirmado_por: staff.userId })
+    .eq("id", id);
+  if (errorPago && !/pago_confirmado/.test(errorPago.message)) console.error("pago de la venta", errorPago.message);
   await service
     .from("pedido_historial")
     .update({ user_id: staff.userId })
@@ -284,6 +300,54 @@ export async function crearPedidoPersonal(
     .eq("estado", "pendiente")
     .is("user_id", null);
   return id;
+}
+
+/** El personal confirma que cobró el efectivo o verificó el pago por QR. */
+export async function confirmarPago(slug: string, pedidoId: string): Promise<void> {
+  if (!esUuid(pedidoId)) throw new NoEncontrado();
+  const { tienda, staff } = await exigir(slug, null, ROLES_TIENDA);
+  await exigirLicenciaParaEscribir(tienda.id);
+  const permitidas = await sucursalesPermitidas(staff.miembroId, staff.rol, tienda.id);
+  const service = createServiceClient();
+  const { data, error } = await service
+    .from("pedidos")
+    .select("id, sucursal_id, estado")
+    .eq("id", pedidoId)
+    .eq("tienda_id", tienda.id)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  const fila = data as { id: string; sucursal_id: string; estado: string } | null;
+  if (!fila || !permitidas.has(fila.sucursal_id)) throw new NoEncontrado();
+  if (fila.estado === "cancelado") throw new NegocioError("El pedido está cancelado.");
+  const { error: errorPago } = await service
+    .from("pedidos")
+    .update({ pago_confirmado_en: new Date().toISOString(), pago_confirmado_por: staff.userId })
+    .eq("id", pedidoId)
+    .eq("tienda_id", tienda.id);
+  if (errorPago) {
+    if (/pago_confirmado/.test(errorPago.message)) {
+      throw new NegocioError("Falta aplicar la migración de pagos en la base de datos (supabase/pendientes.sql).");
+    }
+    throw new Error(errorPago.message);
+  }
+  await registrarAuditoria({
+    userId: staff.userId,
+    tiendaId: tienda.id,
+    accion: "pedido.pago_confirmado",
+    detalle: { pedido_id: pedidoId },
+  });
+}
+
+/** Pedidos con el pago confirmado. Sin la migración aplicada, ninguno. */
+async function leerPagados(ids: string[]): Promise<Set<string>> {
+  const service = createServiceClient();
+  const { data, error } = await service.from("pedidos").select("id, pago_confirmado_en").in("id", ids);
+  if (error) return new Set();
+  return new Set(
+    ((data ?? []) as { id: string; pago_confirmado_en: string | null }[])
+      .filter((fila) => fila.pago_confirmado_en)
+      .map((fila) => fila.id),
+  );
 }
 
 export async function cambiarEstadoPedido(slug: string, pedidoId: string, estado: string): Promise<boolean> {
@@ -354,7 +418,7 @@ async function leerItems(ids: string[], tiendaId: string) {
     }));
 }
 
-function aLista(fila: FilaPedido, sucursal: string, items: ItemPedido[]): PedidoLista {
+function aLista(fila: FilaPedido, sucursal: string, items: ItemPedido[], pagoConfirmado: boolean): PedidoLista {
   const tipo = fila.tipo_entrega === "delivery" ? "delivery" : "recojo";
   return {
     id: fila.id,
@@ -375,6 +439,8 @@ function aLista(fila: FilaPedido, sucursal: string, items: ItemPedido[]): Pedido
     horaRecojo: fila.hora_recojo,
     estado: esEstado(fila.estado) ? fila.estado : "pendiente",
     metodoPago: fila.metodo_pago === "qr" || fila.metodo_pago === "efectivo" ? fila.metodo_pago : null,
+    // Las ventas del panel se cobran en el mostrador.
+    pagoConfirmado: pagoConfirmado || fila.origen === "panel",
     origen: esOrigenPedido(fila.origen) ? fila.origen : "tienda",
     vendidoPorId: fila.vendido_por ?? null,
     creadoEn: fila.creado_en,

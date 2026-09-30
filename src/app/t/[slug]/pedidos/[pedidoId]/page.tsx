@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { AccionesPedido } from "@/components/panel/pedidos-panel";
+import { AccionesPedido, EtiquetaPago } from "@/components/panel/pedidos-panel";
 import { BotonVolver } from "@/components/ui/boton-volver";
 import { Tag } from "@/components/ui/tag";
 import { contextoPanel } from "@/lib/auth/panel";
@@ -52,7 +52,10 @@ export default async function PedidoPage({
             {pedido.origen === "panel" ? "Venta en el panel" : "Pedido de la tienda en línea"} · {pedido.sucursal}
           </p>
         </div>
-        <Tag tono={tonoEstadoPedido(pedido.estado)}>{etiquetaEstadoPedido(pedido.estado, pedido.origen)}</Tag>
+        <span className="flex shrink-0 flex-col items-end gap-1.5">
+          <Tag tono={tonoEstadoPedido(pedido.estado)}>{etiquetaEstadoPedido(pedido.estado, pedido.origen)}</Tag>
+          <EtiquetaPago pedido={pedido} />
+        </span>
       </div>
 
       <section className="dashboard-tarjeta" aria-labelledby="datos-pedido">

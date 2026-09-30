@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { AccesoError, mensajeAcceso, NoEncontrado } from "@/lib/auth/errors";
 import { NegocioError } from "@/lib/licencias/reglas";
-import { cambiarEstadoPedido } from "@/lib/pedidos/servicio";
+import { cambiarEstadoPedido, confirmarPago } from "@/lib/pedidos/servicio";
 
 type Resultado = { ok: true; aviso: string; whatsappOk: boolean } | { ok: false; error: string };
 
@@ -18,6 +18,20 @@ export async function cambiarEstadoAccion(slug: string, pedidoId: string, estado
       whatsappOk,
       aviso: whatsappOk ? "Estado actualizado." : "No se pudo avisar por WhatsApp.",
     };
+  } catch (error) {
+    return { ok: false, error: mensaje(error) };
+  }
+}
+
+export async function confirmarPagoAccion(
+  slug: string,
+  pedidoId: string,
+): Promise<{ ok: true; aviso: string } | { ok: false; error: string }> {
+  try {
+    await confirmarPago(slug, pedidoId);
+    revalidatePath(`/t/${slug}/pedidos`);
+    revalidatePath(`/t/${slug}/pedidos/${pedidoId}`);
+    return { ok: true, aviso: "Pago confirmado." };
   } catch (error) {
     return { ok: false, error: mensaje(error) };
   }

@@ -3,7 +3,8 @@ import "server-only";
 import { AccesoError, NoEncontrado } from "@/lib/auth/errors";
 import { createServiceClient } from "@/lib/supabase/service";
 
-import { leerMarcaPublica } from "@/lib/marca/servicio";
+import { resolveTenantBySlug } from "@/lib/auth/panel";
+import { leerMarcaPublica, leerQrPago } from "@/lib/marca/servicio";
 import type { MarcaPublica } from "@/lib/marca/reglas";
 import type { Horario } from "@/lib/sucursales/reglas";
 
@@ -50,6 +51,8 @@ export type ProductoPublico = {
 
 export type Vitrina = {
   marca: MarcaPublica;
+  /** Imagen del QR de cobro; null si la tienda no lo cargó. */
+  qrPagoUrl: string | null;
   tienda: { nombre: string; slug: string };
   sucursal: {
     id: string;
@@ -86,10 +89,13 @@ export async function cargarVitrina(tienda: string, sucursal: string): Promise<V
   const service = createServiceClient();
   const rpcPromise = service.rpc("vitrina_publica", { p_tienda: tienda, p_sucursal: sucursal });
   const marcaPromise = leerMarcaPublica(tienda);
+  const qrPromise = resolveTenantBySlug(tienda)
+    .then((fila) => (fila ? leerQrPago(fila.id) : null))
+    .catch(() => null);
   const { data, error } = await rpcPromise;
   if (error) lanzar(error.message);
-  const marca = await marcaDe(marcaPromise);
-  return { ...vitrinaDesdeJson(data), marca };
+  const [marca, qrPagoUrl] = await Promise.all([marcaDe(marcaPromise), qrPromise]);
+  return { ...vitrinaDesdeJson(data), marca, qrPagoUrl };
 }
 
 async function marcaDe(promesa: Promise<MarcaPublica>): Promise<MarcaPublica> {
@@ -120,7 +126,7 @@ function sucursalPublica(valor: unknown): SucursalPublica[] {
   ];
 }
 
-function vitrinaDesdeJson(data: unknown): Omit<Vitrina, "marca"> {
+function vitrinaDesdeJson(data: unknown): Omit<Vitrina, "marca" | "qrPagoUrl"> {
   const fila = data as {
     tienda?: { nombre?: unknown; slug?: unknown };
     sucursal?: Record<string, unknown>;

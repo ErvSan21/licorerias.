@@ -23,6 +23,8 @@ export type { MarcaPublica } from "./reglas";
 
 const MAX_IMAGEN = 1_500_000;
 
+type Pieza = "logo" | "banner" | "qr";
+
 type Archivo = { bytes: Uint8Array; tipo: "image/jpeg" | "image/png" | "image/webp" };
 
 type Fila = {
@@ -98,7 +100,52 @@ export async function guardarMarca(
   return { nombreComercial, logoUrl, colorPrimario, bannerUrl, mensajeBienvenida };
 }
 
-export async function archivoMarca(datos: FormData, campo: "logo" | "banner"): Promise<Archivo | null> {
+/** QR de cobro que el cliente ve al elegir "QR". Solo el dueño lo ve y lo cambia. */
+export async function leerQrPagoDueno(slug: string): Promise<string | null> {
+  const tienda = await resolveTenantBySlug(slug);
+  if (!tienda) throw new NoEncontrado();
+  await requireStaff({ tiendaId: tienda.id, sucursalId: null, roles: ["dueno"] });
+  return leerQrPago(tienda.id);
+}
+
+/** QR de cobro para la tienda pública. Sin la migración aplicada, no hay QR. */
+export async function leerQrPago(tiendaId: string): Promise<string | null> {
+  const service = createServiceClient();
+  const { data, error } = await service
+    .from("configuracion_tienda")
+    .select("qr_pago_url")
+    .eq("tienda_id", tiendaId)
+    .maybeSingle();
+  if (error) return null;
+  return (data as { qr_pago_url: string | null } | null)?.qr_pago_url ?? null;
+}
+
+export async function guardarQrPago(slug: string, archivo: Archivo | null, quitar: boolean): Promise<string | null> {
+  const tienda = await resolveTenantBySlug(slug);
+  if (!tienda) throw new NoEncontrado();
+  const staff = await requireStaff({ tiendaId: tienda.id, sucursalId: null, roles: ["dueno"] });
+  await exigirLicenciaParaEscribir(tienda.id);
+  if (!archivo && !quitar) throw new NegocioError("Elige la imagen del QR.");
+  const url = archivo ? await subir(tienda.id, "qr", archivo) : null;
+  if (!archivo) await borrar(tienda.id, "qr");
+  const service = createServiceClient();
+  const { error } = await service.from("configuracion_tienda").update({ qr_pago_url: url }).eq("tienda_id", tienda.id);
+  if (error) {
+    if (/qr_pago_url/.test(error.message)) {
+      throw new NegocioError("Falta aplicar la migración de pagos en la base de datos (supabase/pendientes.sql).");
+    }
+    throw new Error(error.message);
+  }
+  await registrarAuditoria({
+    userId: staff.userId,
+    tiendaId: tienda.id,
+    accion: url ? "pagos.qr_guardar" : "pagos.qr_quitar",
+    detalle: {},
+  });
+  return url;
+}
+
+export async function archivoMarca(datos: FormData, campo: Pieza): Promise<Archivo | null> {
   const archivo = datos.get(campo);
   if (!(archivo instanceof File) || archivo.size === 0) return null;
   if (archivo.size > MAX_IMAGEN) {
@@ -129,7 +176,7 @@ async function leerFila(tiendaId: string): Promise<MarcaPublica> {
   };
 }
 
-async function subir(tiendaId: string, pieza: "logo" | "banner", imagen: Archivo): Promise<string> {
+async function subir(tiendaId: string, pieza: Pieza, imagen: Archivo): Promise<string> {
   const extension = imagen.tipo === "image/png" ? "png" : imagen.tipo === "image/webp" ? "webp" : "jpg";
   const ruta = `${tiendaId}/marca/${pieza}.${extension}`;
   const service = createServiceClient();
@@ -143,11 +190,11 @@ async function subir(tiendaId: string, pieza: "logo" | "banner", imagen: Archivo
   return `${publica.data.publicUrl}?v=${Date.now()}`;
 }
 
-async function borrar(tiendaId: string, pieza: "logo" | "banner"): Promise<void> {
+async function borrar(tiendaId: string, pieza: Pieza): Promise<void> {
   await borrarOtras(tiendaId, pieza, null);
 }
 
-async function borrarOtras(tiendaId: string, pieza: "logo" | "banner", conservar: string | null): Promise<void> {
+async function borrarOtras(tiendaId: string, pieza: Pieza, conservar: string | null): Promise<void> {
   const rutas = ["jpg", "png", "webp"]
     .filter((extension) => extension !== conservar)
     .map((extension) => `${tiendaId}/marca/${pieza}.${extension}`);

@@ -7,6 +7,7 @@ import { createContext, startTransition, use, useEffect, useRef, useState } from
 import { cambiarEstadoAccion } from "@/app/t/[slug]/pedidos/actions";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
+import { Tag } from "@/components/ui/tag";
 import { useToast } from "@/components/ui/toast";
 import { formatoBs } from "@/lib/catalogo/reglas";
 import { referenciaPedido } from "@/lib/pedidos/reglas";
@@ -15,7 +16,13 @@ import { crearClienteNavegador } from "@/lib/supabase/navegador";
 const AvisoPedidosContext = createContext<Set<string>>(new Set());
 
 /** Pedido de la tienda en línea que todavía nadie aceptó. */
-type PorAceptar = { id: string; nombre: string; tipo: "delivery" | "recojo"; total: number };
+type PorAceptar = {
+  id: string;
+  nombre: string;
+  tipo: "delivery" | "recojo";
+  total: number;
+  metodoPago: "qr" | "efectivo" | null;
+};
 
 type FilaPedido = {
   id?: string;
@@ -23,6 +30,7 @@ type FilaPedido = {
   origen?: string;
   cliente_nombre?: string;
   tipo_entrega?: string;
+  metodo_pago?: string | null;
   total?: number | string;
 };
 
@@ -69,7 +77,7 @@ function usePedidosNuevos(sucursales: string[]) {
     // Al entrar al panel, los pedidos web que siguen sin aceptar vuelven a sonar.
     void supabase
       .from("pedidos")
-      .select("id, estado, origen, cliente_nombre, tipo_entrega, total")
+      .select("id, estado, origen, cliente_nombre, tipo_entrega, total, metodo_pago")
       .in("sucursal_id", ids)
       .eq("estado", "pendiente")
       .eq("origen", "tienda")
@@ -136,6 +144,7 @@ function porAceptarDe(fila: FilaPedido): PorAceptar | null {
     nombre: fila.cliente_nombre?.trim() || "Cliente",
     tipo: fila.tipo_entrega === "delivery" ? "delivery" : "recojo",
     total: Number(fila.total ?? 0),
+    metodoPago: fila.metodo_pago === "qr" || fila.metodo_pago === "efectivo" ? fila.metodo_pago : null,
   };
 }
 
@@ -245,6 +254,13 @@ function AvisoPorAceptar({
             </p>
             <p className="text-sm text-[var(--mu)]">
               {pedido.tipo === "delivery" ? "Delivery" : "Recojo en tienda"} · {formatoBs(pedido.total)}
+            </p>
+            <p className="mt-1.5">
+              {pedido.metodoPago === "qr" ? (
+                <Tag tono="warn">VERIFICAR PAGO · QR</Tag>
+              ) : (
+                <Tag tono="warn">PENDIENTE DE PAGO · EFECTIVO</Tag>
+              )}
             </p>
           </div>
           {pedidos.length > 1 ? (

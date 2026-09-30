@@ -5,7 +5,7 @@ import { contextoPanel } from "@/lib/auth/panel";
 import { usuarioVerificado } from "@/lib/auth/staff";
 import { normalizarSlug } from "@/lib/tenant";
 
-type Ajuste = { href: string; titulo: string; descripcion: string; icono: "marca" | "envio" | "sucursales" | "personal" };
+type Ajuste = { href: string; titulo: string; descripcion: string; icono: "marca" | "envio" | "sucursales" | "personal" | "pagos" };
 
 export default async function ConfiguracionPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -42,6 +42,12 @@ export default async function ConfiguracionPage({ params }: { params: Promise<{ 
     },
     ...(dueno
       ? [
+          {
+            href: `${base}/configuracion/pagos`,
+            titulo: "Cobro con QR",
+            descripcion: "La imagen del QR que ve el cliente al pagar con QR.",
+            icono: "pagos" as const,
+          },
           {
             href: `${base}/personal`,
             titulo: "Personal",
@@ -95,6 +101,16 @@ function Icono({ nombre }: { nombre: Ajuste["icono"] }) {
         <circle cx="7.5" cy="11" r="1" />
         <circle cx="10.5" cy="7.5" r="1" />
         <circle cx="15" cy="8" r="1" />
+      </svg>
+    );
+  }
+  if (nombre === "pagos") {
+    return (
+      <svg {...props}>
+        <rect x="4" y="4" width="6" height="6" rx="1" />
+        <rect x="14" y="4" width="6" height="6" rx="1" />
+        <rect x="4" y="14" width="6" height="6" rx="1" />
+        <path d="M14 14h2v2h-2zM18 18h2v2h-2zM14 18h2M18 14h2" />
       </svg>
     );
   }

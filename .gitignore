@@ -40,3 +40,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Archivos locales de desarrollo
+.claude/launch.json
+.claude/settings.local.json
+.claude/.headroom*
+# SQL para pegar a mano en Supabase; lo versionado va en supabase/migrations
+supabase/pendientes.sql

@@ -1714,3 +1714,453 @@ li + li > .configuracion-fila {
 #contenido main {
   animation: ui-aparecer var(--ui-duracion-media) var(--ui-ease);
 }
+
+/* ── Tienda pública ───────────────────────────────────────────────
+   Una columna en celular; en escritorio se abre a 3 y 4 columnas. */
+.tienda {
+  display: flex;
+  width: 100%;
+  max-width: 980px;
+  flex-direction: column;
+  gap: 16px;
+  margin-inline: auto;
+  padding: 16px var(--px) calc(96px + env(safe-area-inset-bottom));
+}
+
+.tienda-portada {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--ln);
+  border-radius: 20px;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--br) 14%, var(--sf)),
+    color-mix(in srgb, var(--br2) 10%, var(--sf))
+  );
+}
+
+.tienda-portada-imagen {
+  display: block;
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+}
+
+@media (min-width: 700px) {
+  .tienda-portada-imagen {
+    height: 240px;
+  }
+}
+
+.tienda-portada-texto {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 22px 18px;
+}
+
+/* Con banner, el nombre va sobre la imagen con un degradé para que se lea. */
+.tienda-portada-banner .tienda-portada-texto {
+  position: absolute;
+  inset: auto 0 0;
+  padding-top: 48px;
+  background: linear-gradient(180deg, transparent, rgb(8 14 28 / 0.78));
+  color: #fff;
+}
+
+.tienda-portada-banner .tienda-bienvenida {
+  color: rgb(255 255 255 / 0.86);
+}
+
+.tienda-logo {
+  width: 56px;
+  height: 56px;
+  flex: none;
+  border-radius: 14px;
+  box-shadow: 0 0 0 2px var(--sf);
+}
+
+.tienda-nombre {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+@media (min-width: 700px) {
+  .tienda-nombre {
+    font-size: 36px;
+  }
+}
+
+.tienda-bienvenida {
+  margin-top: 6px;
+  color: var(--mu);
+  text-wrap: pretty;
+}
+
+/* Sucursales: tarjetas que se deslizan de lado; la elegida queda marcada. */
+.tienda-sucursales {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  margin-inline: calc(-1 * var(--px));
+  padding: 2px var(--px) 4px;
+}
+
+.tienda-sucursales::-webkit-scrollbar {
+  display: none;
+}
+
+.tienda-sucursal {
+  display: flex;
+  width: 230px;
+  flex: none;
+  flex-direction: column;
+  gap: 2px;
+  border: 1px solid var(--ln);
+  border-radius: 16px;
+  background: var(--sf);
+  color: var(--tx);
+  padding: 12px 14px;
+  scroll-snap-align: start;
+  text-align: left;
+  transition: border-color var(--e1) var(--ease), box-shadow var(--e1) var(--ease);
+}
+
+.tienda-sucursal:hover {
+  border-color: color-mix(in srgb, var(--br) 45%, var(--ln));
+}
+
+.tienda-sucursal[aria-checked="true"] {
+  border-color: var(--br);
+  box-shadow: 0 0 0 1px var(--br), 0 8px 22px -14px var(--br);
+}
+
+.tienda-sucursal:focus-visible {
+  outline: 2px solid var(--ui-foco);
+  outline-offset: 2px;
+}
+
+.tienda-sucursal-direccion {
+  overflow: hidden;
+  color: var(--mu);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tienda-sucursal-estado {
+  color: var(--mu);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.tienda-aviso {
+  border: 1px solid color-mix(in srgb, var(--wa) 45%, var(--ln));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--wa) 10%, var(--sf));
+  color: var(--tx);
+  padding: 10px 12px;
+  font-size: 14px;
+}
+
+.tienda-cambiando {
+  opacity: 0.55;
+  transition: opacity var(--e2) var(--ease);
+}
+
+.tienda-buscar {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid var(--ln);
+  border-radius: 12px;
+  background: var(--sf);
+  color: var(--tx);
+  padding: 0 14px;
+  font-size: 16px;
+  transition: border-color var(--e1) var(--ease);
+}
+
+.tienda-buscar::placeholder {
+  color: var(--mu);
+}
+
+.tienda-buscar:focus-visible {
+  border-color: var(--br);
+  outline: 2px solid color-mix(in srgb, var(--br) 35%, transparent);
+  outline-offset: 1px;
+}
+
+.tienda-seccion {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 4px 0 10px;
+}
+
+.tienda-seccion h2 {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.tienda-seccion span {
+  color: var(--mu);
+  font-size: 14px;
+}
+
+.tienda-carrusel {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  margin-inline: calc(-1 * var(--px));
+  padding: 2px var(--px) 8px;
+}
+
+.tienda-carrusel::-webkit-scrollbar {
+  display: none;
+}
+
+.tienda-carrusel-item {
+  width: 170px;
+  flex: none;
+  scroll-snap-align: start;
+}
+
+.tienda-grilla {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+@media (min-width: 640px) {
+  .tienda-grilla {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 900px) {
+  .tienda-grilla {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+  }
+}
+
+.tienda-tarjeta {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--ln);
+  border-radius: 16px;
+  background: var(--sf);
+  transition: border-color var(--e1) var(--ease), box-shadow var(--e1) var(--ease);
+}
+
+.tienda-tarjeta:hover {
+  border-color: color-mix(in srgb, var(--br) 35%, var(--ln));
+  box-shadow: 0 10px 26px -18px color-mix(in srgb, var(--br) 70%, transparent);
+}
+
+.tienda-tarjeta-agotada .tienda-tarjeta-foto {
+  filter: grayscale(1);
+  opacity: 0.6;
+}
+
+/* Fondo claro de estudio: las botellas se ven igual en tema claro y oscuro. */
+.tienda-tarjeta-foto {
+  position: relative;
+  display: grid;
+  aspect-ratio: 1 / 1;
+  place-items: center;
+  overflow: hidden;
+  background: linear-gradient(180deg, #f5f5f3, #dededa);
+}
+
+.tienda-tarjeta-foto:focus-visible {
+  outline: 2px solid var(--ui-foco);
+  outline-offset: -2px;
+}
+
+.tienda-foto {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.tienda-foto-vacia {
+  color: #9aa3b2;
+  font-family: var(--font-display);
+  font-size: 44px;
+  font-weight: 800;
+}
+
+.tienda-descuento {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  border-radius: 999px;
+  background-image: var(--gr);
+  color: var(--brt);
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.tienda-tarjeta-cuerpo {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px;
+}
+
+.tienda-tarjeta-nombre {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.25;
+  text-wrap: pretty;
+}
+
+.tienda-precio {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.tienda-precio s {
+  color: var(--mu);
+  font-size: 12px;
+}
+
+.tienda-precio span {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+/* − cantidad + ocupa el ancho de la tarjeta, como en el prototipo. */
+.tienda-tarjeta .ui-cantidad {
+  display: flex;
+  justify-content: space-between;
+  margin-top: auto;
+  border-radius: 12px;
+  background: var(--sf2);
+  padding: 3px;
+}
+
+.tienda-tarjeta .ui-cantidad > button {
+  min-width: 40px;
+  min-height: 36px;
+  border-radius: 9px;
+}
+
+.tienda-agotado {
+  display: grid;
+  min-height: 42px;
+  margin-top: auto;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--sf2);
+  color: var(--mu);
+  font-weight: 600;
+}
+
+.tienda-detalle-foto {
+  display: grid;
+  aspect-ratio: 4 / 3;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #f5f5f3, #dededa);
+}
+
+.tienda-flotante {
+  bottom: calc(18px + env(safe-area-inset-bottom));
+  box-shadow: 0 10px 28px -10px color-mix(in srgb, var(--br) 70%, rgb(0 0 0 / 0.5));
+}
+
+.tienda-resumen {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-top: 1px solid var(--ln);
+  padding-top: 12px;
+}
+
+.tienda-resumen > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.tienda-resumen dt {
+  color: var(--mu);
+}
+
+.tienda-resumen dd {
+  font-weight: 600;
+}
+
+.tienda-resumen-total dt {
+  color: var(--tx);
+  font-weight: 700;
+}
+
+.tienda-resumen-total dd {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 800;
+}
+
+/* En escritorio la hoja del pedido se abre centrada, no pegada abajo. */
+@media (min-width: 900px) {
+  .ui-anclado-inferior:has(.tienda-resumen) {
+    align-items: center;
+  }
+
+  .ui-anclado-inferior:has(.tienda-resumen) .ui-hoja {
+    border-bottom: 1px solid var(--ln);
+    border-radius: 22px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tienda-sucursal,
+  .tienda-tarjeta,
+  .tienda-cambiando {
+    transition: none;
+  }
+}
+
+/* QR de cobro en el pedido: grande y sobre blanco para que se pueda escanear. */
+.tienda-qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--ln);
+  border-radius: 16px;
+  background: var(--sf2);
+  padding: 14px;
+  text-align: center;
+}
+
+.tienda-qr-imagen {
+  width: min(240px, 100%);
+  aspect-ratio: 1 / 1;
+  border-radius: 12px;
+  background: #fff;
+  object-fit: contain;
+  padding: 8px;
+}

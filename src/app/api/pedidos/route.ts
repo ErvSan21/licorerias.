@@ -13,7 +13,8 @@ export async function POST(request: Request) {
     if (!permitirIp(`tel:${pedido.telefono}`)) {
       return jsonPrivado({ error: "Demasiadas consultas. Espera un momento." }, 429);
     }
-    const id = await crearPedidoPublico(pedido);
+    const metodoPago = cuerpo.metodoPago === "qr" || cuerpo.metodoPago === "efectivo" ? cuerpo.metodoPago : null;
+    const id = await crearPedidoPublico({ ...pedido, metodoPago });
     return jsonPrivado({ id }, 201);
   } catch (error) {
     return responderEnvio(error);
